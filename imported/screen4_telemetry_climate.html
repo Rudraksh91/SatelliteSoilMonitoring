@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TERRA-CORE | Telemetry &amp; Climate</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        .animate-pulse-glow { animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scanline-effect::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, transparent, rgba(0, 255, 65, 0.05) 50%, transparent);
+            animation: scanline 8s linear infinite;
+            pointer-events: none;
+        }
+
+        .glass-panel {
+            background: rgba(15, 20, 18, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-grid {
+            background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0a0f0d; }
+        ::-webkit-scrollbar-thumb { background: #313633; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ff41; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-on-surface": "#2c322f",
+                      "secondary": "#d3fbff",
+                      "surface-variant": "#313633",
+                      "error-container": "#93000a",
+                      "tertiary-fixed-dim": "#ffb4a2",
+                      "inverse-surface": "#dfe4e0",
+                      "surface-container-high": "#262b29",
+                      "secondary-fixed": "#7df4ff",
+                      "on-tertiary": "#611200",
+                      "tertiary": "#fff8f6",
+                      "surface": "#0f1412",
+                      "surface-container-lowest": "#0a0f0d",
+                      "on-surface": "#dfe4e0",
+                      "on-secondary-fixed-variant": "#004f54",
+                      "tertiary-container": "#ffd3c8",
+                      "on-background": "#dfe4e0",
+                      "on-surface-variant": "#b9ccb2",
+                      "on-tertiary-fixed-variant": "#891d00",
+                      "on-primary-fixed-variant": "#00530e",
+                      "on-primary-container": "#007117",
+                      "primary": "#ebffe2",
+                      "primary-fixed": "#72ff70",
+                      "primary-container": "#00ff41",
+                      "surface-container-highest": "#313633",
+                      "surface-bright": "#353a38",
+                      "secondary-fixed-dim": "#00dbe9",
+                      "on-error-container": "#ffdad6",
+                      "surface-container": "#1c211e",
+                      "inverse-primary": "#006e16",
+                      "outline": "#84967e",
+                      "on-primary": "#003907",
+                      "on-primary-fixed": "#002203",
+                      "on-tertiary-container": "#b82a00",
+                      "surface-container-low": "#181d1a",
+                      "on-secondary": "#00363a",
+                      "on-secondary-container": "#00686f",
+                      "background": "#0f1412",
+                      "tertiary-fixed": "#ffdad2",
+                      "error": "#ffb4ab",
+                      "secondary-container": "#00eefc",
+                      "surface-dim": "#0f1412",
+                      "primary-fixed-dim": "#00e639",
+                      "outline-variant": "#3b4b37",
+                      "on-tertiary-fixed": "#3c0700",
+                      "on-secondary-fixed": "#002022",
+                      "surface-tint": "#00e639",
+                      "on-error": "#690005"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "md": "24px",
+                      "base": "4px",
+                      "sm": "16px",
+                      "lg": "40px",
+                      "margin": "32px",
+                      "gutter": "20px",
+                      "xs": "8px",
+                      "xl": "64px"
+              },
+              "fontFamily": {
+                      "data-lg": ["JetBrains Mono"],
+                      "display-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-md": ["Inter"],
+                      "data-sm": ["JetBrains Mono"],
+                      "label-caps": ["JetBrains Mono"]
+              },
+              "fontSize": {
+                      "data-lg": ["20px", {"lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                      "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "1.2", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400"}],
+                      "data-sm": ["13px", {"lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "400"}],
+                      "label-caps": ["11px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-md overflow-hidden selection:bg-primary selection:text-on-primary">
+<!-- Sidebar Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full z-50 flex flex-col h-screen w-20 hover:w-64 transition-all duration-300 border-r border-white/10 bg-surface/80 backdrop-blur-xl shadow-[4px_0_24px_rgba(0,0,0,0.5)] group">
+<div class="p-sm flex items-center overflow-hidden">
+<span class="font-display-lg text-headline-md tracking-widest text-primary drop-shadow-[0_0_8px_rgba(0,255,65,0.4)] whitespace-nowrap">TERRA-CORE</span>
+</div>
+<nav class="flex-1 mt-md">
+<a class="flex items-center px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all group/item" href="#">
+<span class="material-symbols-outlined text-headline-md min-w-[48px] flex justify-center" data-icon="public">public</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity ml-xs">Global Map</span>
+</a>
+<a class="flex items-center px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all group/item" href="#">
+<span class="material-symbols-outlined text-headline-md min-w-[48px] flex justify-center" data-icon="analytics">analytics</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity ml-xs">Asset Analytics</span>
+</a>
+<a class="flex items-center px-sm py-xs text-primary border-r-2 border-primary bg-primary/10 group/item" href="#">
+<span class="material-symbols-outlined text-headline-md min-w-[48px] flex justify-center" data-icon="thermostat">thermostat</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity ml-xs">Climate Control</span>
+</a>
+<a class="flex items-center px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all group/item" href="#">
+<span class="material-symbols-outlined text-headline-md min-w-[48px] flex justify-center" data-icon="smart_toy">smart_toy</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity ml-xs">Automation Logic</span>
+</a>
+<a class="flex items-center px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all group/item" href="#">
+<span class="material-symbols-outlined text-headline-md min-w-[48px] flex justify-center" data-icon="monitor_heart">monitor_heart</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity ml-xs">System Health</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-white/10 pb-xl">
+<a class="flex items-center px-sm py-xs text-on-surface-variant/40 hover:text-secondary-fixed transition-all" href="#">
+<span class="material-symbols-outlined text-headline-md min-w-[48px] flex justify-center" data-icon="settings">settings</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity ml-xs">Settings</span>
+</a>
+<a class="flex items-center px-sm py-xs text-on-surface-variant/40 hover:text-secondary-fixed transition-all" href="#">
+<span class="material-symbols-outlined text-headline-md min-w-[48px] flex justify-center" data-icon="logout">logout</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity ml-xs">Log Out</span>
+</a>
+</div>
+</aside>
+<!-- Top Bar Navigation Shell -->
+<header class="fixed top-0 right-0 left-20 z-40 flex justify-between items-center px-sm h-16 border-b border-white/10 bg-surface/60 backdrop-blur-md">
+<div class="flex items-center gap-sm">
+<h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight">COMMAND CENTER</h1>
+<div class="h-4 w-px bg-white/20 mx-xs"></div>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Node: Central_Valley_09</span>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative group">
+<input class="bg-surface-container-low border border-outline-variant text-data-sm font-data-sm px-md py-xs focus:ring-1 focus:ring-primary-container focus:border-primary-container outline-none transition-all w-64" placeholder="QUERY SYSTEM..." type="text"/>
+<span class="material-symbols-outlined absolute right-xs top-1/2 -translate-y-1/2 text-on-surface-variant/40" data-icon="search">search</span>
+</div>
+<div class="flex gap-sm">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="rss_feed">rss_feed</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="speed">speed</button>
+<div class="flex items-center gap-xs ml-xs">
+<span class="material-symbols-outlined text-primary" data-icon="account_circle">account_circle</span>
+<span class="font-label-caps text-label-caps text-primary">ADMIN_CORE</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-20 pt-16 pb-8 min-h-screen grid grid-rows-[auto_1fr_auto] gap-gutter p-margin">
+<!-- Top Section: Glowing Weather Metrics -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Temperature Card -->
+<div class="glass-panel p-sm relative overflow-hidden scanline-effect border-t-2 border-primary-container">
+<div class="flex justify-between items-start mb-xs">
+<span class="font-label-caps text-label-caps text-primary/60">AMBIENT TEMPERATURE</span>
+<span class="material-symbols-outlined text-primary-container animate-pulse-glow" data-icon="device_thermostat">device_thermostat</span>
+</div>
+<div class="flex items-baseline gap-xs">
+<span class="font-display-lg text-primary text-[64px] leading-none tracking-tighter drop-shadow-[0_0_12px_rgba(0,255,65,0.3)]">24.8</span>
+<span class="font-headline-md text-on-surface-variant">°C</span>
+</div>
+<div class="mt-sm flex items-center gap-xs">
+<div class="flex-1 bg-white/5 h-1">
+<div class="bg-primary-container h-full w-[65%] shadow-[0_0_8px_rgba(0,255,65,0.6)]"></div>
+</div>
+<span class="font-data-sm text-data-sm text-primary">+1.2% Δ</span>
+</div>
+</div>
+<!-- Humidity Card -->
+<div class="glass-panel p-sm relative overflow-hidden scanline-effect border-t-2 border-secondary-container">
+<div class="flex justify-between items-start mb-xs">
+<span class="font-label-caps text-label-caps text-secondary/60">RELATIVE HUMIDITY</span>
+<span class="material-symbols-outlined text-secondary-container" data-icon="humidity_percentage">humidity_percentage</span>
+</div>
+<div class="flex items-baseline gap-xs">
+<span class="font-display-lg text-secondary text-[64px] leading-none tracking-tighter drop-shadow-[0_0_12px_rgba(0,238,252,0.3)]">58.2</span>
+<span class="font-headline-md text-on-surface-variant">%</span>
+</div>
+<div class="mt-sm flex items-center gap-xs">
+<div class="flex-1 bg-white/5 h-1">
+<div class="bg-secondary-container h-full w-[58%] shadow-[0_0_8px_rgba(0,238,252,0.6)]"></div>
+</div>
+<span class="font-data-sm text-data-sm text-secondary-fixed-dim">OPTIMAL</span>
+</div>
+</div>
+<!-- UV Card -->
+<div class="glass-panel p-sm relative overflow-hidden scanline-effect border-t-2 border-tertiary-container">
+<div class="flex justify-between items-start mb-xs">
+<span class="font-label-caps text-label-caps text-tertiary/60">UV INDEX RADIATION</span>
+<span class="material-symbols-outlined text-tertiary-container" data-icon="light_mode">light_mode</span>
+</div>
+<div class="flex items-baseline gap-xs">
+<span class="font-display-lg text-tertiary-fixed-dim text-[64px] leading-none tracking-tighter drop-shadow-[0_0_12px_rgba(255,180,162,0.3)]">04.2</span>
+<span class="font-headline-md text-on-surface-variant">UVI</span>
+</div>
+<div class="mt-sm flex items-center gap-xs">
+<div class="flex-1 bg-white/5 h-1">
+<div class="bg-tertiary-container h-full w-[42%] shadow-[0_0_8px_rgba(255,211,200,0.6)]"></div>
+</div>
+<span class="font-data-sm text-data-sm text-tertiary-fixed-dim">MODERATE</span>
+</div>
+</div>
+</section>
+<!-- Middle Section: Sensor Health Grid -->
+<section class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-sm overflow-hidden">
+<!-- Health Card Loop (Simulated) -->
+<div class="glass-panel p-xs flex flex-col justify-between border-l border-primary/20 hover:border-primary transition-all duration-300">
+<div class="flex justify-between items-center mb-base">
+<span class="font-label-caps text-[9px] text-on-surface-variant">SNSR_A1</span>
+<div class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse shadow-[0_0_4px_rgba(0,255,65,0.8)]"></div>
+</div>
+<div class="h-8 flex items-end gap-[2px]">
+<!-- Heartbeat SVG Simulation -->
+<div class="w-1 bg-primary/20 h-2"></div>
+<div class="w-1 bg-primary/20 h-4"></div>
+<div class="w-1 bg-primary-container h-6"></div>
+<div class="w-1 bg-primary/20 h-3"></div>
+<div class="w-1 bg-primary/20 h-5"></div>
+<div class="w-1 bg-primary/20 h-2"></div>
+</div>
+<div class="mt-xs">
+<div class="font-data-sm text-[11px] text-primary">ONLINE</div>
+<div class="font-label-caps text-[8px] text-on-surface-variant/40">LATENCY: 4MS</div>
+</div>
+</div>
+<!-- Repeat Cards with variations -->
+<div class="glass-panel p-xs flex flex-col justify-between border-l border-primary/20">
+<div class="flex justify-between items-center mb-base">
+<span class="font-label-caps text-[9px] text-on-surface-variant">SNSR_A2</span>
+<div class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse shadow-[0_0_4px_rgba(0,255,65,0.8)]"></div>
+</div>
+<div class="h-8 flex items-end gap-[2px]">
+<div class="w-1 bg-primary/20 h-3"></div>
+<div class="w-1 bg-primary-container h-5"></div>
+<div class="w-1 bg-primary/20 h-2"></div>
+<div class="w-1 bg-primary/20 h-4"></div>
+<div class="w-1 bg-primary/20 h-6"></div>
+<div class="w-1 bg-primary/20 h-3"></div>
+</div>
+<div class="mt-xs">
+<div class="font-data-sm text-[11px] text-primary">ONLINE</div>
+<div class="font-label-caps text-[8px] text-on-surface-variant/40">LATENCY: 5MS</div>
+</div>
+</div>
+<div class="glass-panel p-xs flex flex-col justify-between border-l border-secondary-container/20">
+<div class="flex justify-between items-center mb-base">
+<span class="font-label-caps text-[9px] text-on-surface-variant">SNSR_B1</span>
+<div class="w-1.5 h-1.5 rounded-full bg-secondary-container animate-pulse"></div>
+</div>
+<div class="h-8 flex items-end gap-[2px]">
+<div class="w-1 bg-secondary/20 h-2"></div>
+<div class="w-1 bg-secondary/20 h-4"></div>
+<div class="w-1 bg-secondary-container h-6"></div>
+<div class="w-1 bg-secondary/20 h-2"></div>
+<div class="w-1 bg-secondary/20 h-4"></div>
+<div class="w-1 bg-secondary/20 h-2"></div>
+</div>
+<div class="mt-xs">
+<div class="font-data-sm text-[11px] text-secondary">SYNCING</div>
+<div class="font-label-caps text-[8px] text-on-surface-variant/40">LATENCY: 12MS</div>
+</div>
+</div>
+<div class="glass-panel p-xs flex flex-col justify-between border-l border-error/20 bg-error/5">
+<div class="flex justify-between items-center mb-base">
+<span class="font-label-caps text-[9px] text-on-surface-variant">SNSR_B2</span>
+<div class="w-1.5 h-1.5 rounded-full bg-error animate-ping"></div>
+</div>
+<div class="h-8 flex items-end gap-[2px]">
+<div class="w-1 bg-error/10 h-1"></div>
+<div class="w-1 bg-error/10 h-1"></div>
+<div class="w-1 bg-error h-2"></div>
+<div class="w-1 bg-error/10 h-1"></div>
+<div class="w-1 bg-error/10 h-1"></div>
+<div class="w-1 bg-error/10 h-1"></div>
+</div>
+<div class="mt-xs">
+<div class="font-data-sm text-[11px] text-error">DROPPED</div>
+<div class="font-label-caps text-[8px] text-on-surface-variant/40">RETRIEVING...</div>
+</div>
+</div>
+<div class="glass-panel p-xs flex flex-col justify-between border-l border-primary/20">
+<div class="flex justify-between items-center mb-base">
+<span class="font-label-caps text-[9px] text-on-surface-variant">SNSR_C1</span>
+<div class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></div>
+</div>
+<div class="h-8 flex items-end gap-[2px]">
+<div class="w-1 bg-primary/20 h-4"></div>
+<div class="w-1 bg-primary/20 h-5"></div>
+<div class="w-1 bg-primary-container h-3"></div>
+<div class="w-1 bg-primary/20 h-6"></div>
+<div class="w-1 bg-primary/20 h-2"></div>
+<div class="w-1 bg-primary/20 h-4"></div>
+</div>
+<div class="mt-xs">
+<div class="font-data-sm text-[11px] text-primary">ONLINE</div>
+<div class="font-label-caps text-[8px] text-on-surface-variant/40">LATENCY: 2MS</div>
+</div>
+</div>
+<div class="glass-panel p-xs flex flex-col justify-between border-l border-primary/20">
+<div class="flex justify-between items-center mb-base">
+<span class="font-label-caps text-[9px] text-on-surface-variant">SNSR_C2</span>
+<div class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></div>
+</div>
+<div class="h-8 flex items-end gap-[2px]">
+<div class="w-1 bg-primary/20 h-2"></div>
+<div class="w-1 bg-primary/20 h-3"></div>
+<div class="w-1 bg-primary-container h-7"></div>
+<div class="w-1 bg-primary/20 h-4"></div>
+<div class="w-1 bg-primary/20 h-3"></div>
+<div class="w-1 bg-primary/20 h-2"></div>
+</div>
+<div class="mt-xs">
+<div class="font-data-sm text-[11px] text-primary">ONLINE</div>
+<div class="font-label-caps text-[8px] text-on-surface-variant/40">LATENCY: 6MS</div>
+</div>
+</div>
+</section>
+<!-- Bottom Section: Multi-layered Area Chart -->
+<section class="glass-panel relative flex flex-col min-h-[300px] overflow-hidden border-b-2 border-primary/20">
+<div class="p-sm flex justify-between items-center border-b border-white/5 z-10">
+<div>
+<h3 class="font-headline-md text-headline-md text-primary tracking-tight">ENVIRONMENTAL_TREND_REPORT</h3>
+<p class="font-label-caps text-[10px] text-on-surface-variant">TIMELINE: 168 HOURS // INTERVAL: 1H</p>
+</div>
+<div class="flex gap-md">
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 bg-primary"></div>
+<span class="font-label-caps text-[10px]">TEMP</span>
+</div>
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 bg-secondary-container"></div>
+<span class="font-label-caps text-[10px]">HUMIDITY</span>
+</div>
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 bg-tertiary-container"></div>
+<span class="font-label-caps text-[10px]">LUMEN_OXY</span>
+</div>
+</div>
+</div>
+<div class="flex-1 relative chart-grid opacity-30"></div>
+<!-- SVG Chart Layer (Hand-drawn technical feel) -->
+<div class="absolute inset-0 top-16 pointer-events-none">
+<svg class="overflow-visible" height="100%" preserveaspectratio="none" viewbox="0 0 1000 300" width="100%">
+<!-- Grid Lines -->
+<line stroke="rgba(255,255,255,0.05)" stroke-width="1" x1="0" x2="1000" y1="250" y2="250"></line>
+<line stroke="rgba(255,255,255,0.05)" stroke-width="1" x1="0" x2="1000" y1="150" y2="150"></line>
+<line stroke="rgba(255,255,255,0.05)" stroke-width="1" x1="0" x2="1000" y1="50" y2="50"></line>
+<!-- Humidity Area (Blue) -->
+<path d="M0,300 L0,220 C100,200 200,260 300,210 C400,160 500,240 600,190 C700,140 800,200 900,150 L1000,180 L1000,300 Z" fill="url(#gradBlue)" fill-opacity="0.2" stroke="#00eefc" stroke-width="2"></path>
+<!-- Temp Area (Green) -->
+<path d="M0,300 L0,150 C150,180 250,120 400,160 C550,200 700,140 850,150 L1000,120 L1000,300 Z" fill="url(#gradGreen)" fill-opacity="0.4" stroke="#00ff41" stroke-width="3"></path>
+<defs>
+<lineargradient id="gradGreen" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#00ff41;stop-opacity:0.6"></stop>
+<stop offset="100%" style="stop-color:#00ff41;stop-opacity:0"></stop>
+</lineargradient>
+<lineargradient id="gradBlue" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#00eefc;stop-opacity:0.4"></stop>
+<stop offset="100%" style="stop-color:#00eefc;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+<!-- Interaction Point -->
+<circle class="animate-pulse" cx="400" cy="160" fill="#00ff41" r="4"></circle>
+<line stroke="rgba(0,255,65,0.4)" stroke-dasharray="4,4" x1="400" x2="400" y1="0" y2="300"></line>
+</svg>
+<!-- Tooltip Overlay -->
+<div class="absolute left-[410px] top-10 glass-panel p-xs border-primary pointer-events-auto">
+<div class="font-label-caps text-[9px] text-on-surface-variant">WED 14:00</div>
+<div class="font-data-sm text-[12px] text-primary">TEMP: 26.2°C</div>
+<div class="font-data-sm text-[12px] text-secondary">HUMI: 54%</div>
+</div>
+</div>
+<!-- X-Axis Labels -->
+<div class="flex justify-between px-sm py-base border-t border-white/5 bg-surface-container-high/40">
+<span class="font-label-caps text-[9px] text-on-surface-variant/60">MON</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant/60">TUE</span>
+<span class="font-label-caps text-[9px] text-primary">WED</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant/60">THU</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant/60">FRI</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant/60">SAT</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant/60">SUN</span>
+</div>
+</section>
+</main>
+<!-- Footer Terminal -->
+<footer class="fixed bottom-0 right-0 left-20 z-40 flex justify-between items-center px-sm h-8 border-t border-white/5 bg-surface-container-lowest/90 backdrop-blur-sm">
+<span class="font-label-caps text-label-caps text-on-surface-variant/40">SYSTEM ACTIVE // NODE_774_OP</span>
+<div class="flex gap-md">
+<span class="font-label-caps text-label-caps text-on-surface-variant/40">UPTIME: 99.98%</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant/40">LATENCY: 14MS</span>
+<span class="font-label-caps text-label-caps text-secondary">UTC: 12:44:02</span>
+</div>
+</footer>
+<!-- FAB Action (Contextual) -->
+<button class="fixed right-margin bottom-12 w-14 h-14 bg-primary-container text-on-primary rounded-none shadow-[0_0_20px_rgba(0,255,65,0.4)] flex items-center justify-center hover:scale-105 transition-transform active:scale-95 group">
+<span class="material-symbols-outlined font-bold text-headline-md" data-icon="add_chart" style="font-variation-settings: 'FILL' 1;">add_chart</span>
+<div class="absolute right-full mr-sm bg-surface-container-high px-sm py-xs border border-primary/20 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+<span class="font-label-caps text-label-caps text-primary">GENERATE REPORT</span>
+</div>
+</button>
+<script>
+        // Micro-interaction: Randomize Heartbeats
+        function animateSensors() {
+            const bars = document.querySelectorAll('.h-8 div');
+            bars.forEach(bar => {
+                const height = Math.floor(Math.random() * 24) + 4;
+                bar.style.height = `${height}px`;
+                bar.style.transition = 'height 0.3s ease-in-out';
+            });
+        }
+        setInterval(animateSensors, 1000);
+
+        // Update Clock
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toISOString().split('T')[1].split('.')[0];
+            document.querySelector('.text-secondary:last-child').textContent = `UTC: ${timeStr}`;
+        }
+        setInterval(updateClock, 1000);
+    </script>
+</body></html>

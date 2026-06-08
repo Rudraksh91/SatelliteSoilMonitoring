@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        :root {
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --scanline: linear-gradient(to bottom, transparent 50%, rgba(0, 255, 65, 0.02) 50%);
+        }
+        body {
+            background-color: #0a0f0d;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 255, 65, 0.05) 0%, transparent 80%),
+                var(--scanline);
+            background-size: 100% 100%, 100% 4px;
+            color: #dfe4e0;
+            overflow: hidden;
+        }
+        .glass-panel {
+            background: rgba(15, 20, 18, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+        .scanline-overlay {
+            background: var(--scanline);
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #00ff41;
+            border-radius: 2px;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.2); }
+            50% { box-shadow: 0 0 15px rgba(0, 255, 65, 0.5); }
+            100% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.2); }
+        }
+        .active-glow {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+        .timeline-grid {
+            background-image: linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 80px 100%;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#2c322f",
+                        "secondary": "#d3fbff",
+                        "surface-variant": "#313633",
+                        "error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb4a2",
+                        "inverse-surface": "#dfe4e0",
+                        "surface-container-high": "#262b29",
+                        "secondary-fixed": "#7df4ff",
+                        "on-tertiary": "#611200",
+                        "tertiary": "#fff8f6",
+                        "surface": "#0f1412",
+                        "surface-container-lowest": "#0a0f0d",
+                        "on-background": "#dfe4e0",
+                        "on-surface": "#dfe4e0",
+                        "on-secondary-fixed-variant": "#004f54",
+                        "tertiary-container": "#ffd3c8",
+                        "on-surface-variant": "#b9ccb2",
+                        "on-tertiary-fixed-variant": "#891d00",
+                        "on-primary-fixed-variant": "#00530e",
+                        "on-primary-container": "#007117",
+                        "primary": "#ebffe2",
+                        "primary-fixed": "#72ff70",
+                        "primary-container": "#00ff41",
+                        "surface-container-highest": "#313633",
+                        "surface-bright": "#353a38",
+                        "secondary-fixed-dim": "#00dbe9",
+                        "on-error-container": "#ffdad6",
+                        "surface-container": "#1c211e",
+                        "inverse-primary": "#006e16",
+                        "outline": "#84967e",
+                        "on-primary": "#003907",
+                        "on-primary-fixed": "#002203",
+                        "on-tertiary-container": "#b82a00",
+                        "surface-container-low": "#181d1a",
+                        "on-secondary": "#00363a",
+                        "on-secondary-container": "#00686f",
+                        "background": "#0f1412",
+                        "tertiary-fixed": "#ffdad2",
+                        "error": "#ffb4ab",
+                        "secondary-container": "#00eefc",
+                        "surface-dim": "#0f1412",
+                        "primary-fixed-dim": "#00e639",
+                        "outline-variant": "#3b4b37",
+                        "on-tertiary-fixed": "#3c0700",
+                        "on-secondary-fixed": "#002022",
+                        "surface-tint": "#00e639",
+                        "on-error": "#690005"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "md": "24px",
+                        "base": "4px",
+                        "sm": "16px",
+                        "lg": "40px",
+                        "margin": "32px",
+                        "gutter": "20px",
+                        "xs": "8px",
+                        "xl": "64px"
+                    },
+                    "fontFamily": {
+                        "data-lg": ["JetBrains Mono"],
+                        "display-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "data-sm": ["JetBrains Mono"],
+                        "label-caps": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "data-lg": ["20px", {"lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "1.2", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400"}],
+                        "data-sm": ["13px", {"lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "400"}],
+                        "label-caps": ["11px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="flex overflow-hidden">
+<!-- SideNavBar (Rail) -->
+<aside class="fixed left-0 top-0 h-full z-50 flex flex-col bg-surface/80 backdrop-blur-xl h-screen w-20 hover:w-64 transition-all duration-300 border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.5)] group">
+<div class="p-sm flex flex-col items-center group-hover:items-start overflow-hidden">
+<div class="font-display-lg text-headline-md tracking-widest text-primary drop-shadow-[0_0_8px_rgba(0,255,65,0.4)] mb-lg whitespace-nowrap px-xs">TERRA-CORE</div>
+</div>
+<nav class="flex-1 space-y-base overflow-y-auto overflow-x-hidden">
+<a class="flex items-center p-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined mr-sm" data-icon="public">public</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Global Map</span>
+</a>
+<a class="flex items-center p-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined mr-sm" data-icon="analytics">analytics</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Asset Analytics</span>
+</a>
+<a class="flex items-center p-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined mr-sm" data-icon="thermostat">thermostat</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Climate Control</span>
+</a>
+<a class="flex items-center p-sm text-primary border-r-2 border-primary bg-primary/10 active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined mr-sm" data-icon="smart_toy">smart_toy</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Automation Logic</span>
+</a>
+<a class="flex items-center p-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined mr-sm" data-icon="monitor_heart">monitor_heart</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">System Health</span>
+</a>
+</nav>
+<div class="p-sm space-y-base border-t border-white/10">
+<a class="flex items-center p-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined mr-sm" data-icon="settings">settings</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Settings</span>
+</a>
+<a class="flex items-center p-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined mr-sm" data-icon="logout">logout</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Log Out</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-20 flex-1 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar -->
+<header class="h-16 flex justify-between items-center px-sm bg-surface/60 backdrop-blur-md border-b border-white/10 z-40">
+<div class="flex items-center space-x-md">
+<div class="font-headline-md text-headline-md font-bold text-primary">COMMAND CENTER</div>
+<div class="flex space-x-sm border-l border-white/10 pl-md">
+<span class="font-label-caps text-label-caps text-primary active:opacity-80">HUB_ACTIVE</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant/40">NODE_BETA_PRIME</span>
+</div>
+</div>
+<div class="flex items-center space-x-md">
+<div class="relative group">
+<input class="bg-surface-container-low border border-white/10 rounded-lg px-sm py-xs font-data-sm text-data-sm text-primary focus:outline-none focus:border-primary-container active-glow w-64 transition-all" placeholder="QUERY_SYSTEM..." type="text"/>
+<span class="material-symbols-outlined absolute right-2 top-1.5 text-on-surface-variant/40" data-icon="search">search</span>
+</div>
+<div class="flex items-center space-x-sm">
+<span class="material-symbols-outlined text-primary hover:text-primary-fixed-dim cursor-pointer" data-icon="rss_feed">rss_feed</span>
+<span class="material-symbols-outlined text-primary hover:text-primary-fixed-dim cursor-pointer" data-icon="speed">speed</span>
+<span class="material-symbols-outlined text-primary hover:text-primary-fixed-dim cursor-pointer" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Dynamic Content (Automation Hub) -->
+<div class="flex-1 p-sm space-y-sm overflow-hidden flex flex-col">
+<!-- Horizontal Timeline View -->
+<section class="glass-panel rounded-xl flex flex-col h-1/2 overflow-hidden relative">
+<div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
+<div class="flex items-center space-x-sm">
+<span class="material-symbols-outlined text-primary" data-icon="schedule">schedule</span>
+<h2 class="font-headline-md text-headline-md text-primary">Irrigation Cycle Timeline</h2>
+</div>
+<div class="flex items-center space-x-md font-data-sm text-data-sm">
+<span class="text-secondary">SCANNING SECTORS...</span>
+<span class="text-on-surface-variant">UTC 12:44:02</span>
+</div>
+</div>
+<!-- Timeline Body -->
+<div class="flex-1 overflow-x-auto custom-scrollbar relative timeline-grid">
+<!-- Time Header -->
+<div class="sticky top-0 z-10 flex border-b border-white/10 bg-surface/90 backdrop-blur-md">
+<div class="w-48 shrink-0 p-xs border-r border-white/10 font-label-caps text-label-caps text-on-surface-variant/60">SECTOR_ID</div>
+<div class="flex flex-1">
+<!-- Hourly markers -->
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">06:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">07:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">08:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">09:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm text-primary">10:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">11:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">12:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">13:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">14:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">15:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">16:00</div>
+<div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">17:00</div>
+</div>
+</div>
+<!-- Sector Rows -->
+<div class="divide-y divide-white/5">
+<!-- Sector Alpha -->
+<div class="flex group hover:bg-white/5 transition-colors">
+<div class="w-48 shrink-0 p-sm border-r border-white/10 flex flex-col">
+<span class="font-data-lg text-data-lg text-primary">ALPHA-01</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant/60">HYDROPONIC_TIER_A</span>
+</div>
+<div class="flex-1 relative h-16 flex items-center">
+<div class="absolute left-20 w-40 h-8 bg-primary/20 border border-primary/40 rounded flex items-center px-sm font-data-sm text-data-sm text-primary active-glow cursor-pointer">
+                                    MIST_CYCLE_V1
+                                </div>
+<div class="absolute left-80 w-32 h-8 bg-secondary/20 border border-secondary/40 rounded flex items-center px-sm font-data-sm text-data-sm text-secondary cursor-pointer">
+                                    NUTRIENT_FLUSH
+                                </div>
+</div>
+</div>
+<!-- Sector Beta -->
+<div class="flex group hover:bg-white/5 transition-colors">
+<div class="w-48 shrink-0 p-sm border-r border-white/10 flex flex-col">
+<span class="font-data-lg text-data-lg text-secondary-fixed-dim">BETA-04</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant/60">SOIL_ROOT_SENSORS</span>
+</div>
+<div class="flex-1 relative h-16 flex items-center">
+<div class="absolute left-0 w-64 h-8 bg-primary-fixed-dim/20 border border-primary-fixed-dim/40 rounded flex items-center px-sm font-data-sm text-data-sm text-primary-fixed-dim cursor-pointer">
+                                    DRIP_IRRIGATION_EXT
+                                </div>
+<div class="absolute left-[500px] w-24 h-8 bg-error/20 border border-error/40 rounded flex items-center px-sm font-data-sm text-data-sm text-error cursor-pointer">
+                                    FAILSAFE_TEST
+                                </div>
+</div>
+</div>
+<!-- Sector Gamma -->
+<div class="flex group hover:bg-white/5 transition-colors">
+<div class="w-48 shrink-0 p-sm border-r border-white/10 flex flex-col">
+<span class="font-data-lg text-data-lg text-tertiary-fixed-dim">GAMMA-X</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant/60">EXPERIMENTAL_SEEDLING</span>
+</div>
+<div class="flex-1 relative h-16 flex items-center">
+<div class="absolute left-40 w-80 h-8 bg-secondary-container/10 border border-secondary-container/30 rounded flex items-center px-sm font-data-sm text-data-sm text-secondary-container cursor-pointer">
+                                    HUMIDITY_STABILIZE
+                                </div>
+</div>
+</div>
+</div>
+<!-- Current Time Indicator -->
+<div class="absolute left-[368px] top-0 bottom-0 w-px bg-primary z-20 shadow-[0_0_8px_rgba(0,255,65,1)]"></div>
+</div>
+</section>
+<!-- Bottom Layout: Logic Editor & Terminal -->
+<div class="flex-1 grid grid-cols-12 gap-sm overflow-hidden">
+<!-- Smart Logic Editor -->
+<section class="col-span-8 glass-panel rounded-xl flex flex-col overflow-hidden">
+<div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
+<div class="flex items-center space-x-sm">
+<span class="material-symbols-outlined text-primary" data-icon="account_tree">account_tree</span>
+<h2 class="font-headline-md text-headline-md text-primary">Smart Logic Rulebook</h2>
+</div>
+<button class="bg-primary text-on-primary font-label-caps text-label-caps px-md py-xs rounded hover:opacity-90 active:scale-95 transition-all">
+                            + NEW_RULE
+                        </button>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar p-sm space-y-sm">
+<!-- Rule Card 01 -->
+<div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center space-x-md group">
+<div class="bg-primary/10 border border-primary/20 w-12 h-12 flex items-center justify-center rounded shrink-0">
+<span class="material-symbols-outlined text-primary" data-icon="wb_sunny">wb_sunny</span>
+</div>
+<div class="flex-1 grid grid-cols-3 gap-md">
+<div class="flex flex-col">
+<span class="font-label-caps text-[9px] text-on-surface-variant/40">IF_CONDITION</span>
+<span class="font-data-sm text-data-sm">LUX_SENSOR &gt; 45000</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-[9px] text-on-surface-variant/40">THEN_ACTION</span>
+<span class="font-data-sm text-data-sm text-secondary">ACTIVATE_SHADE_CURTAIN</span>
+</div>
+<div class="flex items-center justify-end space-x-sm">
+<span class="font-data-sm text-data-sm text-primary">ENABLED</span>
+<span class="material-symbols-outlined text-on-surface-variant/40 hover:text-primary cursor-pointer" data-icon="edit">edit</span>
+</div>
+</div>
+</div>
+<!-- Rule Card 02 -->
+<div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center space-x-md group">
+<div class="bg-secondary/10 border border-secondary/20 w-12 h-12 flex items-center justify-center rounded shrink-0">
+<span class="material-symbols-outlined text-secondary" data-icon="water_drop">water_drop</span>
+</div>
+<div class="flex-1 grid grid-cols-3 gap-md">
+<div class="flex flex-col">
+<span class="font-label-caps text-[9px] text-on-surface-variant/40">IF_CONDITION</span>
+<span class="font-data-sm text-data-sm">SOIL_MOISTURE &lt; 12%</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-[9px] text-on-surface-variant/40">THEN_ACTION</span>
+<span class="font-data-sm text-data-sm text-secondary">OVERRIDE_TIMELINE:ALPHA_PUMP</span>
+</div>
+<div class="flex items-center justify-end space-x-sm">
+<span class="font-data-sm text-data-sm text-primary">ENABLED</span>
+<span class="material-symbols-outlined text-on-surface-variant/40 hover:text-primary cursor-pointer" data-icon="edit">edit</span>
+</div>
+</div>
+</div>
+<!-- Rule Card 03 (Inactive) -->
+<div class="bg-surface-container-low border border-white/5 p-sm rounded-lg flex items-center space-x-md group opacity-60 hover:opacity-100 transition-opacity">
+<div class="bg-on-surface-variant/5 border border-on-surface-variant/10 w-12 h-12 flex items-center justify-center rounded shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant/40" data-icon="device_thermostat">device_thermostat</span>
+</div>
+<div class="flex-1 grid grid-cols-3 gap-md">
+<div class="flex flex-col">
+<span class="font-label-caps text-[9px] text-on-surface-variant/40">IF_CONDITION</span>
+<span class="font-data-sm text-data-sm">TEMP &gt; 32°C</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-[9px] text-on-surface-variant/40">THEN_ACTION</span>
+<span class="font-data-sm text-data-sm text-secondary">FAN_BOOST_MODE</span>
+</div>
+<div class="flex items-center justify-end space-x-sm">
+<span class="font-data-sm text-data-sm text-on-surface-variant/40">STBY</span>
+<span class="material-symbols-outlined text-on-surface-variant/40 hover:text-primary cursor-pointer" data-icon="toggle_off">toggle_off</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Terminal Log -->
+<section class="col-span-4 glass-panel rounded-xl flex flex-col overflow-hidden">
+<div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
+<div class="flex items-center space-x-sm">
+<span class="material-symbols-outlined text-primary" data-icon="terminal">terminal</span>
+<h2 class="font-label-caps text-label-caps text-primary">SYSTEM_LOG // LIVE</h2>
+</div>
+<div class="w-2 h-2 rounded-full bg-primary active-glow"></div>
+</div>
+<div class="flex-1 bg-surface-container-lowest/90 p-sm font-data-sm text-[11px] leading-relaxed custom-scrollbar overflow-y-auto">
+<div class="text-on-surface-variant/60">[12:43:01] <span class="text-secondary">INITIATING</span> SECTOR_ALPHA_PUMP_SYNC...</div>
+<div class="text-primary">[12:43:15] HANDSHAKE_SUCCESS :: NODE_774_OP</div>
+<div class="text-on-surface-variant/60">[12:43:22] SENSOR_READ: HUMIDITY=44.2%</div>
+<div class="text-on-surface-variant/60">[12:43:45] ADAPTIVE_VALVE_CALIBRATION_COMPLETE</div>
+<div class="text-secondary-fixed-dim">[12:44:00] EXEC_RULE: LUX_COMPENSATION_TRIGGERED</div>
+<div class="text-primary">[12:44:02] CURRENT_FLOW_RATE: 1.2L/SEC</div>
+<div class="text-error/80">[12:44:10] WARN: SIGNAL_LATENCY_PEAK_45MS</div>
+<div class="text-on-surface-variant/60">[12:44:15] HEARTBEAT_PULSE_SENT</div>
+<div class="mt-2 animate-pulse">_</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Footer -->
+<footer class="h-8 px-sm bg-surface-container-lowest/90 backdrop-blur-sm border-t border-white/5 z-40 flex justify-between items-center shrink-0">
+<div class="font-label-caps text-label-caps text-on-surface-variant/40">
+                SYSTEM ACTIVE // <span class="text-primary">NODE_774_OP</span>
+</div>
+<div class="flex space-x-md font-label-caps text-label-caps text-on-surface-variant/40">
+<span class="hover:text-secondary-fixed transition-all cursor-pointer">UPTIME: 99.98%</span>
+<span class="hover:text-secondary-fixed transition-all cursor-pointer">LATENCY: 14MS</span>
+<span class="text-secondary">UTC: 12:44:02</span>
+</div>
+</footer>
+</main>
+<!-- Contextual FAB (Hidden on this screen per instruction, but here for structural consistency if needed in other screens) -->
+<!-- Suppressed for Automation Logic Hub as it is a focused task screen -->
+<script>
+        // Micro-interaction for the timeline scroll sync or hover effects
+        document.querySelectorAll('.cursor-pointer').forEach(el => {
+            el.addEventListener('mousedown', () => {
+                el.style.transform = 'scale(0.98)';
+            });
+            el.addEventListener('mouseup', () => {
+                el.style.transform = 'scale(1)';
+            });
+        });
+
+        // Atmospheric terminal effect
+        const terminalLog = document.querySelector('.col-span-4 div:last-child');
+        const logs = [
+            "[12:44:20] DATA_PACKET_SENT :: ALPHA_CORE",
+            "[12:44:35] FLUID_PRESSURE_STABLE :: 0.44 BAR",
+            "[12:44:42] SENSOR_READ: TEMP_AMBIENT=22.5°C",
+            "[12:44:55] AUTOMATION_ENGINE_REFLOWING..."
+        ];
+        let i = 0;
+        setInterval(() => {
+            if (i < logs.length) {
+                const div = document.createElement('div');
+                div.className = 'text-on-surface-variant/60';
+                div.innerHTML = logs[i];
+                terminalLog.appendChild(div);
+                terminalLog.scrollTop = terminalLog.scrollHeight;
+                i++;
+            } else {
+                i = 0; // Loop logs for demonstration
+            }
+        }, 8000);
+    </script>
+</body></html>

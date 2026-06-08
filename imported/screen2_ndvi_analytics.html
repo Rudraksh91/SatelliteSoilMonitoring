@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        :root {
+            --primary-glow: rgba(0, 255, 65, 0.4);
+            --secondary-glow: rgba(0, 219, 233, 0.3);
+        }
+        body {
+            background-color: #0a0f0d;
+            color: #dfe4e0;
+            overflow: hidden;
+        }
+        .glass-panel {
+            background: rgba(15, 20, 18, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .scanline {
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 255, 65, 0.02) 50%);
+            background-size: 100% 4px;
+        }
+        .glow-border:hover {
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+        .stepped-progress {
+            display: flex;
+            gap: 2px;
+        }
+        .step {
+            height: 8px;
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .step.active-primary { background: #00ff41; box-shadow: 0 0 5px #00ff41; }
+        .step.active-secondary { background: #00dbe9; box-shadow: 0 0 5px #00dbe9; }
+
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-soft { animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        .map-overlay-gradient {
+            background: radial-gradient(circle at center, transparent 30%, #0a0f0d 100%);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-on-surface": "#2c322f",
+                      "secondary": "#d3fbff",
+                      "surface-variant": "#313633",
+                      "error-container": "#93000a",
+                      "tertiary-fixed-dim": "#ffb4a2",
+                      "inverse-surface": "#dfe4e0",
+                      "surface-container-high": "#262b29",
+                      "secondary-fixed": "#7df4ff",
+                      "on-tertiary": "#611200",
+                      "tertiary": "#fff8f6",
+                      "surface": "#0f1412",
+                      "surface-container-lowest": "#0a0f0d",
+                      "on-surface": "#dfe4e0",
+                      "on-secondary-fixed-variant": "#004f54",
+                      "tertiary-container": "#ffd3c8",
+                      "on-background": "#dfe4e0",
+                      "on-surface-variant": "#b9ccb2",
+                      "on-tertiary-fixed-variant": "#891d00",
+                      "on-primary-fixed-variant": "#00530e",
+                      "on-primary-container": "#007117",
+                      "primary": "#ebffe2",
+                      "primary-fixed": "#72ff70",
+                      "primary-container": "#00ff41",
+                      "surface-container-highest": "#313633",
+                      "surface-bright": "#353a38",
+                      "secondary-fixed-dim": "#00dbe9",
+                      "on-error-container": "#ffdad6",
+                      "surface-container": "#1c211e",
+                      "inverse-primary": "#006e16",
+                      "outline": "#84967e",
+                      "on-primary": "#003907",
+                      "on-primary-fixed": "#002203",
+                      "on-tertiary-container": "#b82a00",
+                      "surface-container-low": "#181d1a",
+                      "on-secondary": "#00363a",
+                      "on-secondary-container": "#00686f",
+                      "background": "#0f1412",
+                      "tertiary-fixed": "#ffdad2",
+                      "error": "#ffb4ab",
+                      "secondary-container": "#00eefc",
+                      "surface-dim": "#0f1412",
+                      "primary-fixed-dim": "#00e639",
+                      "outline-variant": "#3b4b37",
+                      "on-tertiary-fixed": "#3c0700",
+                      "on-secondary-fixed": "#002022",
+                      "surface-tint": "#00e639",
+                      "on-error": "#690005"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "md": "24px",
+                      "base": "4px",
+                      "sm": "16px",
+                      "lg": "40px",
+                      "margin": "32px",
+                      "gutter": "20px",
+                      "xs": "8px",
+                      "xl": "64px"
+              },
+              "fontFamily": {
+                      "data-lg": ["JetBrains Mono"],
+                      "display-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-md": ["Inter"],
+                      "data-sm": ["JetBrains Mono"],
+                      "label-caps": ["JetBrains Mono"]
+              },
+              "fontSize": {
+                      "data-lg": ["20px", {"lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                      "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "1.2", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400"}],
+                      "data-sm": ["13px", {"lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "400"}],
+                      "label-caps": ["11px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- SIDE NAVIGATION RAIL -->
+<aside class="fixed left-0 top-0 h-full z-50 flex flex-col bg-surface/80 backdrop-blur-xl border-r border-white/10 w-20 hover:w-64 transition-all duration-300 group shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
+<div class="p-sm flex items-center gap-xs">
+<div class="w-10 h-10 bg-primary-container flex items-center justify-center rounded-lg shadow-[0_0_8px_rgba(0,255,65,0.4)]">
+<span class="material-symbols-outlined text-on-primary">precision_manufacturing</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity overflow-hidden whitespace-nowrap">
+<div class="font-display-lg text-headline-md tracking-widest text-primary leading-none">TERRA-CORE</div>
+<div class="font-label-caps text-on-surface-variant/60">V 4.0.2</div>
+</div>
+</div>
+<nav class="flex-1 mt-md">
+<div class="flex flex-col gap-base">
+<!-- Navigation Items -->
+<div class="flex items-center h-12 px-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
+<span class="material-symbols-outlined shrink-0" data-icon="public">public</span>
+<span class="ml-sm font-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Global Map</span>
+</div>
+<div class="flex items-center h-12 px-sm text-primary border-r-2 border-primary bg-primary/10 active:scale-95 transition-transform duration-150 cursor-pointer">
+<span class="material-symbols-outlined shrink-0" data-icon="analytics">analytics</span>
+<span class="ml-sm font-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Asset Analytics</span>
+</div>
+<div class="flex items-center h-12 px-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
+<span class="material-symbols-outlined shrink-0" data-icon="thermostat">thermostat</span>
+<span class="ml-sm font-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Climate Control</span>
+</div>
+<div class="flex items-center h-12 px-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
+<span class="material-symbols-outlined shrink-0" data-icon="smart_toy">smart_toy</span>
+<span class="ml-sm font-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Automation Logic</span>
+</div>
+<div class="flex items-center h-12 px-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
+<span class="material-symbols-outlined shrink-0" data-icon="monitor_heart">monitor_heart</span>
+<span class="ml-sm font-label-caps opacity-0 group-hover:opacity-100 transition-opacity">System Health</span>
+</div>
+</div>
+</nav>
+<div class="mb-sm flex flex-col gap-base">
+<div class="flex items-center h-12 px-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
+<span class="material-symbols-outlined shrink-0" data-icon="settings">settings</span>
+<span class="ml-sm font-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Settings</span>
+</div>
+<div class="flex items-center h-12 px-sm text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
+<span class="material-symbols-outlined shrink-0" data-icon="logout">logout</span>
+<span class="ml-sm font-label-caps opacity-0 group-hover:opacity-100 transition-opacity">Log Out</span>
+</div>
+</div>
+</aside>
+<!-- TOP NAVIGATION BAR -->
+<header class="fixed top-0 right-0 left-20 z-40 flex justify-between items-center px-sm bg-surface/60 backdrop-blur-md border-b border-white/10 h-16">
+<div class="flex items-center gap-sm">
+<h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tighter">COMMAND CENTER</h1>
+<div class="h-4 w-[1px] bg-white/10"></div>
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse-soft"></div>
+<span class="font-label-caps text-on-surface-variant">NODE_774 LIVE</span>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative hidden lg:block">
+<input class="bg-surface-container-low border border-white/10 px-sm py-1 font-data-sm text-data-sm text-primary w-64 focus:outline-none focus:border-primary-container transition-colors" placeholder="QUERY SYSTEM..." type="text"/>
+<span class="material-symbols-outlined absolute right-2 top-1.5 text-on-surface-variant text-sm">search</span>
+</div>
+<div class="flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors" data-icon="rss_feed">rss_feed</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors" data-icon="speed">speed</span>
+<div class="flex items-center gap-xs cursor-pointer hover:text-primary transition-all">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-caps hidden xl:block">CMDR. S. MILLER</span>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN CONTENT CANVAS -->
+<main class="ml-20 mt-16 p-sm h-[calc(100vh-64px-32px)] overflow-hidden grid grid-cols-12 gap-gutter">
+<!-- LEFT PANEL: TELEMETRY -->
+<section class="col-span-3 flex flex-col gap-gutter">
+<!-- Moisture Gauge Card -->
+<div class="glass-panel p-sm flex flex-col gap-xs rounded-lg scanline">
+<div class="flex justify-between items-center border-b border-primary/20 pb-1">
+<span class="font-label-caps text-primary">SOIL_MOISTURE_IDX</span>
+<span class="font-data-sm text-primary-fixed-dim">ZONE_A4</span>
+</div>
+<div class="py-md text-center">
+<div class="font-data-lg text-4xl text-primary-container">64.2%</div>
+<div class="font-label-caps text-on-surface-variant">OPTIMAL THRESHOLD</div>
+</div>
+<div class="h-16 flex items-end gap-1">
+<!-- Simulated Mini-Chart -->
+<div class="flex-1 bg-primary/20 h-[40%]"></div>
+<div class="flex-1 bg-primary/30 h-[55%]"></div>
+<div class="flex-1 bg-primary/40 h-[60%]"></div>
+<div class="flex-1 bg-primary/20 h-[45%]"></div>
+<div class="flex-1 bg-primary-container h-[70%]"></div>
+<div class="flex-1 bg-primary/50 h-[65%]"></div>
+<div class="flex-1 bg-primary/30 h-[50%]"></div>
+</div>
+</div>
+<!-- Detailed Telemetry List -->
+<div class="glass-panel flex-1 p-sm rounded-lg overflow-hidden flex flex-col">
+<div class="font-label-caps text-on-surface-variant border-b border-white/10 pb-2 mb-sm">ACTIVE_SENSORS_ARRAY</div>
+<div class="space-y-sm flex-1 overflow-y-auto pr-1">
+<div class="flex justify-between items-center py-xs border-b border-white/5">
+<div class="flex flex-col">
+<span class="font-data-sm text-secondary">TEMP_CORE</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant">THERMAL_UNIT_09</span>
+</div>
+<span class="font-data-lg text-secondary-fixed-dim">24.5°C</span>
+</div>
+<div class="flex justify-between items-center py-xs border-b border-white/5">
+<div class="flex flex-col">
+<span class="font-data-sm text-primary">PH_LEVEL</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant">IONIC_PROBE_04</span>
+</div>
+<span class="font-data-lg text-primary-fixed-dim">6.8</span>
+</div>
+<div class="flex justify-between items-center py-xs border-b border-white/5">
+<div class="flex flex-col">
+<span class="font-data-sm text-tertiary-fixed-dim">NITROGEN_SAT</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant">CHEM_SCAN_12</span>
+</div>
+<span class="font-data-lg text-tertiary">412ppm</span>
+</div>
+<div class="flex justify-between items-center py-xs border-b border-white/5">
+<div class="flex flex-col">
+<span class="font-data-sm text-secondary">HUMIDITY_AMB</span>
+<span class="font-label-caps text-[9px] text-on-surface-variant">METEO_STATION_01</span>
+</div>
+<span class="font-data-lg text-secondary-fixed-dim">58%</span>
+</div>
+</div>
+<div class="mt-sm p-xs bg-white/5 rounded border border-white/10">
+<div class="flex justify-between font-label-caps text-[9px] mb-1">
+<span>NETWORK_LATENCY</span>
+<span>14MS</span>
+</div>
+<div class="h-1 bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-secondary-fixed-dim w-1/4"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- CENTER PANEL: MAP -->
+<section class="col-span-6 flex flex-col gap-gutter relative">
+<div class="glass-panel flex-1 rounded-lg relative overflow-hidden group">
+<!-- Satellite Image with Heatmap -->
+<img alt="Circular crop field satellite view" class="w-full h-full object-cover opacity-60" data-alt="A high-altitude satellite photograph of massive circular crop fields in a desert landscape, overlaid with a glowing green and orange NDVI heatmap. The image is stylized with futuristic digital UI elements like coordinate grids, scanning target markers, and technical data readouts. The aesthetic is dark and sophisticated, emphasizing precision agricultural technology with a deep obsidian and neon emerald color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSXFdIVmMyf6iVdPIe1G7v9IFsmj-ovyrCQskcvNu373ZkTyZaueN9wTfySgwvzJjIcpZdWpc1bphEBSJC0kgshxcLW4GI7gsaV5xFioN2Dvekm1EygN66FTsqzOs5WujNxeMZ_IvuARY9zNNV3pqJMIIPxNFszIDV6BrM5wYEAJ0a_w_GDYeLYm_rpKubnzoDxwZ2yZYZi9eIATB-8begyV3FzB8PpyUoHO-gV0PXJAQhq1C5QrkZhDWyq5pvAbZvqO8Pk4fDUybB"/>
+<!-- SVG Heatmap Overlay Simulation -->
+<div class="absolute inset-0 map-overlay-gradient pointer-events-none"></div>
+<div class="absolute inset-0 pointer-events-none mix-blend-screen opacity-40">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full border border-primary/30 animate-pulse"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-primary/10"></div>
+</div>
+<!-- Map UI Elements -->
+<div class="absolute top-sm left-sm p-sm glass-panel rounded border-l-2 border-primary">
+<div class="font-label-caps text-primary mb-1">DATA_OVERLAY: NDVI_HEATMAP</div>
+<div class="flex items-center gap-xs">
+<div class="flex flex-col">
+<span class="text-[10px] font-label-caps text-on-surface-variant">LAT: 34.0522° N</span>
+<span class="text-[10px] font-label-caps text-on-surface-variant">LON: 118.2437° W</span>
+</div>
+</div>
+</div>
+<div class="absolute bottom-sm left-sm right-sm flex justify-between items-end">
+<div class="glass-panel p-xs rounded border border-white/10 flex gap-md">
+<div class="flex flex-col">
+<span class="font-label-caps text-[9px] text-on-surface-variant">CROP_TYPE</span>
+<span class="font-data-sm text-primary">ZEA_MAYS_L</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-[9px] text-on-surface-variant">PLANT_DATE</span>
+<span class="font-data-sm text-secondary">MAR_12_2024</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-[9px] text-on-surface-variant">EST_HARVEST</span>
+<span class="font-data-sm text-tertiary-fixed-dim">SEP_2024</span>
+</div>
+</div>
+<div class="flex gap-xs">
+<button class="w-10 h-10 glass-panel hover:bg-primary-container hover:text-on-primary transition-all flex items-center justify-center rounded glow-border">
+<span class="material-symbols-outlined">zoom_in</span>
+</button>
+<button class="w-10 h-10 glass-panel hover:bg-primary-container hover:text-on-primary transition-all flex items-center justify-center rounded glow-border">
+<span class="material-symbols-outlined">layers</span>
+</button>
+</div>
+</div>
+</div>
+<div class="h-32 glass-panel rounded-lg p-sm flex items-center gap-lg">
+<div class="flex-1">
+<div class="font-label-caps text-on-surface-variant mb-2">SYSTEM_CHRONOLOGY</div>
+<div class="flex items-center gap-base">
+<div class="flex-1 h-1 bg-primary-container"></div>
+<div class="flex-1 h-1 bg-primary-container"></div>
+<div class="flex-1 h-1 bg-primary-container"></div>
+<div class="flex-1 h-1 bg-white/10"></div>
+<div class="flex-1 h-1 bg-white/10"></div>
+</div>
+<div class="flex justify-between mt-2 font-data-sm text-[10px] text-on-surface-variant">
+<span>T-12H</span>
+<span>NOW</span>
+<span>T+12H</span>
+</div>
+</div>
+<div class="w-48 text-right">
+<div class="font-label-caps text-on-surface-variant">NEXT_IRRIGATION</div>
+<div class="font-data-lg text-primary">02:44:12</div>
+</div>
+</div>
+</section>
+<!-- RIGHT PANEL: CONTROLS -->
+<section class="col-span-3 flex flex-col gap-gutter">
+<div class="glass-panel p-sm rounded-lg flex flex-col gap-sm border-t-2 border-primary shadow-[0_4px_20px_rgba(0,255,65,0.1)]">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary-container">settings_input_component</span>
+<span class="font-headline-md text-headline-md text-primary">AUTO_OPT</span>
+</div>
+<!-- Control Groups -->
+<div class="space-y-md mt-sm">
+<div class="flex flex-col gap-xs">
+<div class="flex justify-between items-center">
+<span class="font-data-sm">HYDRATION_CONTROL</span>
+<div class="w-8 h-4 bg-primary-container rounded-full relative cursor-pointer">
+<div class="absolute right-1 top-1 w-2 h-2 bg-on-primary rounded-full"></div>
+</div>
+</div>
+<div class="stepped-progress">
+<div class="step active-primary"></div>
+<div class="step active-primary"></div>
+<div class="step active-primary"></div>
+<div class="step active-primary"></div>
+<div class="step active-primary"></div>
+<div class="step"></div>
+<div class="step"></div>
+<div class="step"></div>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<div class="flex justify-between items-center">
+<span class="font-data-sm">NUTRIENT_FLOW</span>
+<div class="w-8 h-4 bg-surface-variant rounded-full relative cursor-pointer">
+<div class="absolute left-1 top-1 w-2 h-2 bg-on-surface-variant rounded-full"></div>
+</div>
+</div>
+<div class="stepped-progress">
+<div class="step active-secondary"></div>
+<div class="step active-secondary"></div>
+<div class="step"></div>
+<div class="step"></div>
+<div class="step"></div>
+<div class="step"></div>
+<div class="step"></div>
+<div class="step"></div>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<div class="flex justify-between items-center">
+<span class="font-data-sm">THERMAL_REG</span>
+<div class="w-8 h-4 bg-primary-container rounded-full relative cursor-pointer">
+<div class="absolute right-1 top-1 w-2 h-2 bg-on-primary rounded-full"></div>
+</div>
+</div>
+<div class="stepped-progress">
+<div class="step active-primary"></div>
+<div class="step active-primary"></div>
+<div class="step active-primary"></div>
+<div class="step"></div>
+<div class="step"></div>
+<div class="step"></div>
+<div class="step"></div>
+<div class="step"></div>
+</div>
+</div>
+</div>
+<button class="mt-md w-full bg-primary-container text-on-primary py-sm font-label-caps text-sm font-bold active:scale-95 transition-all shadow-[0_0_15px_rgba(0,255,65,0.3)]">
+                    DEPLOY_CHANGES
+                </button>
+</div>
+<div class="glass-panel flex-1 p-sm rounded-lg flex flex-col gap-sm overflow-hidden">
+<div class="font-label-caps text-on-surface-variant">LOG_STREAM</div>
+<div class="flex-1 font-data-sm text-[11px] text-primary/70 overflow-hidden relative">
+<div class="absolute inset-0 scanline opacity-20"></div>
+<div class="space-y-1">
+<div>[12:43:01] <span class="text-secondary">IRRIG_VLV_02</span> OPEN</div>
+<div>[12:43:05] SENSOR_SCAN_COMPLETE (ZONE_A)</div>
+<div>[12:43:12] <span class="text-primary">NDVI_MAP</span> UPDATED_V4</div>
+<div>[12:43:22] WARN: PH_LOW (PROBE_04)</div>
+<div>[12:44:00] AUTOSYNCING_CLOUD_DATA...</div>
+<div>[12:44:01] NODE_774_STABLE</div>
+<div>[12:44:05] COMM_LINK_OPTIMAL</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- SYSTEM FOOTER -->
+<footer class="fixed bottom-0 right-0 left-20 z-40 flex justify-between items-center px-sm bg-surface-container-lowest/90 backdrop-blur-sm border-t border-white/5 h-8">
+<div class="font-label-caps text-on-surface-variant/40 text-[9px]">SYSTEM ACTIVE // NODE_774_OP</div>
+<div class="flex gap-md font-label-caps text-[9px] text-secondary-fixed-dim">
+<span class="hover:text-secondary-fixed cursor-pointer transition-all">UPTIME: 99.98%</span>
+<span class="hover:text-secondary-fixed cursor-pointer transition-all">LATENCY: 14MS</span>
+<span class="hover:text-secondary-fixed cursor-pointer transition-all">UTC: 12:44:02</span>
+</div>
+</footer>
+<script>
+        // Simple micro-interactions
+        document.querySelectorAll('.step').forEach(step => {
+            step.addEventListener('click', function() {
+                const parent = this.parentElement;
+                const steps = Array.from(parent.children);
+                const index = steps.indexOf(this);
+                const isActivePrimary = steps[0].classList.contains('active-primary');
+                
+                steps.forEach((s, i) => {
+                    if (i <= index) {
+                        s.classList.add(isActivePrimary ? 'active-primary' : 'active-secondary');
+                    } else {
+                        s.classList.remove('active-primary', 'active-secondary');
+                    }
+                });
+            });
+        });
+
+        // Dynamic coordinate updates
+        setInterval(() => {
+            const logs = document.querySelector('.space-y-1');
+            const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            const newLog = document.createElement('div');
+            newLog.innerHTML = `[${time}] SYSTEM_HEARTBEAT_ACK`;
+            newLog.className = 'opacity-50';
+            logs.prepend(newLog);
+            if(logs.children.length > 10) logs.lastElementChild.remove();
+        }, 5000);
+    </script>
+</body></html>

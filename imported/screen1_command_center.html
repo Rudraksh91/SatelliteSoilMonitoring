@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        :root {
+            --primary-glow: rgba(0, 255, 65, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            background-color: #0a0f0d;
+            overflow: hidden;
+            color: #dfe4e0;
+        }
+        .glass-panel {
+            background: rgba(15, 20, 18, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to bottom, rgba(0, 255, 65, 0.1), transparent);
+            position: absolute;
+            animation: scan 4s linear infinite;
+        }
+        @keyframes scan {
+            from { top: 0%; }
+            to { top: 100%; }
+        }
+        .pulse-node {
+            box-shadow: 0 0 0 0 var(--primary-glow);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 var(--primary-glow); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 65, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 65, 0); }
+        }
+        .grid-bg {
+            background-image: 
+                linear-gradient(rgba(0, 255, 65, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#2c322f",
+                        "secondary": "#d3fbff",
+                        "surface-variant": "#313633",
+                        "error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb4a2",
+                        "inverse-surface": "#dfe4e0",
+                        "surface-container-high": "#262b29",
+                        "secondary-fixed": "#7df4ff",
+                        "on-tertiary": "#611200",
+                        "tertiary": "#fff8f6",
+                        "surface": "#0f1412",
+                        "surface-container-lowest": "#0a0f0d",
+                        "on-surface": "#dfe4e0",
+                        "on-secondary-fixed-variant": "#004f54",
+                        "tertiary-container": "#ffd3c8",
+                        "on-background": "#dfe4e0",
+                        "on-surface-variant": "#b9ccb2",
+                        "on-tertiary-fixed-variant": "#891d00",
+                        "on-primary-fixed-variant": "#00530e",
+                        "on-primary-container": "#007117",
+                        "primary": "#ebffe2",
+                        "primary-fixed": "#72ff70",
+                        "primary-container": "#00ff41",
+                        "surface-container-highest": "#313633",
+                        "surface-bright": "#353a38",
+                        "secondary-fixed-dim": "#00dbe9",
+                        "on-error-container": "#ffdad6",
+                        "surface-container": "#1c211e",
+                        "inverse-primary": "#006e16",
+                        "outline": "#84967e",
+                        "on-primary": "#003907",
+                        "on-primary-fixed": "#002203",
+                        "on-tertiary-container": "#b82a00",
+                        "surface-container-low": "#181d1a",
+                        "on-secondary": "#00363a",
+                        "on-secondary-container": "#00686f",
+                        "background": "#0f1412",
+                        "tertiary-fixed": "#ffdad2",
+                        "error": "#ffb4ab",
+                        "secondary-container": "#00eefc",
+                        "surface-dim": "#0f1412",
+                        "primary-fixed-dim": "#00e639",
+                        "outline-variant": "#3b4b37",
+                        "on-tertiary-fixed": "#3c0700",
+                        "on-secondary-fixed": "#002022",
+                        "surface-tint": "#00e639",
+                        "on-error": "#690005"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "md": "24px",
+                        "base": "4px",
+                        "sm": "16px",
+                        "lg": "40px",
+                        "margin": "32px",
+                        "gutter": "20px",
+                        "xs": "8px",
+                        "xl": "64px"
+                    },
+                    "fontFamily": {
+                        "data-lg": ["JetBrains Mono"],
+                        "display-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "data-sm": ["JetBrains Mono"],
+                        "label-caps": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "data-lg": ["20px", { "lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "1.2", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "data-sm": ["13px", { "lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-body-md text-on-surface select-none">
+<!-- SideNavBar (Rail) -->
+<aside class="fixed left-0 top-0 h-full z-50 flex flex-col bg-surface/80 backdrop-blur-xl h-screen w-20 hover:w-64 transition-all duration-300 border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,0.5)] group">
+<div class="p-sm flex items-center space-x-sm h-16 shrink-0 overflow-hidden">
+<div class="min-w-[48px] h-[48px] flex items-center justify-center bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary text-headline-md" style="font-variation-settings: 'FILL' 1;">eco</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+<h1 class="font-display-lg text-headline-md tracking-widest text-primary drop-shadow-[0_0_8px_rgba(0,255,65,0.4)]">TERRA-CORE</h1>
+<p class="font-label-caps text-label-caps text-on-surface-variant/60">V 4.0.2</p>
+</div>
+</div>
+<nav class="flex-grow py-md flex flex-col gap-base">
+<!-- Active Tab: Global Map -->
+<button class="flex items-center w-full px-sm py-xs text-primary border-r-2 border-primary bg-primary/10 transition-all duration-150 active:scale-95 group/item">
+<span class="material-symbols-outlined min-w-[48px] text-center" data-icon="public">public</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-label-caps text-label-caps ml-xs whitespace-nowrap">Global Map</span>
+</button>
+<button class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined min-w-[48px] text-center" data-icon="analytics">analytics</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-label-caps text-label-caps ml-xs whitespace-nowrap">Asset Analytics</span>
+</button>
+<button class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined min-w-[48px] text-center" data-icon="thermostat">thermostat</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-label-caps text-label-caps ml-xs whitespace-nowrap">Climate Control</span>
+</button>
+<button class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined min-w-[48px] text-center" data-icon="smart_toy">smart_toy</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-label-caps text-label-caps ml-xs whitespace-nowrap">Automation Logic</span>
+</button>
+<button class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined min-w-[48px] text-center" data-icon="monitor_heart">monitor_heart</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-label-caps text-label-caps ml-xs whitespace-nowrap">System Health</span>
+</button>
+</nav>
+<div class="mt-auto py-md border-t border-white/5">
+<button class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all">
+<span class="material-symbols-outlined min-w-[48px] text-center" data-icon="settings">settings</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-label-caps text-label-caps ml-xs whitespace-nowrap">Settings</span>
+</button>
+<button class="flex items-center w-full px-sm py-xs text-on-surface-variant/40 hover:text-error transition-all">
+<span class="material-symbols-outlined min-w-[48px] text-center" data-icon="logout">logout</span>
+<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-label-caps text-label-caps ml-xs whitespace-nowrap">Log Out</span>
+</button>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 left-20 z-40 flex justify-between items-center px-sm bg-surface/60 backdrop-blur-md h-16 border-b border-white/10">
+<div class="flex items-center gap-md">
+<span class="font-headline-md text-headline-md font-bold text-primary">COMMAND CENTER</span>
+<div class="h-4 w-[1px] bg-white/10"></div>
+<div class="flex items-center gap-sm">
+<span class="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-caps text-label-caps text-primary tracking-widest">LIVE FEED // REGION: NORTH_AM_EAST</span>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative">
+<input class="bg-surface-container-lowest/50 border border-white/10 font-data-sm text-data-sm px-md py-1 w-64 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="QUERY NODE_ID..." type="text"/>
+<span class="material-symbols-outlined absolute right-2 top-1 text-on-surface-variant/40" data-icon="search">search</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors" data-icon="rss_feed">rss_feed</span>
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors" data-icon="speed">speed</span>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary/40 bg-surface-container-high">
+<img alt="Command Officer Avatar" class="w-full h-full object-cover grayscale brightness-125" data-alt="A high-contrast profile portrait of a modern technical operator in a dark environment with green tactical lighting reflecting off their face. The image is minimalist and sharp, with deep obsidian shadows and glowing neon accents. The style is futuristic and cinematic, aligning with an advanced command center aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB54_ZQf5KD8XHY7uUZv_tMkc9UR4gRzhuXsgEEtJ_mmNbK-c7l6hAR82bVG-CZFknMXvu3Oyg0iGp715wRXCipV24vwX8bnQetPZ8lnl_NUwq3IpzpPBOxDWIFPvRWHoGvbD38--FzWE_SWth5LtCBaAUG_B1cdpr9J-bkSXK_5XB3J_FYB4Uun2IIcat4FtEDltD5RQQoCYLxtV83HZDxpztz_GLIYdnObhLs_m8So1bk2z_DOB9FJeHySqC06sIqwLuOhQCUfEFr"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-20 mt-16 h-[calc(100vh-64px-32px)] relative p-md overflow-hidden grid-bg">
+<!-- Background Map Section -->
+<div class="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
+<div class="relative w-[1228px] h-[1228px]">
+<img class="w-full h-full object-cover opacity-40 mix-blend-screen scale-150 rotate-12" data-alt="A dark, high-contrast satellite view of the Earth at night from low orbit. The continents are faint, defined by city lights that glow in a vibrant neon green instead of white. The atmospheric limb is visible as a thin, cyan arc against the deep black of space. Digital telemetry overlays and wireframe grid lines are faintly superimposed on the planet surface to create a tactical command interface look." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeDhrOcch9Vva-Vp4iqQmAf01T2nEvkwR1lG_ljd1lDHyEa4EugoAL2gyB9sKJl1D8Atr-g03We_rkEeh2mBXti2scYgejpJ5Mbn7iUqwNhzeG3ZArPuD9EEPt--uB3oOmwtp-_jqugISfZ5AeE53Ot3c0KDySxQTiiW-KRcff73yoFrmttrpMz2yZhDwg91DWBXaAQbKjv28CAZyPozAiAhSU2N7ryhl0qEjksAEK3pZmxyywpX3eE2kZlGIfvSuQmNsYQUabkMwX"/>
+<!-- Glowing Nodes -->
+<div class="absolute top-[30%] left-[45%] w-3 h-3 bg-primary-container rounded-full pulse-node"></div>
+<div class="absolute top-[45%] left-[55%] w-3 h-3 bg-secondary-container rounded-full pulse-node" style="animation-delay: 0.5s"></div>
+<div class="absolute top-[60%] left-[40%] w-3 h-3 bg-primary-container rounded-full pulse-node" style="animation-delay: 1.2s"></div>
+<div class="absolute top-[25%] left-[65%] w-2 h-2 bg-primary-container rounded-full pulse-node" style="animation-delay: 0.8s"></div>
+</div>
+</div>
+<!-- Layout Grid -->
+<div class="relative z-10 grid grid-cols-12 h-full gap-gutter">
+<!-- Left Info Overlay -->
+<div class="col-span-3 flex flex-col gap-sm">
+<div class="glass-panel p-sm border-l-2 border-l-primary relative overflow-hidden">
+<div class="scanline"></div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">SYSTEM STATUS</p>
+<div class="flex items-center justify-between">
+<span class="font-data-lg text-data-lg text-primary">OPERATIONAL</span>
+<span class="material-symbols-outlined text-primary" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<div class="glass-panel p-sm border-l-2 border-l-secondary relative overflow-hidden flex-grow">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-md">LATENCY_LOG_404</p>
+<div class="space-y-sm">
+<div class="h-24 w-full bg-surface-container-low relative flex items-end gap-[2px] p-1 border border-white/5">
+<div class="bg-primary/40 w-full" style="height: 40%"></div>
+<div class="bg-primary/40 w-full" style="height: 60%"></div>
+<div class="bg-primary/60 w-full" style="height: 85%"></div>
+<div class="bg-primary/40 w-full" style="height: 50%"></div>
+<div class="bg-primary-container w-full" style="height: 95%"></div>
+<div class="bg-primary/40 w-full" style="height: 30%"></div>
+<div class="bg-primary/40 w-full" style="height: 55%"></div>
+<div class="bg-primary/40 w-full" style="height: 45%"></div>
+</div>
+<div class="flex justify-between font-data-sm text-data-sm text-on-surface-variant/60 uppercase">
+<span>00:00:00</span>
+<span>TX_SIGNAL: 98%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Central HUD (Empty Space for Map View) -->
+<div class="col-span-6 flex items-end justify-center pb-xl">
+<div class="glass-panel px-lg py-sm flex items-center gap-xl border-t-2 border-primary-container/30">
+<div class="text-center">
+<p class="font-label-caps text-label-caps text-on-surface-variant/60">SCANNING RADIUS</p>
+<p class="font-data-lg text-data-lg text-primary">1,240 KM</p>
+</div>
+<div class="h-8 w-[1px] bg-white/10"></div>
+<div class="text-center">
+<p class="font-label-caps text-label-caps text-on-surface-variant/60">NODE_SYNC</p>
+<p class="font-data-lg text-data-lg text-secondary">ACTIVE</p>
+</div>
+<div class="h-8 w-[1px] bg-white/10"></div>
+<div class="text-center">
+<p class="font-label-caps text-label-caps text-on-surface-variant/60">UPLINK_STRENGTH</p>
+<p class="font-data-lg text-data-lg text-primary">OPTIMAL</p>
+</div>
+</div>
+</div>
+<!-- Right Telemetry Panel -->
+<div class="col-span-3 flex flex-col gap-sm">
+<div class="glass-panel p-sm border-t-2 border-primary">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">TOTAL MANAGED HECTARES</p>
+<div class="flex items-end gap-xs">
+<span class="font-display-lg text-[32px] font-bold text-primary">42,891.04</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-2">HA</span>
+</div>
+<div class="mt-sm flex gap-1">
+<div class="h-1 flex-grow bg-primary-container"></div>
+<div class="h-1 flex-grow bg-primary-container"></div>
+<div class="h-1 flex-grow bg-primary-container"></div>
+<div class="h-1 flex-grow bg-primary-container/20"></div>
+<div class="h-1 flex-grow bg-primary-container/20"></div>
+</div>
+</div>
+<div class="glass-panel p-sm border-t-2 border-secondary">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">ACTIVE NODES</p>
+<div class="flex justify-between items-center">
+<span class="font-display-lg text-[32px] font-bold text-secondary">8,102</span>
+<span class="font-data-sm text-data-sm text-secondary-fixed-dim bg-secondary/10 px-2 py-0.5 rounded">+12.4%</span>
+</div>
+</div>
+<div class="glass-panel p-sm border-t-2 border-primary-fixed-dim">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">AI EFFICIENCY</p>
+<div class="flex items-center gap-md">
+<div class="relative w-16 h-16">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<circle class="text-white/5" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-width="3"></circle>
+<circle class="text-primary" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="85, 100" stroke-linecap="round" stroke-width="3"></circle>
+</svg>
+<span class="absolute inset-0 flex items-center justify-center font-data-sm text-data-sm text-primary">85%</span>
+</div>
+<div>
+<p class="font-data-sm text-data-sm text-on-surface">COGNITIVE_LOAD: HIGH</p>
+<p class="font-label-caps text-label-caps text-on-surface-variant/60">AUTONOMOUS OPTIMIZATION</p>
+</div>
+</div>
+</div>
+<div class="glass-panel flex-grow overflow-hidden flex flex-col p-0">
+<div class="bg-white/5 px-sm py-2 border-b border-white/10 flex justify-between items-center">
+<span class="font-label-caps text-label-caps text-primary">THREAT_VECTOR_MONITOR</span>
+<span class="material-symbols-outlined text-sm text-on-surface-variant" data-icon="more_horiz">more_horiz</span>
+</div>
+<div class="p-sm space-y-base overflow-y-auto">
+<div class="flex items-center justify-between py-1 border-b border-white/5">
+<span class="font-data-sm text-data-sm">WEATHER_ANOMALY</span>
+<span class="font-label-caps text-label-caps text-error">CRITICAL</span>
+</div>
+<div class="flex items-center justify-between py-1 border-b border-white/5">
+<span class="font-data-sm text-data-sm">PEST_DETECT_77</span>
+<span class="font-label-caps text-label-caps text-primary">RESOLVED</span>
+</div>
+<div class="flex items-center justify-between py-1 border-b border-white/5">
+<span class="font-data-sm text-data-sm">HYDRATION_LOSS</span>
+<span class="font-label-caps text-label-caps text-secondary">ACTIVE</span>
+</div>
+<div class="flex items-center justify-between py-1 border-b border-white/5">
+<span class="font-data-sm text-data-sm">UPLINK_JITTER</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant/40">LOW</span>
+</div>
+<div class="flex items-center justify-between py-1 border-b border-white/5">
+<span class="font-data-sm text-data-sm">SOIL_NITRATE_DROP</span>
+<span class="font-label-caps text-label-caps text-error">CRITICAL</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="fixed bottom-0 right-0 left-20 z-40 flex justify-between items-center px-sm bg-surface-container-lowest/90 backdrop-blur-sm h-8 border-t border-white/5">
+<div class="flex items-center gap-md">
+<span class="font-label-caps text-label-caps text-on-surface-variant/40">SYSTEM ACTIVE // NODE_774_OP</span>
+</div>
+<div class="flex items-center gap-lg">
+<span class="font-label-caps text-label-caps text-secondary-fixed-dim hover:text-secondary-fixed transition-all cursor-default">UPTIME: 99.98%</span>
+<span class="font-label-caps text-label-caps text-secondary-fixed-dim hover:text-secondary-fixed transition-all cursor-default">LATENCY: 14MS</span>
+<span class="font-label-caps text-label-caps text-secondary-fixed-dim hover:text-secondary-fixed transition-all cursor-default" id="current-utc">UTC: 12:44:02</span>
+</div>
+</footer>
+<script>
+        // Micro-interaction: Update UTC Time
+        function updateTime() {
+            const now = new Date();
+            const utc = now.toUTCString().split(' ')[4];
+            document.getElementById('current-utc').innerText = 'UTC: ' + utc;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Optional Interaction: Map Movement Simulation
+        document.addEventListener('mousemove', (e) => {
+            const map = document.querySelector('main img');
+            const xAxis = (window.innerWidth / 2 - e.pageX) / 100;
+            const yAxis = (window.innerHeight / 2 - e.pageY) / 100;
+            map.style.transform = `scale(1.5) rotate(12deg) translate(${xAxis}px, ${yAxis}px)`;
+        });
+    </script>
+</body></html>
