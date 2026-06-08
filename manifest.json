@@ -2,8 +2,8 @@
   "name": "TERRA-CORE AgriSat",
   "short_name": "AgriSat",
   "description": "Satellite Soil Monitoring & Smart Irrigation — Dediapada Farm, Gujarat",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/SatelliteSoilMonitoring/",
+  "scope": "/SatelliteSoilMonitoring/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#00ff41",
@@ -23,14 +23,14 @@
       "name": "Irrigation Control",
       "short_name": "Valves",
       "description": "Open manual valve controls",
-      "url": "/?page=auto",
+      "url": "/SatelliteSoilMonitoring/?page=auto",
       "icons": [{ "src": "icons/icon.svg", "sizes": "any" }]
     },
     {
       "name": "Field Analytics",
       "short_name": "Analytics",
       "description": "View NDVI & soil data",
-      "url": "/?page=ndvi",
+      "url": "/SatelliteSoilMonitoring/?page=ndvi",
       "icons": [{ "src": "icons/icon.svg", "sizes": "any" }]
     }
   ],
