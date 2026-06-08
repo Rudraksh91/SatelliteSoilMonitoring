@@ -1,0 +1,39 @@
+# ── SECRETS — NEVER upload these ──────────────────────────
+agrisat_service_account.json
+.streamlit/secrets.toml
+*.json
+!manifest.json
+
+# ── Python environment ─────────────────────────────────────
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ── Binaries ───────────────────────────────────────────────
+cloudflared
+*.exe
+*.bin
+
+# ── Logs & temp ────────────────────────────────────────────
+*.log
+*.csv
+.tunnel_url
+.permanent_url
+/tmp/
+
+# ── OS files ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Deploy folder (regenerated) ────────────────────────────
+deploy/
+
+# ── Node / Capacitor ───────────────────────────────────────
+node_modules/
+android/
+ios/

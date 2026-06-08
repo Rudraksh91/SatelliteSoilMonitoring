@@ -1,0 +1,287 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║     TERRA-CORE AgriSat — Complete Wiring Guide                       ║
+║     ESP32 DevKit + Raspberry Pi Pico Sensor Hub                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+COMPONENTS NEEDED:
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ Qty │ Component                        │ Notes                  │
+  ├─────┼──────────────────────────────────┼────────────────────────┤
+  │  1  │ ESP32 DevKit V1 (30-pin)         │ Main WiFi controller   │
+  │  1  │ Raspberry Pi Pico (or Pico W)    │ Sensor hub             │
+  │  3  │ Capacitive Soil Moisture Sensor  │ v1.2, 3.3V compatible  │
+  │  1  │ DHT22 Temperature/Humidity       │ AM2302 module          │
+  │  1  │ 3-Channel Relay Module 5V        │ Active-LOW trigger     │
+  │  3  │ 12V Solenoid Valve (NC)          │ G1/2 or G3/4 inch      │
+  │  1  │ 12V DC Power Supply (≥2A)        │ For solenoid valves    │
+  │  1  │ USB power bank or 5V adapter     │ For ESP32 + Pico       │
+  │  -  │ Jumper wires (M-M, M-F)          │ 30–40 wires            │
+  │  -  │ Breadboard (optional)            │ For prototyping        │
+  └─────┴──────────────────────────────────┴────────────────────────┘
+
+OPTIONAL SENSORS (uncomment in pico/main.py):
+  │  1  │ DS18B20 (waterproof)             │ Soil temperature       │
+  │  1  │ BH1750 Module                    │ Light intensity (lux)  │
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 1: ESP32 ↔ RASPBERRY PI PICO (UART)
+══════════════════════════════════════════════════════════════════════
+
+ ESP32 DevKit          Raspberry Pi Pico
+ ──────────────        ─────────────────
+ GPIO16 (RX2) ◄──────── GPIO0 (TX / UART0 TX)
+ GPIO17 (TX2) ─────────► GPIO1 (RX / UART0 RX)
+ GND          ◄──────── GND
+ 3.3V         ─────────► 3V3(OUT)   [max 300mA — fine for Pico]
+
+ ⚠ IMPORTANT: Connect GND between both boards before anything else!
+ ⚠ Do NOT connect 5V to Pico 3V3 pin — use 3.3V from ESP32.
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 2: PICO ↔ MOISTURE SENSORS (Analog)
+══════════════════════════════════════════════════════════════════════
+
+ Moisture Sensor     Pico Pin         Zone
+ ───────────────     ──────────       ─────
+ AOUT (signal)  ──── GPIO26 (ADC0)   Zone 1 / FIELD-A
+ VCC            ──── 3V3             (shared rail)
+ GND            ──── GND             (shared rail)
+
+ AOUT (signal)  ──── GPIO27 (ADC1)   Zone 2 / FIELD-B
+ VCC            ──── 3V3
+ GND            ──── GND
+
+ AOUT (signal)  ──── GPIO28 (ADC2)   Zone 3 / FIELD-C
+ VCC            ──── 3V3
+ GND            ──── GND
+
+ Note: Sensor outputs ~3.3V (dry) to ~1.2V (wet). All within Pico ADC range.
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 3: PICO ↔ DHT22 (Temperature + Humidity)
+══════════════════════════════════════════════════════════════════════
+
+ DHT22 Pin      Pico Pin         Notes
+ ──────────     ──────────       ─────────────────────────────────
+ VCC (1)   ──── 3V3              3.3V power
+ DATA (2)  ──── GPIO22           Signal (add 10kΩ pull-up to 3V3)
+ NC (3)         —                Not connected
+ GND (4)   ──── GND
+
+ Pull-up resistor: 10kΩ between GPIO22 and 3V3
+                   (many breakout modules already have this)
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 4: ESP32 ↔ 3-CHANNEL RELAY MODULE
+══════════════════════════════════════════════════════════════════════
+
+ ESP32 Pin       Relay Module     Notes
+ ─────────       ────────────     ──────────────────────────────────
+ GPIO25     ──── IN1              Zone 1 / FIELD-A control
+ GPIO26     ──── IN2              Zone 2 / FIELD-B control
+ GPIO27     ──── IN3              Zone 3 / FIELD-C control
+ 5V (VIN)   ──── VCC              Relay coil power (needs 5V!)
+ GND        ──── GND
+
+ ⚠ Most relay modules are ACTIVE-LOW:
+   GPIO LOW  = relay ON  = valve OPEN
+   GPIO HIGH = relay OFF = valve CLOSED
+   The firmware already accounts for this.
+
+ If using ACTIVE-HIGH relay, change in esp32_agrisat.ino:
+   setValve: LOW→HIGH and HIGH→LOW
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 5: RELAY ↔ SOLENOID VALVES (12V)
+══════════════════════════════════════════════════════════════════════
+
+ For each zone (repeat ×3):
+
+  12V Power Supply (+) ─────────── Relay COM (Common)
+  Relay NO (Normally Open) ──────── Solenoid Valve (+)
+  12V Power Supply (-) / GND ────── Solenoid Valve (-)
+
+  NC (Normally Closed) — NOT USED for solenoid
+
+ ⚠ SAFETY: Add a 1N4007 flyback diode across each solenoid:
+   Cathode → Solenoid +   Anode → Solenoid -
+   (prevents voltage spikes when solenoid de-energizes)
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 6: COMPLETE PIN REFERENCE TABLE
+══════════════════════════════════════════════════════════════════════
+
+ ESP32 DevKit Pin Map:
+ ┌────────────┬──────────────┬──────────────────────────────────────┐
+ │ GPIO       │ Connected To │ Function                             │
+ ├────────────┼──────────────┼──────────────────────────────────────┤
+ │ GPIO2      │ Onboard LED  │ Status indicator (built-in)          │
+ │ GPIO16     │ Pico GPIO0   │ UART2 RX (receive from Pico)         │
+ │ GPIO17     │ Pico GPIO1   │ UART2 TX (send to Pico)              │
+ │ GPIO25     │ Relay IN1    │ Zone 1 / FIELD-A valve               │
+ │ GPIO26     │ Relay IN2    │ Zone 2 / FIELD-B valve               │
+ │ GPIO27     │ Relay IN3    │ Zone 3 / FIELD-C valve               │
+ │ 5V/VIN     │ Relay VCC    │ Relay module power                   │
+ │ 3.3V       │ Pico 3V3     │ Pico power                           │
+ │ GND        │ Common GND   │ All grounds joined                   │
+ └────────────┴──────────────┴──────────────────────────────────────┘
+
+ Raspberry Pi Pico Pin Map:
+ ┌────────────┬──────────────┬──────────────────────────────────────┐
+ │ GPIO       │ Connected To │ Function                             │
+ ├────────────┼──────────────┼──────────────────────────────────────┤
+ │ GPIO0 (TX) │ ESP32 GPIO16 │ UART0 TX → ESP32 RX2                 │
+ │ GPIO1 (RX) │ ESP32 GPIO17 │ UART0 RX ← ESP32 TX2                 │
+ │ GPIO22     │ DHT22 DATA   │ Temperature & Humidity               │
+ │ GPIO26     │ Sensor 1 OUT │ Zone 1 moisture (ADC0)               │
+ │ GPIO27     │ Sensor 2 OUT │ Zone 2 moisture (ADC1)               │
+ │ GPIO28     │ Sensor 3 OUT │ Zone 3 moisture (ADC2)               │
+ │ GPIO25/LED │ Onboard LED  │ Status (blinking = working)          │
+ │ 3V3(OUT)   │ ESP32 3.3V   │ Power from ESP32                     │
+ │ GND        │ Common GND   │ Shared with ESP32                    │
+ └────────────┴──────────────┴──────────────────────────────────────┘
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 7: SETUP PROCEDURE
+══════════════════════════════════════════════════════════════════════
+
+ STEP 1 — Install MicroPython on Pico:
+   a. Download UF2: https://micropython.org/download/rp2-pico/
+   b. Hold BOOTSEL button → plug USB → release
+   c. Drag .uf2 file to RPI-RP2 drive
+
+ STEP 2 — Calibrate moisture sensors:
+   a. Upload calibrate.py to Pico via Thonny IDE
+   b. Run it, note DRY values (sensor in air)
+   c. Wet sensor, note WET values
+   d. Update CAL_DRY / CAL_WET in main.py
+
+ STEP 3 — Upload Pico firmware:
+   a. Open Thonny IDE (thonny.org)
+   b. Select interpreter: MicroPython (Raspberry Pi Pico)
+   c. Open pico/main.py → Save As → /main.py on device
+
+ STEP 4 — Flash ESP32:
+   a. Install Arduino IDE (arduino.cc)
+   b. Add ESP32 board URL in Preferences:
+      https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+   c. Install "ESP32 by Espressif" via Board Manager
+   d. Install libraries: WebSockets, ArduinoJson
+   e. Edit WIFI_SSID and WIFI_PASSWORD in esp32_agrisat.ino
+   f. Select: Board "ESP32 Dev Module", Port (your COM port)
+   g. Upload
+
+ STEP 5 — Connect to dashboard:
+   a. Open Serial Monitor (115200 baud) — note the IP address
+   b. Open the TERRA-CORE dashboard in any browser
+   c. Click the [HW] button in the top-right header
+   d. Enter ESP32 IP address (e.g. 192.168.1.42)
+   e. Click CONNECT — green dot = connected!
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 8: TROUBLESHOOTING
+══════════════════════════════════════════════════════════════════════
+
+ Issue: Dashboard can't connect to ESP32
+   → Check ESP32 Serial Monitor for the IP address
+   → Make sure phone/laptop is on SAME WiFi network as ESP32
+   → Try pinging the IP: ping 192.168.1.xx
+   → Check firewall isn't blocking port 80 or 81
+
+ Issue: Moisture readings stuck at 0% or 100%
+   → Run calibrate.py — check raw ADC values
+   → Update CAL_DRY / CAL_WET in main.py
+   → Check sensor VCC (must be 3.3V, not 5V)
+
+ Issue: DHT22 reads 0 / fails
+   → Check 10kΩ pull-up resistor on DATA pin
+   → Try a different GPIO pin in main.py (avoid GPIO0/1)
+   → DHT22 needs 2 seconds between reads
+
+ Issue: Valves don't open
+   → Check 12V power supply is connected to relay
+   → Test relay manually: touch IN1 to GND → LED lights = working
+   → Confirm relay is ACTIVE-LOW (LED on = relay energized)
+   → Check solenoid coil resistance with multimeter (should be 10–30Ω)
+
+ Issue: Pico LED not blinking
+   → Pico W uses Pin("LED") not Pin(25) — already handled in code
+   → Check USB cable (data, not charge-only)
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 9: API REFERENCE
+══════════════════════════════════════════════════════════════════════
+
+ Base URL: http://<ESP32-IP>
+
+ GET  /api/sensors        → All sensor data + valve states (JSON)
+ GET  /api/info           → Device info, firmware version, WiFi
+ POST /api/valve          → Control a valve
+                            Body: {"zone": 1, "state": true}
+                            zone: 1=FIELD-A, 2=FIELD-B, 3=FIELD-C
+                            state: true=open, false=closed
+ POST /api/stop           → Emergency stop (close all valves)
+ POST /api/mode           → Set auto/manual mode
+                            Body: {"auto": true}
+
+ WebSocket: ws://<ESP32-IP>:81
+   → Connects and receives live JSON every 2 seconds
+   → Send: {"zone":1,"state":true} to control valves
+   → Send: {"emergency_stop":true} to stop all
+
+══════════════════════════════════════════════════════════════════════
+ SECTION 10: CLOUD MQTT — CONTROL FROM ANYWHERE IN THE WORLD
+══════════════════════════════════════════════════════════════════════
+
+ This uses HiveMQ public broker — free, no account, no server needed.
+ Both the ESP32 and dashboard connect to the same broker and talk via
+ a shared Farm ID.
+
+ ── FIRMWARE ──────────────────────────────────────────────────────────
+ Use:  hardware/esp32/esp32_agrisat_cloud.ino   (CLOUD mode)
+ vs:   hardware/esp32/esp32_agrisat.ino         (LOCAL WiFi only)
+
+ STEP 1 — Install PubSubClient library:
+   Arduino IDE → Library Manager → search "PubSubClient" by Nick O'Leary
+   Install version 2.8+
+
+ STEP 2 — Edit esp32_agrisat_cloud.ino:
+   const char* WIFI_SSID     = "YOUR_WIFI_SSID";
+   const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+   const char* FARM_ID       = "dediapada-farm-01";   ← pick a unique ID
+
+ STEP 3 — Flash to ESP32 (same as local firmware)
+
+ STEP 4 — Dashboard CLOUD tab:
+   Click [HW] → switch to "☁ CLOUD MQTT" tab
+   Enter the SAME Farm ID you used in firmware → CONNECT
+   Status turns green = live from anywhere!
+
+ ── MQTT TOPICS ───────────────────────────────────────────────────────
+   Sensor data (ESP32 → dashboard):  agrisat/{farmId}/data
+   Valve commands (dashboard → ESP32): agrisat/{farmId}/cmd
+
+ ── JSON FORMAT ────────────────────────────────────────────────────────
+ Data payload (published every 2s by ESP32):
+   {
+     "moisture":    [45.2, 38.7, 52.1],
+     "temperature": 28.4,
+     "humidity":    65.3,
+     "pico_online": true,
+     "valve":       [false, false, false],
+     "auto_mode":   false
+   }
+
+ Command payload (sent by dashboard):
+   {"zone":1, "state":true}       ← open Zone 1
+   {"zone":2, "state":false}      ← close Zone 2
+   {"emergency_stop":true}        ← stop all valves
+   {"auto_mode":true}             ← enable auto irrigation
+
+ ── SECURITY NOTE ─────────────────────────────────────────────────────
+ HiveMQ public broker has NO authentication — anyone who knows your
+ Farm ID can send commands. For production:
+   1. Use a UNIQUE, hard-to-guess Farm ID (e.g. "farm-guj-2847-x9k2")
+   2. Or set up a free account at cloud.hivemq.com for private broker
+
+══════════════════════════════════════════════════════════════════════

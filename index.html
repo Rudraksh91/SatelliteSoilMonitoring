@@ -1,0 +1,2468 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
+<title>TERRA-CORE | AgriSat Dediapada</title>
+
+<!-- ── PWA Manifest ───────────────────────────────────────── -->
+<link rel="manifest" href="manifest.json"/>
+
+<!-- ── Theme & Status Bar ────────────────────────────────── -->
+<meta name="theme-color" content="#060a09"/>
+<meta name="msapplication-TileColor" content="#060a09"/>
+<meta name="msapplication-TileImage" content="icons/icon.svg"/>
+
+<!-- ── iOS PWA (Add to Home Screen) ──────────────────────── -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="AgriSat"/>
+<link rel="apple-touch-icon" href="icons/icon.svg"/>
+<link rel="apple-touch-startup-image" href="icons/icon.svg"/>
+
+<!-- ── Android / General ─────────────────────────────────── -->
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="application-name" content="TERRA-CORE AgriSat"/>
+<meta name="description" content="Satellite Soil Monitoring & Smart Irrigation — Dediapada Farm, Gujarat"/>
+
+<!-- ── App Icon ──────────────────────────────────────────── -->
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml"/>
+<link rel="shortcut icon" href="icons/icon.svg"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+:root{--pg:rgba(0,255,65,.4);--gb:rgba(255,255,255,.1)}
+body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
+.gp{background:rgba(15,20,18,.6);backdrop-filter:blur(12px);border:1px solid var(--gb)}
+.mso{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
+.scanline{background:linear-gradient(to bottom,transparent 50%,rgba(0,255,65,.02) 50%);background-size:100% 4px}
+.scanline-anim::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,transparent,rgba(0,255,65,.05) 50%,transparent);animation:scanmove 8s linear infinite;pointer-events:none}
+@keyframes scanmove{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}
+.pulse-node{animation:pnode 2s infinite}
+@keyframes pnode{0%{transform:scale(.95);box-shadow:0 0 0 0 var(--pg)}70%{transform:scale(1);box-shadow:0 0 0 10px rgba(0,255,65,0)}100%{transform:scale(.95);box-shadow:0 0 0 0 rgba(0,255,65,0)}}
+@keyframes pglow{0%,100%{box-shadow:0 0 5px rgba(0,255,65,.2)}50%{box-shadow:0 0 15px rgba(0,255,65,.5)}}
+.aglow{animation:pglow 2s infinite ease-in-out}
+.grid-bg{background-image:linear-gradient(rgba(0,255,65,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.05) 1px,transparent 1px);background-size:40px 40px}
+.tl-grid{background-image:linear-gradient(to right,rgba(255,255,255,.05) 1px,transparent 1px);background-size:80px 100%}
+.step{height:8px;flex:1;background:rgba(255,255,255,.1)}
+.step.sp{background:#00ff41;box-shadow:0 0 5px #00ff41}
+.step.ss{background:#00dbe9;box-shadow:0 0 5px #00dbe9}
+.page{display:none!important}.page.active{display:flex!important;flex-direction:column}
+.wtab{padding:6px 14px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border:1px solid transparent;transition:all .2s;color:#b9ccb2}
+.wtab.on{background:rgba(0,255,65,.12);border-color:rgba(0,255,65,.3);color:#00ff41}
+.wtab:not(.on):hover{background:rgba(255,255,255,.05);color:#dfe4e0}
+.chart-wrap{position:relative;width:100%;flex:1;min-height:0}
+.chart-wrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+.chart-panel{display:none;flex-direction:column;flex:1;min-height:0}
+.chart-panel.active{display:flex}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0a0f0d}::-webkit-scrollbar-thumb{background:#313633;border-radius:2px}::-webkit-scrollbar-thumb:hover{background:#00ff41}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* ── MOBILE NAV ── */
+#mob-nav{display:none}
+.mob-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:2px;padding:6px 4px;color:rgba(185,204,178,.5);transition:color .2s;cursor:pointer;background:none;border:none;-webkit-tap-highlight-color:transparent}
+.mob-btn.active{color:#00ff41}
+.mob-btn span.material-symbols-outlined{font-size:22px}
+.mob-btn-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+/* ── MOBILE LAYOUT (< 768px) ── */
+@media(max-width:767px){
+  body{overflow-y:auto;overflow-x:hidden}
+  aside{display:none!important}
+  header{left:0!important}
+  footer{display:none!important}
+  #mob-nav{display:flex}
+  /* Page base */
+  main.page{margin-left:0!important;height:auto!important;overflow-y:auto!important;padding-bottom:56px!important}
+  main.page.active{display:flex!important}
+  /* Page 1 — satellite map stacks above panels */
+  #page-map{flex-direction:column!important;padding:0!important;overflow-x:hidden!important}
+  #page-map>div:first-child{position:relative!important;height:240px!important;flex-shrink:0;width:100%}
+  #sat-map{height:240px!important}
+  #page-map>.relative.z-10{position:relative!important;height:auto!important;display:flex!important;flex-direction:column!important;gap:10px!important;padding:12px!important;background:rgba(10,15,13,.97)!important}
+  #page-map .col-span-3,#page-map .col-span-6{grid-column:unset!important;width:100%!important}
+  #page-map .col-span-6{display:none!important}
+  /* Page 2 — stack sections */
+  #page-ndvi.active{display:flex!important}
+  #page-ndvi{flex-direction:column!important;grid-template-columns:none!important}
+  #page-ndvi section{grid-column:unset!important;width:100%!important;flex-shrink:0}
+  #page-ndvi section.col-span-6 .gp.flex-1{min-height:280px}
+  /* Page 3 — 2-col metric cards, chart scrollable */
+  #page-climate.active{display:flex!important}
+  #page-climate{flex-direction:column!important;height:auto!important;overflow-y:auto!important}
+  #page-climate>div:first-child{grid-template-columns:repeat(2,1fr)!important}
+  #page-climate .flex-1.gp{min-height:340px!important}
+  /* Page 4 — stack sections */
+  #page-auto .h-full{height:auto!important}
+  #page-auto>div.h-full{display:flex!important;flex-direction:column!important;height:auto!important}
+  #page-auto section[style*="height:45%"]{height:auto!important;min-height:260px!important;max-height:none!important}
+  #page-auto .flex-1.grid.grid-cols-12{display:flex!important;flex-direction:column!important;height:auto!important}
+  #page-auto .col-span-8,#page-auto .col-span-4{grid-column:unset!important;width:100%!important;min-height:240px!important}
+  /* Page 5 — 1-col health grid */
+  #page-health{height:auto!important;overflow-y:auto!important}
+  #page-health .grid.grid-cols-3{grid-template-columns:1fr!important}
+  #page-health .col-span-3.flex{flex-direction:column!important;align-items:flex-start!important;gap:16px!important}
+  #page-health .grid.grid-cols-3.gap-gutter.mt-sm{grid-template-columns:repeat(2,1fr)!important}
+  /* Bhoonidhi SVG: scale down */
+  #page-health svg[width="220"]{width:160px!important;height:auto!important}
+  /* Chart wrap: minimum height */
+  .chart-wrap{min-height:250px!important}
+  /* Tab bar: scrollable */
+  .flex.gap-xs.flex-wrap{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .wtab{font-size:9px!important;padding:5px 10px!important;white-space:nowrap!important}
+  /* Sat tooltip: hide on small screen */
+  .sat-tip{display:none!important}
+  /* Rule cards: 2-col → 1-col */
+  .flex-1.grid.grid-cols-3.gap-md{grid-template-columns:1fr 1fr!important;gap:8px!important}
+}
+#sat-map{width:100%;height:100%;background:#010b16}
+#sat-map .leaflet-tile-pane{filter:brightness(.68) saturate(.75)}
+#sat-map .leaflet-control-attribution{display:none}
+.sat-tip{background:rgba(10,15,13,.92)!important;border:1px solid rgba(0,255,65,.35)!important;color:#00ff41!important;font-family:'JetBrains Mono',monospace!important;font-size:10px!important;font-weight:600!important;letter-spacing:.08em!important;border-radius:4px!important;padding:5px 8px!important;box-shadow:0 0 12px rgba(0,255,65,.15)!important;white-space:nowrap!important}
+.sat-tip::before{display:none!important}
+/* Mode toggle */
+.mode-toggle{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(185,204,178,.5);transition:all .2s;padding:6px 16px;border-radius:4px;cursor:pointer;border:none;display:flex;align-items:center;gap:5px}
+.mode-toggle.active{background:rgba(0,255,65,.12);color:#00ff41;box-shadow:0 0 0 1px rgba(0,255,65,.3)}
+/* Valve button open/closed states (JS-applied classes) */
+.valve-open{background:rgba(255,180,50,.1)!important;border-color:rgba(255,180,50,.5)!important;color:#ffb432!important}
+.valve-closed-btn{background:rgba(0,255,65,.08)!important;border-color:rgba(0,255,65,.3)!important;color:#00ff41!important}
+/* Duration presets */
+.dur-btn{color:rgba(185,204,178,.6);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:all .15s;border:1px solid transparent}
+.dur-btn.sel{background:rgba(0,238,252,.12)!important;border-color:rgba(0,238,252,.35)!important;color:#00dbe9!important}
+.crop-search{width:100%;background:rgba(8,12,10,.9);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;color:#00ff41;outline:none;transition:border-color .15s}
+.crop-search::placeholder{color:rgba(185,204,178,.3)}
+.crop-search:focus{border-color:rgba(0,255,65,.3)}
+.crop-drop{position:absolute;left:0;right:0;top:100%;margin-top:3px;z-index:100;background:rgba(6,10,9,.98);border:1px solid rgba(0,255,65,.15);border-radius:8px;max-height:196px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.85);scrollbar-width:thin;scrollbar-color:rgba(0,255,65,.2) transparent}
+.crop-opt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;padding:5px 10px;cursor:pointer;color:rgba(185,204,178,.75);transition:background .1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crop-opt:hover{background:rgba(0,255,65,.1);color:#00ff41}
+.crop-cat-hdr{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:800;letter-spacing:.12em;padding:5px 10px 2px;color:rgba(0,238,252,.45);border-top:1px solid rgba(255,255,255,.05);margin-top:2px}
+.crop-cat-hdr:first-child{border-top:none;margin-top:0}
+</style>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{"surface":"#0f1412","surface-container-lowest":"#0a0f0d","surface-container":"#1c211e","surface-container-low":"#181d1a","surface-container-high":"#262b29","surface-container-highest":"#313633","on-surface":"#dfe4e0","on-surface-variant":"#b9ccb2","primary":"#ebffe2","primary-fixed":"#72ff70","primary-container":"#00ff41","primary-fixed-dim":"#00e639","on-primary":"#003907","secondary":"#d3fbff","secondary-fixed":"#7df4ff","secondary-fixed-dim":"#00dbe9","secondary-container":"#00eefc","on-secondary":"#00363a","tertiary":"#fff8f6","tertiary-fixed-dim":"#ffb4a2","tertiary-container":"#ffd3c8","on-tertiary":"#611200","error":"#ffb4ab","error-container":"#93000a","on-error":"#690005","outline":"#84967e","outline-variant":"#3b4b37"},borderRadius:{DEFAULT:"0.125rem",lg:"0.25rem",xl:"0.5rem",full:"0.75rem"},spacing:{base:"4px",xs:"8px",sm:"16px",md:"24px",lg:"40px",xl:"64px",gutter:"20px",margin:"32px"},fontFamily:{"data-lg":["JetBrains Mono"],"display-lg":["Inter"],"headline-md":["Inter"],"body-md":["Inter"],"data-sm":["JetBrains Mono"],"label-caps":["JetBrains Mono"]},fontSize:{"data-lg":["20px",{lineHeight:"1.2",letterSpacing:"0.02em",fontWeight:"500"}],"display-lg":["48px",{lineHeight:"1.1",letterSpacing:"-0.02em",fontWeight:"700"}],"headline-md":["24px",{lineHeight:"1.2",letterSpacing:"0.01em",fontWeight:"600"}],"body-md":["16px",{lineHeight:"1.5",letterSpacing:"0",fontWeight:"400"}],"data-sm":["13px",{lineHeight:"1.4",letterSpacing:"0.05em",fontWeight:"400"}],"label-caps":["11px",{lineHeight:"1",letterSpacing:"0.1em",fontWeight:"700"}]}}}}</script>
+</head>
+<body class="font-body-md text-on-surface select-none">
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- FIRST-RUN / ESP32 SETUP SCREEN                           -->
+<!-- Shown on first launch when no ESP32 IP is saved          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="setup-screen" style="display:none;position:fixed;inset:0;z-index:100000;background:#060a09;flex-direction:column;align-items:center;justify-content:center;padding:32px;padding-top:env(safe-area-inset-top,32px)">
+
+  <!-- App icon -->
+  <div style="width:88px;height:88px;border-radius:22px;overflow:hidden;margin-bottom:24px;box-shadow:0 0 32px rgba(0,255,65,.25)">
+    <img src="icons/icon.svg" alt="AgriSat" style="width:100%;height:100%">
+  </div>
+
+  <!-- Title -->
+  <p style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:900;letter-spacing:3px;color:#00ff41;text-align:center;line-height:1.2">TERRA-CORE</p>
+  <p style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:6px;color:rgba(0,238,252,.6);text-align:center;margin-top:4px;margin-bottom:8px">AGRISAT DEDIAPADA</p>
+  <div style="width:48px;height:1px;background:rgba(0,255,65,.25);margin-bottom:28px"></div>
+
+  <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(185,204,178,.5);text-align:center;letter-spacing:.06em;margin-bottom:28px;max-width:280px">Enter your ESP32 IP address to connect the dashboard to your field hardware</p>
+
+  <!-- IP Input -->
+  <div style="width:100%;max-width:320px;margin-bottom:12px">
+    <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.4);letter-spacing:.08em;margin-bottom:8px">ESP32 IP ADDRESS</p>
+    <input id="setup-ip" type="text" inputmode="decimal" placeholder="192.168.1.42"
+      style="width:100%;box-sizing:border-box;background:rgba(8,14,11,.9);border:1.5px solid rgba(0,255,65,.2);border-radius:10px;padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:16px;color:#00ff41;outline:none;letter-spacing:.06em;-webkit-appearance:none"
+      onkeydown="if(event.key==='Enter')setupConnect()"
+      oninput="document.getElementById('setup-ip').style.borderColor='rgba(0,255,65,.2)'">
+  </div>
+
+  <!-- Status line -->
+  <p id="setup-status" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.35);letter-spacing:.06em;margin-bottom:20px;height:14px;text-align:center;max-width:320px"></p>
+
+  <!-- Connect button -->
+  <button onclick="setupConnect()" style="width:100%;max-width:320px;background:rgba(0,255,65,.14);border:1.5px solid rgba(0,255,65,.4);border-radius:12px;color:#00ff41;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.12em;padding:16px;cursor:pointer;margin-bottom:12px;-webkit-tap-highlight-color:transparent;transition:all .15s;box-shadow:0 0 20px rgba(0,255,65,.1)" id="setup-connect-btn">
+    CONNECT TO ESP32
+  </button>
+
+  <!-- Skip button -->
+  <button onclick="setupSkip()" style="width:100%;max-width:320px;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:12px;color:rgba(185,204,178,.4);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent">
+    SKIP — USE OFFLINE / API MODE
+  </button>
+
+  <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.18);text-align:center;margin-top:24px;letter-spacing:.06em">Find IP in Arduino Serial Monitor · 115200 baud · After flashing ESP32</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PWA INSTALL BANNER (shown when browser supports install)  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="install-banner" style="display:none;position:fixed;bottom:72px;left:12px;right:12px;z-index:9998;background:rgba(10,16,13,.97);border:1px solid rgba(0,255,65,.2);border-radius:14px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.7);backdrop-filter:blur(16px)">
+  <div style="display:flex;align-items:center;gap:12px">
+    <img src="icons/icon.svg" style="width:40px;height:40px;border-radius:10px;flex-shrink:0">
+    <div style="flex:1">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#00ff41;letter-spacing:.06em">INSTALL APP</p>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.5);margin-top:2px">Add TERRA-CORE to your home screen</p>
+    </div>
+    <button onclick="installApp()" style="background:rgba(0,255,65,.15);border:1px solid rgba(0,255,65,.35);border-radius:8px;color:#00ff41;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;padding:7px 12px;cursor:pointer;white-space:nowrap">INSTALL</button>
+    <button onclick="document.getElementById('install-banner').style.display='none'" style="background:none;border:none;color:rgba(185,204,178,.4);font-size:16px;cursor:pointer;padding:4px;line-height:1">✕</button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="hidden md:flex fixed left-0 top-0 h-full z-50 flex-col bg-surface/80 backdrop-blur-xl w-20 hover:w-64 transition-all duration-300 border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,.5)] group">
+  <div class="p-sm flex items-center gap-xs h-16 overflow-hidden shrink-0">
+    <div class="min-w-[48px] h-[48px] flex items-center justify-center bg-primary-container/10 rounded-lg shrink-0">
+      <span class="material-symbols-outlined mso text-primary-container" style="font-variation-settings:'FILL' 1">eco</span>
+    </div>
+    <div class="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden">
+      <div class="font-display-lg text-headline-md tracking-widest text-primary drop-shadow-[0_0_8px_rgba(0,255,65,.4)]">TERRA-CORE</div>
+      <div class="font-label-caps text-label-caps text-on-surface-variant/60">AGRISAT · DEDIAPADA</div>
+    </div>
+  </div>
+  <nav class="flex-1 py-md flex flex-col gap-base overflow-hidden">
+    <button onclick="nav('map')" data-page="map" class="nav-btn flex items-center w-full px-sm py-xs text-primary border-r-2 border-primary-container bg-primary/10 transition-all active:scale-95">
+      <span class="material-symbols-outlined mso min-w-[48px] text-center">public</span>
+      <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Global Map</span>
+    </button>
+    <button onclick="nav('ndvi')" data-page="ndvi" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
+      <span class="material-symbols-outlined mso min-w-[48px] text-center">analytics</span>
+      <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Asset Analytics</span>
+    </button>
+    <button onclick="nav('climate')" data-page="climate" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
+      <span class="material-symbols-outlined mso min-w-[48px] text-center">thermostat</span>
+      <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Climate Control</span>
+    </button>
+    <button onclick="nav('auto')" data-page="auto" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
+      <span class="material-symbols-outlined mso min-w-[48px] text-center">smart_toy</span>
+      <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Automation Logic</span>
+    </button>
+    <button onclick="nav('health')" data-page="health" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
+      <span class="material-symbols-outlined mso min-w-[48px] text-center">monitor_heart</span>
+      <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">System Health</span>
+    </button>
+  </nav>
+  <div class="mt-auto py-md border-t border-white/5 shrink-0">
+    <button class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all">
+      <span class="material-symbols-outlined mso min-w-[48px] text-center">settings</span>
+      <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Settings</span>
+    </button>
+  </div>
+</aside>
+
+<!-- TOP BAR -->
+<header class="fixed top-0 right-0 left-0 md:left-20 z-40 flex justify-between items-center px-sm bg-surface/60 backdrop-blur-md h-16 border-b border-white/10">
+  <div class="flex items-center gap-md">
+    <span id="page-title" class="font-headline-md text-headline-md font-bold text-primary">COMMAND CENTER</span>
+    <div class="h-4 w-px bg-white/10"></div>
+    <div class="flex items-center gap-xs">
+      <span class="flex h-2 w-2 rounded-full bg-primary-container animate-pulse"></span>
+      <span class="font-label-caps text-label-caps text-primary tracking-widest">LIVE · DEDIAPADA · 21.628°N 73.592°E</span>
+    </div>
+  </div>
+  <div class="flex items-center gap-md">
+    <span class="font-label-caps text-label-caps text-on-surface-variant/60 text-[10px] hidden xl:block" id="api-status">API: CONNECTING...</span>
+    <div class="flex items-center gap-sm text-on-surface-variant">
+      <span class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">rss_feed</span>
+      <span class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">speed</span>
+      <!-- HW Connection button -->
+      <button onclick="openHWModal()" class="flex items-center gap-[5px] px-2 py-[3px] rounded border transition-all font-label-caps text-[9px] font-bold tracking-widest" id="hw-btn" style="border-color:rgba(185,204,178,.2);color:rgba(185,204,178,.5)">
+        <span id="hw-dot" class="w-[6px] h-[6px] rounded-full bg-white/20 transition-all"></span>
+        <span id="hw-label">HW</span>
+      </button>
+      <span class="font-label-caps text-label-caps text-primary hidden xl:block">CMDR. R. PATEL</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════ PAGE 1: GLOBAL MAP ═══════ -->
+<main id="page-map" class="page active ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] relative p-md overflow-hidden grid-bg">
+  <div class="absolute inset-0 z-0">
+    <div id="sat-map"></div>
+    <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at center,transparent 40%,rgba(10,15,13,.8) 100%)"></div>
+  </div>
+  <div class="relative z-10 grid grid-cols-12 h-full gap-gutter">
+    <!-- Left -->
+    <div class="col-span-3 flex flex-col gap-sm">
+      <div class="gp p-sm border-l-2 border-l-primary-container relative overflow-hidden">
+        <div class="scanline absolute inset-0 pointer-events-none"></div>
+        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">SYSTEM STATUS</p>
+        <div class="flex items-center justify-between">
+          <span class="font-data-lg text-data-lg text-primary-container">OPERATIONAL</span>
+          <span class="material-symbols-outlined mso text-primary-container" style="font-variation-settings:'FILL' 1">check_circle</span>
+        </div>
+      </div>
+      <div class="gp p-sm border-l-2 border-l-secondary-container relative overflow-hidden flex-grow">
+        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">SOIL VWC — 24H TREND</p>
+        <div class="h-24 w-full bg-surface-container-low relative flex items-end gap-[2px] p-1 border border-white/5">
+          <div class="bg-primary/40 w-full" style="height:55%"></div><div class="bg-primary/40 w-full" style="height:60%"></div>
+          <div class="bg-primary/60 w-full" style="height:72%"></div><div class="bg-primary/40 w-full" style="height:65%"></div>
+          <div class="bg-primary-container w-full" style="height:80%"></div><div class="bg-primary/40 w-full" style="height:58%"></div>
+          <div class="bg-primary/40 w-full" style="height:62%"></div><div class="bg-primary/40 w-full" style="height:70%"></div>
+        </div>
+        <div class="flex justify-between mt-sm font-data-sm text-data-sm text-on-surface-variant/60">
+          <span>T-24H</span><span id="vwc-avg-map">VWC: —%</span>
+        </div>
+        <div class="mt-sm space-y-xs">
+          <div class="flex justify-between font-label-caps text-[9px]"><span class="text-on-surface-variant/60">AIR TEMP</span><span class="text-primary-container" id="map-tmp">—°C</span></div>
+          <div class="flex justify-between font-label-caps text-[9px]"><span class="text-on-surface-variant/60">HUMIDITY</span><span class="text-secondary" id="map-hum">—%</span></div>
+          <div class="flex justify-between font-label-caps text-[9px]"><span class="text-on-surface-variant/60">WIND</span><span class="text-tertiary-fixed-dim" id="map-wind">— km/h</span></div>
+          <div class="flex justify-between font-label-caps text-[9px]"><span class="text-on-surface-variant/60">CONDITION</span><span class="text-primary-container" id="map-day">—</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Center -->
+    <div class="col-span-6 flex items-end justify-center pb-xl">
+      <div class="gp px-lg py-sm flex items-center gap-xl border-t-2 border-primary-container/30">
+        <div class="text-center"><p class="font-label-caps text-label-caps text-on-surface-variant/60">FIELD AREA</p><p class="font-data-lg text-data-lg text-primary">0.15 HA</p></div>
+        <div class="h-8 w-px bg-white/10"></div>
+        <div class="text-center"><p class="font-label-caps text-label-caps text-on-surface-variant/60">NODE_SYNC</p><p class="font-data-lg text-data-lg text-secondary">ACTIVE</p></div>
+        <div class="h-8 w-px bg-white/10"></div>
+        <div class="text-center"><p class="font-label-caps text-label-caps text-on-surface-variant/60">UPLINK</p><p class="font-data-lg text-data-lg text-primary">OPTIMAL</p></div>
+      </div>
+    </div>
+    <!-- Right -->
+    <div class="col-span-3 flex flex-col gap-sm">
+      <div class="gp p-sm border-t-2 border-primary-container">
+        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">TOTAL MANAGED AREA</p>
+        <div class="flex items-end gap-xs">
+          <span class="font-display-lg text-[32px] font-bold text-primary">0.15</span>
+          <span class="font-label-caps text-label-caps text-on-surface-variant mb-2">HA · 3 FIELDS</span>
+        </div>
+        <div class="mt-sm flex gap-1"><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container/20"></div><div class="h-1 flex-grow bg-primary-container/20"></div></div>
+      </div>
+      <div class="gp p-sm border-t-2 border-secondary-container">
+        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">ACTIVE SENSORS</p>
+        <div class="flex justify-between items-center">
+          <span class="font-display-lg text-[32px] font-bold text-secondary">6</span>
+          <span class="font-data-sm text-data-sm text-secondary-fixed-dim bg-secondary/10 px-2 py-0.5 rounded">FIELD A/B/C</span>
+        </div>
+      </div>
+      <div class="gp p-sm border-t-2 border-primary-fixed-dim">
+        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">GEMINI AI EFFICIENCY</p>
+        <div class="flex items-center gap-md">
+          <div class="relative w-16 h-16">
+            <svg class="w-full h-full" viewBox="0 0 36 36"><circle class="text-white/5" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-width="3"/><circle class="text-primary-container" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="91,100" stroke-linecap="round" stroke-width="3"/></svg>
+            <span class="absolute inset-0 flex items-center justify-center font-data-sm text-data-sm text-primary-container">91%</span>
+          </div>
+          <div><p class="font-data-sm text-data-sm text-on-surface">GENAI v2 SDK</p><p class="font-label-caps text-label-caps text-on-surface-variant/60">AUTONOMOUS IRRIGATION</p></div>
+        </div>
+      </div>
+      <div class="gp flex-grow overflow-hidden flex flex-col p-0">
+        <div class="bg-white/5 px-sm py-2 border-b border-white/10"><span class="font-label-caps text-label-caps text-primary-container">THREAT_VECTOR_MONITOR</span></div>
+        <div class="p-sm space-y-base overflow-y-auto">
+          <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">SOIL_VWC_LOW</span><span class="font-label-caps text-label-caps text-error" id="vwc-alert">WATCH</span></div>
+          <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">RAIN_GUARD</span><span class="font-label-caps text-label-caps text-primary-container" id="rain-alert">CLEAR</span></div>
+          <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">DRIVE_SYNC</span><span class="font-label-caps text-label-caps text-secondary">ACTIVE</span></div>
+          <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">UPLINK_JITTER</span><span class="font-label-caps text-label-caps text-on-surface-variant/40">LOW</span></div>
+          <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">ET0_THRESHOLD</span><span class="font-label-caps text-label-caps text-primary-container" id="et0-alert">NORMAL</span></div>
+          <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">PRECIP_PROB</span><span class="font-label-caps text-label-caps text-secondary-fixed-dim" id="precip-alert">—%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════ PAGE 2: ASSET ANALYTICS ═══════ -->
+<main id="page-ndvi" class="page ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] p-sm overflow-hidden grid grid-cols-12 gap-gutter">
+  <section class="col-span-3 flex flex-col gap-gutter">
+    <div class="gp p-sm flex flex-col gap-xs rounded-lg scanline">
+      <div class="flex justify-between items-center border-b border-primary/20 pb-1">
+        <span class="font-label-caps text-primary-container">SOIL_MOISTURE_IDX</span>
+        <span class="font-data-sm text-primary-fixed-dim">FIELD_A</span>
+      </div>
+      <div class="py-md text-center">
+        <div class="font-data-lg text-4xl text-primary-container" id="ndvi-vwc">—%</div>
+        <div class="font-label-caps text-on-surface-variant" id="ndvi-vwc-status">LOADING...</div>
+      </div>
+      <div class="h-16 flex items-end gap-1">
+        <div class="flex-1 bg-primary/20 h-[50%]"></div><div class="flex-1 bg-primary/30 h-[58%]"></div>
+        <div class="flex-1 bg-primary/40 h-[65%]"></div><div class="flex-1 bg-primary/20 h-[55%]"></div>
+        <div class="flex-1 bg-primary-container h-[75%]"></div><div class="flex-1 bg-primary/50 h-[68%]"></div>
+        <div class="flex-1 bg-primary/30 h-[60%]"></div>
+      </div>
+    </div>
+    <div class="gp flex-1 p-sm rounded-lg overflow-hidden flex flex-col">
+      <div class="font-label-caps text-on-surface-variant border-b border-white/10 pb-2 mb-sm">LIVE_SENSOR_READINGS</div>
+      <div class="space-y-sm flex-1 overflow-y-auto pr-1">
+        <div class="flex justify-between items-center py-xs border-b border-white/5">
+          <div><span class="font-data-sm text-secondary block">TEMP_AMBIENT</span><span class="font-label-caps text-[9px] text-on-surface-variant">OPEN-METEO API</span></div>
+          <span class="font-data-lg text-secondary-fixed-dim" id="ndvi-tmp">—°C</span>
+        </div>
+        <div class="flex justify-between items-center py-xs border-b border-white/5">
+          <div><span class="font-data-sm text-primary block">APPARENT_TEMP</span><span class="font-label-caps text-[9px] text-on-surface-variant">FEELS LIKE</span></div>
+          <span class="font-data-lg text-primary-fixed-dim" id="ndvi-apt">—°C</span>
+        </div>
+        <div class="flex justify-between items-center py-xs border-b border-white/5">
+          <div><span class="font-data-sm text-tertiary-fixed-dim block">DEW_POINT</span><span class="font-label-caps text-[9px] text-on-surface-variant">CONDENSATION</span></div>
+          <span class="font-data-lg text-tertiary" id="ndvi-dew">—°C</span>
+        </div>
+        <div class="flex justify-between items-center py-xs border-b border-white/5">
+          <div><span class="font-data-sm text-secondary block">HUMIDITY_AMB</span><span class="font-label-caps text-[9px] text-on-surface-variant">RELATIVE %</span></div>
+          <span class="font-data-lg text-secondary-fixed-dim" id="ndvi-hum">—%</span>
+        </div>
+        <div class="flex justify-between items-center py-xs border-b border-white/5">
+          <div><span class="font-data-sm text-primary block">VPD</span><span class="font-label-caps text-[9px] text-on-surface-variant">VAPOR PRESSURE DEF</span></div>
+          <span class="font-data-lg text-primary-fixed-dim" id="ndvi-vpd">—kPa</span>
+        </div>
+        <div class="flex justify-between items-center py-xs border-b border-white/5">
+          <div><span class="font-data-sm text-tertiary-fixed-dim block">ET0_RATE</span><span class="font-label-caps text-[9px] text-on-surface-variant">EVAPOTRANSPIRATION</span></div>
+          <span class="font-data-lg text-tertiary" id="ndvi-et0">—mm/d</span>
+        </div>
+        <div class="flex justify-between items-center py-xs border-b border-white/5">
+          <div><span class="font-data-sm text-secondary block">SURFACE_PRESS</span><span class="font-label-caps text-[9px] text-on-surface-variant">ATMOSPHERIC</span></div>
+          <span class="font-data-lg text-secondary-fixed-dim" id="ndvi-press">—hPa</span>
+        </div>
+        <div class="flex justify-between items-center py-xs border-b border-white/5">
+          <div><span class="font-data-sm text-error block">PRECIP_PROB</span><span class="font-label-caps text-[9px] text-on-surface-variant">NEXT HOUR</span></div>
+          <span class="font-data-lg text-error" id="ndvi-precip">—%</span>
+        </div>
+      </div>
+      <div class="mt-sm p-xs bg-white/5 rounded border border-white/10">
+        <div class="flex justify-between font-label-caps text-[9px] mb-1"><span>LAST_API_SYNC</span><span class="text-secondary-fixed-dim" id="api-time">—</span></div>
+        <div class="h-1 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-secondary-fixed-dim" id="api-sync-bar" style="width:0%;transition:width .5s"></div></div>
+      </div>
+    </div>
+  </section>
+  <section class="col-span-6 flex flex-col gap-gutter relative">
+    <div class="gp flex-1 rounded-lg relative overflow-hidden">
+      <div class="absolute inset-0 bg-surface-container-low flex items-center justify-center">
+        <canvas id="field-map" class="w-full h-full"></canvas>
+      </div>
+      <div class="absolute inset-0 pointer-events-none mix-blend-screen opacity-30">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-primary/30 animate-pulse"></div>
+      </div>
+      <div class="absolute top-sm left-sm p-sm gp rounded border-l-2 border-primary-container">
+        <div class="font-label-caps text-primary-container mb-1">NDVI_HEATMAP · DEDIAPADA</div>
+        <span class="text-[10px] font-label-caps text-on-surface-variant block">LAT: 21.6277° N</span>
+        <span class="text-[10px] font-label-caps text-on-surface-variant block">LON: 73.5903° E</span>
+        <span class="text-[10px] font-label-caps text-on-surface-variant block" id="geo-elev">ELEV: — m</span>
+      </div>
+      <div class="absolute bottom-sm left-sm right-sm flex justify-between items-end">
+        <div class="gp p-xs rounded border border-white/10 flex gap-md">
+          <div><span class="font-label-caps text-[9px] text-on-surface-variant block">CROP_TYPE</span><span class="font-data-sm text-primary">ORNAMENTAL_SHADE</span></div>
+          <div><span class="font-label-caps text-[9px] text-on-surface-variant block">IRRIG_TYPE</span><span class="font-data-sm text-secondary">DRIP_3MM/HR</span></div>
+          <div><span class="font-label-caps text-[9px] text-on-surface-variant block">NEXT_CYCLE</span><span class="font-data-sm text-tertiary-fixed-dim" id="next-irrig">CALC...</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="h-32 gp rounded-lg p-sm flex items-center gap-lg">
+      <div class="flex-1">
+        <div class="font-label-caps text-on-surface-variant mb-2">FIELD_IRRIGATION_PROGRESS</div>
+        <div class="flex items-center gap-base">
+          <div class="flex-1 h-1 bg-primary-container"></div><div class="flex-1 h-1 bg-primary-container"></div><div class="flex-1 h-1 bg-primary-container/40"></div>
+          <div class="flex-1 h-1 bg-white/10"></div><div class="flex-1 h-1 bg-white/10"></div>
+        </div>
+        <div class="flex justify-between mt-2 font-data-sm text-[10px] text-on-surface-variant"><span>A:OPEN</span><span>B:SCHED</span><span>C:WATCH</span></div>
+      </div>
+      <div class="w-48 text-right">
+        <div class="font-label-caps text-on-surface-variant">IRRIG_DEPTH_A</div>
+        <div class="font-data-lg text-primary-container" id="irrig-depth">—mm</div>
+      </div>
+    </div>
+  </section>
+  <section class="col-span-3 flex flex-col gap-gutter">
+    <div class="gp p-sm rounded-lg flex flex-col gap-sm border-t-2 border-primary-container">
+      <div class="flex items-center gap-xs">
+        <span class="material-symbols-outlined mso text-primary-container">settings_input_component</span>
+        <span class="font-headline-md text-headline-md text-primary">AUTO_OPT</span>
+      </div>
+      <div class="space-y-md mt-sm">
+        <div class="flex flex-col gap-xs">
+          <div class="flex justify-between items-center"><span class="font-data-sm">DRIP_CONTROL_A</span><div class="w-8 h-4 bg-primary-container rounded-full relative cursor-pointer"><div class="absolute right-1 top-1 w-2 h-2 bg-on-primary rounded-full"></div></div></div>
+          <div class="flex gap-[2px]"><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
+        </div>
+        <div class="flex flex-col gap-xs">
+          <div class="flex justify-between items-center"><span class="font-data-sm">ET0_COMPENSATION</span><div class="w-8 h-4 bg-surface-variant rounded-full relative cursor-pointer"><div class="absolute left-1 top-1 w-2 h-2 bg-on-surface-variant rounded-full"></div></div></div>
+          <div class="flex gap-[2px]"><div class="step ss"></div><div class="step ss"></div><div class="step ss"></div><div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
+        </div>
+        <div class="flex flex-col gap-xs">
+          <div class="flex justify-between items-center"><span class="font-data-sm">RAIN_GUARD_MODE</span><div class="w-8 h-4 bg-primary-container rounded-full relative cursor-pointer"><div class="absolute right-1 top-1 w-2 h-2 bg-on-primary rounded-full"></div></div></div>
+          <div class="flex gap-[2px]"><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
+        </div>
+      </div>
+      <button class="mt-md w-full bg-primary-container text-on-primary py-sm font-label-caps text-sm font-bold active:scale-95 transition-all">DEPLOY_CHANGES</button>
+    </div>
+    <div class="gp flex-1 p-sm rounded-lg flex flex-col gap-sm overflow-hidden">
+      <div class="font-label-caps text-on-surface-variant">LOG_STREAM · LIVE</div>
+      <div id="log-stream" class="flex-1 font-data-sm text-[11px] text-primary/70 overflow-y-auto space-y-1 pr-1 scanline"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ═══════ PAGE 3: CLIMATE & TELEMETRY (Full Weather Analytics) ═══════ -->
+<main id="page-climate" class="page ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] p-sm overflow-hidden flex flex-col gap-sm">
+
+  <!-- Current Metrics Row -->
+  <div class="grid grid-cols-4 gap-sm shrink-0">
+    <div class="gp p-sm relative overflow-hidden scanline-anim border-t-2 border-primary-container">
+      <div class="flex justify-between items-start mb-xs">
+        <span class="font-label-caps text-label-caps text-primary/60">AMBIENT TEMPERATURE</span>
+        <span class="material-symbols-outlined mso text-primary-container" style="font-variation-settings:'FILL' 1">device_thermostat</span>
+      </div>
+      <div class="flex items-baseline gap-xs">
+        <span class="font-display-lg text-primary text-[52px] leading-none tracking-tighter" id="cl-tmp">—</span>
+        <span class="font-headline-md text-on-surface-variant">°C</span>
+      </div>
+      <div class="mt-xs flex items-center gap-xs">
+        <div class="flex-1 bg-white/5 h-1"><div id="cl-tmp-bar" class="bg-primary-container h-full transition-all duration-700" style="width:0%"></div></div>
+        <span class="font-data-sm text-data-sm text-primary text-[10px]" id="cl-apt">Feels —°C</span>
+      </div>
+    </div>
+    <div class="gp p-sm relative overflow-hidden scanline-anim border-t-2 border-secondary-container">
+      <div class="flex justify-between items-start mb-xs">
+        <span class="font-label-caps text-label-caps text-secondary/60">RELATIVE HUMIDITY</span>
+        <span class="material-symbols-outlined mso text-secondary-container">humidity_percentage</span>
+      </div>
+      <div class="flex items-baseline gap-xs">
+        <span class="font-display-lg text-secondary text-[52px] leading-none tracking-tighter" id="cl-hum">—</span>
+        <span class="font-headline-md text-on-surface-variant">%</span>
+      </div>
+      <div class="mt-xs flex items-center gap-xs">
+        <div class="flex-1 bg-white/5 h-1"><div id="cl-hum-bar" class="bg-secondary-container h-full transition-all duration-700" style="width:0%"></div></div>
+        <span class="font-data-sm text-data-sm text-secondary-fixed-dim text-[10px]" id="cl-hum-s">—</span>
+      </div>
+    </div>
+    <div class="gp p-sm relative overflow-hidden scanline-anim border-t-2 border-tertiary-container">
+      <div class="flex justify-between items-start mb-xs">
+        <span class="font-label-caps text-label-caps text-tertiary/60">ET0 / WIND SPEED</span>
+        <span class="material-symbols-outlined mso text-tertiary-container">air</span>
+      </div>
+      <div class="flex items-baseline gap-xs">
+        <span class="font-display-lg text-tertiary-fixed-dim text-[52px] leading-none tracking-tighter" id="cl-wind">—</span>
+        <span class="font-headline-md text-on-surface-variant">km/h</span>
+      </div>
+      <div class="mt-xs flex items-center gap-xs">
+        <div class="flex-1 bg-white/5 h-1"><div id="cl-et0-bar" class="bg-tertiary-container h-full transition-all duration-700" style="width:0%"></div></div>
+        <span class="font-data-sm text-data-sm text-tertiary-fixed-dim text-[10px]" id="cl-et0-lbl">ET0: —mm/d</span>
+      </div>
+    </div>
+    <div class="gp p-sm relative overflow-hidden scanline-anim border-t-2 border-primary-container/50">
+      <div class="flex justify-between items-start mb-xs">
+        <span class="font-label-caps text-label-caps text-primary/60">SURFACE PRESSURE / VPD</span>
+        <span class="material-symbols-outlined mso text-primary-container">compress</span>
+      </div>
+      <div class="flex items-baseline gap-xs">
+        <span class="font-display-lg text-primary text-[52px] leading-none tracking-tighter" id="cl-press">—</span>
+        <span class="font-headline-md text-on-surface-variant">hPa</span>
+      </div>
+      <div class="mt-xs flex items-center gap-xs">
+        <div class="flex-1 bg-white/5 h-1"><div id="cl-press-bar" class="bg-primary-container/50 h-full transition-all duration-700" style="width:0%"></div></div>
+        <span class="font-data-sm text-data-sm text-primary text-[10px]" id="cl-vpd-lbl">VPD: —kPa</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5-Tab Chart Panel -->
+  <div class="gp rounded-xl flex flex-col flex-1 overflow-hidden">
+    <!-- Tab bar -->
+    <div class="px-sm pt-sm pb-xs border-b border-white/10 flex items-center justify-between shrink-0 flex-wrap gap-xs">
+      <div class="flex gap-xs flex-wrap">
+        <button class="wtab on" onclick="switchWeatherTab('atmosphere',this)">Atmosphere &amp; Comfort</button>
+        <button class="wtab" onclick="switchWeatherTab('precipitation',this)">Precipitation Detail</button>
+        <button class="wtab" onclick="switchWeatherTab('agri',this)">ET₀ &amp; VPD</button>
+        <button class="wtab" onclick="switchWeatherTab('clouds',this)">Cloud Layers</button>
+        <button class="wtab" onclick="switchWeatherTab('soil',this)">Soil Dynamics</button>
+      </div>
+      <div class="flex items-center gap-xs">
+        <span class="font-label-caps text-[9px] text-on-surface-variant/40">7-DAY HOURLY · OPEN-METEO</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse inline-block"></span>
+      </div>
+    </div>
+
+    <!-- Tab: Atmosphere -->
+    <div id="tab-atmosphere" class="chart-panel active p-sm">
+      <div class="chart-wrap"><canvas id="chart-atmosphere"></canvas></div>
+    </div>
+    <!-- Tab: Precipitation -->
+    <div id="tab-precipitation" class="chart-panel p-sm">
+      <div class="chart-wrap"><canvas id="chart-precipitation"></canvas></div>
+    </div>
+    <!-- Tab: ET0/VPD -->
+    <div id="tab-agri" class="chart-panel p-sm">
+      <div class="chart-wrap"><canvas id="chart-agri"></canvas></div>
+    </div>
+    <!-- Tab: Cloud Layers -->
+    <div id="tab-clouds" class="chart-panel p-sm">
+      <div class="chart-wrap"><canvas id="chart-clouds"></canvas></div>
+    </div>
+    <!-- Tab: Soil Dynamics -->
+    <div id="tab-soil" class="chart-panel p-sm">
+      <div class="chart-wrap"><canvas id="chart-soil"></canvas></div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══════ PAGE 4: AUTOMATION & LOGIC HUB ═══════ -->
+<main id="page-auto" class="page ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] overflow-hidden">
+  <div class="h-full p-sm flex flex-col gap-sm">
+
+    <!-- ── MODE TOGGLE BAR ── -->
+    <div class="gp rounded-xl px-sm py-xs flex items-center gap-sm shrink-0 border-b border-white/5">
+      <div class="flex bg-surface-container-lowest rounded-lg p-[3px] gap-[2px]">
+        <button id="mode-btn-auto" onclick="setIrrigMode('auto')" class="mode-toggle active">
+          <span class="material-symbols-outlined" style="font-size:14px;font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 20">auto_mode</span>AUTO MODE
+        </button>
+        <button id="mode-btn-manual" onclick="setIrrigMode('manual')" class="mode-toggle">
+          <span class="material-symbols-outlined" style="font-size:14px;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 20">tune</span>MANUAL MODE
+        </button>
+      </div>
+      <div class="h-4 w-px bg-white/10"></div>
+      <div class="flex items-center gap-xs">
+        <span class="font-label-caps text-[9px] text-on-surface-variant/40">CONTROL MODE:</span>
+        <span id="mode-indicator" class="font-data-sm text-data-sm text-primary-container">AUTONOMOUS</span>
+      </div>
+      <div class="ml-auto flex items-center gap-xs opacity-0" id="valve-summary">
+        <span class="font-label-caps text-[9px] text-on-surface-variant/40">OPEN VALVES:</span>
+        <span id="open-valve-count" class="font-data-sm text-data-sm text-error">0</span>
+      </div>
+    </div>
+
+    <!-- ── AUTO MODE CONTENT ── -->
+    <div id="auto-content" class="flex-1 flex flex-col gap-sm overflow-hidden">
+    <section class="gp rounded-xl flex flex-col overflow-hidden" style="height:45%">
+      <div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">schedule</span><h2 class="font-headline-md text-headline-md text-primary">Irrigation Cycle Timeline — Dediapada</h2></div>
+        <div class="flex items-center gap-md font-data-sm text-data-sm"><span class="text-secondary">SCANNING FIELDS...</span><span class="text-on-surface-variant" id="auto-utc">UTC —</span></div>
+      </div>
+      <div class="flex-1 overflow-x-auto relative tl-grid">
+        <div class="sticky top-0 z-10 flex border-b border-white/10 bg-surface/90 backdrop-blur-md">
+          <div class="w-48 shrink-0 p-xs border-r border-white/10 font-label-caps text-label-caps text-on-surface-variant/60">FIELD_ID</div>
+          <div class="flex flex-1">
+            <div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">06:00</div><div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">07:00</div>
+            <div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">08:00</div><div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm text-primary-container">09:00</div>
+            <div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">10:00</div><div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">11:00</div>
+            <div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">12:00</div><div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">13:00</div>
+          </div>
+        </div>
+        <div class="divide-y divide-white/5">
+          <div class="flex group hover:bg-white/5 transition-colors">
+            <div class="w-48 shrink-0 p-sm border-r border-white/10 flex flex-col"><span class="font-data-lg text-data-lg text-primary-container">FIELD-A</span><span class="font-label-caps text-[9px] text-on-surface-variant/60">NORTH · 21.629°N · DRIP</span></div>
+            <div class="flex-1 relative h-16 flex items-center">
+              <div class="absolute left-20 w-40 h-8 bg-primary/20 border border-primary/40 rounded flex items-center px-sm font-data-sm text-data-sm text-primary aglow cursor-pointer">DRIP_CYCLE_V1</div>
+              <div class="absolute left-[340px] w-28 h-8 bg-secondary/20 border border-secondary/40 rounded flex items-center px-sm font-data-sm text-data-sm text-secondary cursor-pointer">ET0_ADJUST</div>
+            </div>
+          </div>
+          <div class="flex group hover:bg-white/5 transition-colors">
+            <div class="w-48 shrink-0 p-sm border-r border-white/10 flex flex-col"><span class="font-data-lg text-data-lg text-secondary-fixed-dim">FIELD-B</span><span class="font-label-caps text-[9px] text-on-surface-variant/60">EAST · 21.628°N · SCHED</span></div>
+            <div class="flex-1 relative h-16 flex items-center">
+              <div class="absolute left-0 w-48 h-8 bg-primary-fixed-dim/20 border border-primary-fixed-dim/40 rounded flex items-center px-sm font-data-sm text-data-sm text-primary-fixed-dim cursor-pointer">DRIP_IRRIGATION_B</div>
+              <div class="absolute left-[440px] w-24 h-8 bg-error/20 border border-error/40 rounded flex items-center px-sm font-data-sm text-data-sm text-error cursor-pointer">VWC_CHECK</div>
+            </div>
+          </div>
+          <div class="flex group hover:bg-white/5 transition-colors">
+            <div class="w-48 shrink-0 p-sm border-r border-white/10 flex flex-col"><span class="font-data-lg text-data-lg text-tertiary-fixed-dim">FIELD-C</span><span class="font-label-caps text-[9px] text-on-surface-variant/60">SOUTH · 21.627°N · WATCH</span></div>
+            <div class="flex-1 relative h-16 flex items-center">
+              <div class="absolute left-60 w-64 h-8 bg-secondary-container/10 border border-secondary-container/30 rounded flex items-center px-sm font-data-sm text-data-sm text-secondary-container cursor-pointer">RAIN_GUARD_HOLD</div>
+            </div>
+          </div>
+        </div>
+        <div class="absolute left-[288px] top-0 bottom-0 w-px bg-primary-container z-20 shadow-[0_0_8px_rgba(0,255,65,1)]"></div>
+      </div>
+    </section>
+    <div class="flex-1 grid grid-cols-12 gap-sm overflow-hidden">
+      <section class="col-span-8 gp rounded-xl flex flex-col overflow-hidden">
+        <div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
+          <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">account_tree</span><h2 class="font-headline-md text-headline-md text-primary">Smart Logic Rulebook</h2></div>
+          <button class="bg-primary-container text-on-primary font-label-caps text-label-caps px-md py-xs rounded hover:opacity-90 active:scale-95 transition-all">+ NEW_RULE</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-sm space-y-sm">
+          <div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center gap-md">
+            <div class="bg-primary/10 border border-primary/20 w-12 h-12 flex items-center justify-center rounded shrink-0"><span class="material-symbols-outlined mso text-primary-container">water_drop</span></div>
+            <div class="flex-1 grid grid-cols-3 gap-md">
+              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">SOIL_VWC &lt; 20%</span></div>
+              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary">OPEN_DRIP_VALVE</span></div>
+              <div class="flex items-center justify-end gap-sm"><span class="font-data-sm text-data-sm text-primary-container">ENABLED</span><span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer">edit</span></div>
+            </div>
+          </div>
+          <div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center gap-md">
+            <div class="bg-secondary/10 border border-secondary/20 w-12 h-12 flex items-center justify-center rounded shrink-0"><span class="material-symbols-outlined mso text-secondary">cloud</span></div>
+            <div class="flex-1 grid grid-cols-3 gap-md">
+              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">PRECIP_PROB &gt; 60%</span></div>
+              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary">SUSPEND_IRRIGATION</span></div>
+              <div class="flex items-center justify-end gap-sm"><span class="font-data-sm text-data-sm text-primary-container">ENABLED</span><span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer">edit</span></div>
+            </div>
+          </div>
+          <div class="bg-surface-container-low border border-white/5 p-sm rounded-lg flex items-center gap-md opacity-60 hover:opacity-100 transition-opacity">
+            <div class="bg-on-surface-variant/5 border border-on-surface-variant/10 w-12 h-12 flex items-center justify-center rounded shrink-0"><span class="material-symbols-outlined mso text-on-surface-variant/40">device_thermostat</span></div>
+            <div class="flex-1 grid grid-cols-3 gap-md">
+              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">TEMP &gt; 38°C</span></div>
+              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary">BOOST_ET0_COMP</span></div>
+              <div class="flex items-center justify-end gap-sm"><span class="font-data-sm text-data-sm text-on-surface-variant/40">STBY</span><span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer">toggle_off</span></div>
+            </div>
+          </div>
+          <div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center gap-md">
+            <div class="bg-primary/10 border border-primary/20 w-12 h-12 flex items-center justify-center rounded shrink-0"><span class="material-symbols-outlined mso text-primary-container">cloud_upload</span></div>
+            <div class="flex-1 grid grid-cols-3 gap-md">
+              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">EVERY 30 MIN</span></div>
+              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary">SYNC_GOOGLE_DRIVE</span></div>
+              <div class="flex items-center justify-end gap-sm"><span class="font-data-sm text-data-sm text-primary-container">ENABLED</span><span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer">edit</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="col-span-4 gp rounded-xl flex flex-col overflow-hidden">
+        <div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
+          <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">terminal</span><h2 class="font-label-caps text-label-caps text-primary-container">SYSTEM_LOG // LIVE</h2></div>
+          <div class="w-2 h-2 rounded-full bg-primary-container aglow"></div>
+        </div>
+        <div class="flex-1 bg-surface-container-lowest/90 p-sm font-data-sm text-[11px] leading-relaxed overflow-y-auto" id="auto-terminal"></div>
+      </section>
+    </div>
+    </div><!-- /auto-content -->
+
+    <!-- ── MANUAL MODE PANEL ── -->
+    <div id="manual-content" style="display:none" class="flex-1 flex flex-col gap-sm overflow-y-auto">
+      <!-- Warning banner -->
+      <div class="flex items-center gap-sm px-sm py-xs bg-error/10 border border-error/30 rounded-lg shrink-0">
+        <span class="material-symbols-outlined text-error shrink-0" style="font-size:18px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">warning</span>
+        <span class="font-label-caps text-[10px] text-error">MANUAL OVERRIDE ACTIVE — Autonomous irrigation logic suspended. You have direct valve control.</span>
+      </div>
+
+      <!-- 3 Valve Zone Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-sm flex-1">
+
+        <!-- ZONE 1 / FIELD-A -->
+        <div class="gp rounded-xl flex flex-col gap-sm p-sm border-l-4 border-l-primary-container relative overflow-hidden scanline">
+          <div class="flex justify-between items-start shrink-0">
+            <div>
+              <p class="font-label-caps text-[9px] text-on-surface-variant/50 mb-[2px]">VALVE NODE</p>
+              <p class="font-data-lg text-data-lg text-primary-container">ZONE 1</p>
+              <p class="font-label-caps text-[9px] text-on-surface-variant/60">FIELD-A · NORTH · DRIP</p>
+            </div>
+            <div id="v1-led" class="w-4 h-4 rounded-full bg-white/10 border border-white/20 mt-1 transition-all duration-300"></div>
+          </div>
+          <div class="flex items-center gap-xs">
+            <span id="v1-status" class="font-data-lg text-[28px] font-bold text-on-surface-variant/30 leading-none">CLOSED</span>
+          </div>
+          <div class="shrink-0 relative">
+            <p class="font-label-caps text-[9px] text-on-surface-variant/40 mb-1">CROP TYPE</p>
+            <input id="v1-crop-search" class="crop-search" placeholder="SEARCH PLANT / CROP..."
+              oninput="filterCrops(1,this.value)"
+              onfocus="showCropDrop(1)"
+              onblur="setTimeout(()=>hideCropDrop(1),130)"
+              autocomplete="off" spellcheck="false">
+            <div id="v1-crop-drop" class="crop-drop hidden"></div>
+            <p id="v1-crop-info" class="mt-[5px] font-label-caps text-[8px] text-on-surface-variant/40">SEARCH &amp; SELECT CROP TO AUTO-SET IRRIGATION</p>
+          </div>
+          <div class="grid grid-cols-2 gap-xs">
+            <div class="bg-surface-container-lowest rounded p-xs text-center">
+              <p class="font-label-caps text-[8px] text-on-surface-variant/40">FLOW RATE</p>
+              <p class="font-data-sm text-data-sm text-primary" id="v1-flow">0 mm/hr</p>
+            </div>
+            <div class="bg-surface-container-lowest rounded p-xs text-center">
+              <p class="font-label-caps text-[8px] text-on-surface-variant/40">RUNTIME</p>
+              <p class="font-data-sm text-data-sm text-secondary" id="v1-timer">00:00</p>
+            </div>
+          </div>
+          <div>
+            <p class="font-label-caps text-[9px] text-on-surface-variant/40 mb-1">AUTO-CLOSE AFTER</p>
+            <div id="v1-dur-group" class="flex gap-[3px]">
+              <button onclick="setDuration(1,15,this)" class="dur-btn flex-1 py-1 rounded bg-surface-container">15m</button>
+              <button onclick="setDuration(1,30,this)" class="dur-btn flex-1 py-1 rounded bg-surface-container">30m</button>
+              <button onclick="setDuration(1,60,this)" class="dur-btn flex-1 py-1 rounded bg-surface-container">1hr</button>
+              <button onclick="setDuration(1,0,this)"  class="dur-btn flex-1 py-1 rounded bg-surface-container sel">∞</button>
+            </div>
+          </div>
+          <button onclick="toggleValve(1)" id="v1-btn" class="valve-closed-btn w-full py-sm font-label-caps font-bold text-sm border rounded-lg transition-all active:scale-95 flex items-center justify-center gap-xs">
+            <span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 20">valve</span>
+            OPEN VALVE 1
+          </button>
+        </div>
+
+        <!-- ZONE 2 / FIELD-B -->
+        <div class="gp rounded-xl flex flex-col gap-sm p-sm border-l-4 border-l-secondary-container relative overflow-hidden scanline">
+          <div class="flex justify-between items-start shrink-0">
+            <div>
+              <p class="font-label-caps text-[9px] text-on-surface-variant/50 mb-[2px]">VALVE NODE</p>
+              <p class="font-data-lg text-data-lg text-secondary">ZONE 2</p>
+              <p class="font-label-caps text-[9px] text-on-surface-variant/60">FIELD-B · EAST · DRIP</p>
+            </div>
+            <div id="v2-led" class="w-4 h-4 rounded-full bg-white/10 border border-white/20 mt-1 transition-all duration-300"></div>
+          </div>
+          <div class="flex items-center gap-xs">
+            <span id="v2-status" class="font-data-lg text-[28px] font-bold text-on-surface-variant/30 leading-none">CLOSED</span>
+          </div>
+          <div class="shrink-0 relative">
+            <p class="font-label-caps text-[9px] text-on-surface-variant/40 mb-1">CROP TYPE</p>
+            <input id="v2-crop-search" class="crop-search" placeholder="SEARCH PLANT / CROP..."
+              oninput="filterCrops(2,this.value)"
+              onfocus="showCropDrop(2)"
+              onblur="setTimeout(()=>hideCropDrop(2),130)"
+              autocomplete="off" spellcheck="false">
+            <div id="v2-crop-drop" class="crop-drop hidden"></div>
+            <p id="v2-crop-info" class="mt-[5px] font-label-caps text-[8px] text-on-surface-variant/40">SEARCH &amp; SELECT CROP TO AUTO-SET IRRIGATION</p>
+          </div>
+          <div class="grid grid-cols-2 gap-xs">
+            <div class="bg-surface-container-lowest rounded p-xs text-center">
+              <p class="font-label-caps text-[8px] text-on-surface-variant/40">FLOW RATE</p>
+              <p class="font-data-sm text-data-sm text-primary" id="v2-flow">0 mm/hr</p>
+            </div>
+            <div class="bg-surface-container-lowest rounded p-xs text-center">
+              <p class="font-label-caps text-[8px] text-on-surface-variant/40">RUNTIME</p>
+              <p class="font-data-sm text-data-sm text-secondary" id="v2-timer">00:00</p>
+            </div>
+          </div>
+          <div>
+            <p class="font-label-caps text-[9px] text-on-surface-variant/40 mb-1">AUTO-CLOSE AFTER</p>
+            <div id="v2-dur-group" class="flex gap-[3px]">
+              <button onclick="setDuration(2,15,this)" class="dur-btn flex-1 py-1 rounded bg-surface-container">15m</button>
+              <button onclick="setDuration(2,30,this)" class="dur-btn flex-1 py-1 rounded bg-surface-container">30m</button>
+              <button onclick="setDuration(2,60,this)" class="dur-btn flex-1 py-1 rounded bg-surface-container">1hr</button>
+              <button onclick="setDuration(2,0,this)"  class="dur-btn flex-1 py-1 rounded bg-surface-container sel">∞</button>
+            </div>
+          </div>
+          <button onclick="toggleValve(2)" id="v2-btn" class="valve-closed-btn w-full py-sm font-label-caps font-bold text-sm border rounded-lg transition-all active:scale-95 flex items-center justify-center gap-xs">
+            <span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 20">valve</span>
+            OPEN VALVE 2
+          </button>
+        </div>
+
+        <!-- ZONE 3 / FIELD-C -->
+        <div class="gp rounded-xl flex flex-col gap-sm p-sm border-l-4 border-l-tertiary-container relative overflow-hidden scanline">
+          <div class="flex justify-between items-start shrink-0">
+            <div>
+              <p class="font-label-caps text-[9px] text-on-surface-variant/50 mb-[2px]">VALVE NODE</p>
+              <p class="font-data-lg text-data-lg text-tertiary-fixed-dim">ZONE 3</p>
+              <p class="font-label-caps text-[9px] text-on-surface-variant/60">FIELD-C · SOUTH · DRIP</p>
+            </div>
+            <div id="v3-led" class="w-4 h-4 rounded-full bg-white/10 border border-white/20 mt-1 transition-all duration-300"></div>
+          </div>
+          <div class="flex items-center gap-xs">
+            <span id="v3-status" class="font-data-lg text-[28px] font-bold text-on-surface-variant/30 leading-none">CLOSED</span>
+          </div>
+          <div class="shrink-0 relative">
+            <p class="font-label-caps text-[9px] text-on-surface-variant/40 mb-1">CROP TYPE</p>
+            <input id="v3-crop-search" class="crop-search" placeholder="SEARCH PLANT / CROP..."
+              oninput="filterCrops(3,this.value)"
+              onfocus="showCropDrop(3)"
+              onblur="setTimeout(()=>hideCropDrop(3),130)"
+              autocomplete="off" spellcheck="false">
+            <div id="v3-crop-drop" class="crop-drop hidden"></div>
+            <p id="v3-crop-info" class="mt-[5px] font-label-caps text-[8px] text-on-surface-variant/40">SEARCH &amp; SELECT CROP TO AUTO-SET IRRIGATION</p>
+          </div>
+          <div class="grid grid-cols-2 gap-xs">
+            <div class="bg-surface-container-lowest rounded p-xs text-center">
+              <p class="font-label-caps text-[8px] text-on-surface-variant/40">FLOW RATE</p>
+              <p class="font-data-sm text-data-sm text-primary" id="v3-flow">0 mm/hr</p>
+            </div>
+            <div class="bg-surface-container-lowest rounded p-xs text-center">
+              <p class="font-label-caps text-[8px] text-on-surface-variant/40">RUNTIME</p>
+              <p class="font-data-sm text-data-sm text-secondary" id="v3-timer">00:00</p>
+            </div>
+          </div>
+          <div>
+            <p class="font-label-caps text-[9px] text-on-surface-variant/40 mb-1">AUTO-CLOSE AFTER</p>
+            <div id="v3-dur-group" class="flex gap-[3px]">
+              <button onclick="setDuration(3,15,this)" class="dur-btn flex-1 py-1 rounded bg-surface-container">15m</button>
+              <button onclick="setDuration(3,30,this)" class="dur-btn flex-1 py-1 rounded bg-surface-container">30m</button>
+              <button onclick="setDuration(3,60,this)" class="dur-btn flex-1 py-1 rounded bg-surface-container">1hr</button>
+              <button onclick="setDuration(3,0,this)"  class="dur-btn flex-1 py-1 rounded bg-surface-container sel">∞</button>
+            </div>
+          </div>
+          <button onclick="toggleValve(3)" id="v3-btn" class="valve-closed-btn w-full py-sm font-label-caps font-bold text-sm border rounded-lg transition-all active:scale-95 flex items-center justify-center gap-xs">
+            <span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 20">valve</span>
+            OPEN VALVE 3
+          </button>
+        </div>
+      </div>
+
+      <!-- Emergency stop -->
+      <button onclick="stopAllValves()" class="w-full py-sm shrink-0 font-label-caps font-bold text-sm bg-error/10 border border-error/40 text-error rounded-lg hover:bg-error/20 active:scale-95 transition-all flex items-center justify-center gap-sm">
+        <span class="material-symbols-outlined" style="font-size:18px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">emergency_home</span>
+        EMERGENCY STOP — CLOSE ALL VALVES
+      </button>
+    </div><!-- /manual-content -->
+
+  </div>
+</main>
+
+<!-- ═══════ PAGE 5: SYSTEM HEALTH ═══════ -->
+<main id="page-health" class="page ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] p-md overflow-y-auto">
+  <div class="gp p-sm border-t-2 border-primary-container mb-gutter">
+    <div class="flex justify-between items-center">
+      <div><p class="font-label-caps text-on-surface-variant mb-xs">AGRISAT · DEDIAPADA FARM · 21.6277°N 73.5903°E</p><p class="font-data-lg text-data-lg text-primary-container">ALL SYSTEMS NOMINAL</p></div>
+      <div class="text-right"><p class="font-label-caps text-on-surface-variant">UPTIME</p><p class="font-display-lg text-[32px] font-bold text-primary-container">99.98%</p></div>
+    </div>
+  </div>
+  <div class="grid grid-cols-3 gap-gutter">
+    <!-- BHOONIDHI SATELLITE — full-width card -->
+    <div class="gp col-span-3 border-t-2 border-t-primary-container overflow-hidden flex gap-md items-center p-sm relative">
+      <div class="scanline absolute inset-0 pointer-events-none opacity-40"></div>
+      <!-- SVG: EOS-04 SAR Satellite -->
+      <div class="shrink-0 relative z-10">
+        <svg width="220" height="110" viewBox="0 0 220 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Left solar panel -->
+          <rect x="4" y="32" width="60" height="46" rx="2" fill="rgba(0,60,120,.45)" stroke="rgba(0,238,252,.45)" stroke-width="1"/>
+          <line x1="24" y1="32" x2="24" y2="78" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
+          <line x1="44" y1="32" x2="44" y2="78" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
+          <line x1="4"  y1="47" x2="64" y2="47" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
+          <line x1="4"  y1="62" x2="64" y2="62" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
+          <text x="10" y="92" font-size="7" fill="rgba(0,238,252,.5)" font-family="JetBrains Mono">SOLAR-L</text>
+          <!-- Left arm -->
+          <rect x="64" y="51" width="22" height="8" fill="rgba(0,255,65,.25)" stroke="rgba(0,255,65,.3)" stroke-width=".5"/>
+          <!-- Body -->
+          <rect x="86" y="22" width="48" height="66" rx="3" fill="rgba(12,28,20,.9)" stroke="rgba(0,255,65,.6)" stroke-width="1.5"/>
+          <rect x="92" y="28" width="36" height="12" rx="1" fill="rgba(0,238,252,.12)" stroke="rgba(0,238,252,.4)" stroke-width=".8"/>
+          <text x="96" y="37" font-size="5.5" fill="rgba(0,238,252,.7)" font-family="JetBrains Mono">EOS-04</text>
+          <rect x="92" y="46" width="16" height="18" rx="1" fill="rgba(0,255,65,.08)" stroke="rgba(0,255,65,.35)" stroke-width=".6"/>
+          <rect x="112" y="46" width="16" height="18" rx="1" fill="rgba(0,255,65,.08)" stroke="rgba(0,255,65,.35)" stroke-width=".6"/>
+          <circle cx="110" cy="71" r="3" fill="#00ff41" opacity=".9" filter="url(#glow)"/>
+          <circle cx="110" cy="71" r="6" fill="none" stroke="rgba(0,255,65,.4)" stroke-width=".8"/>
+          <defs><filter id="glow"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+          <!-- Right arm -->
+          <rect x="134" y="51" width="22" height="8" fill="rgba(0,255,65,.25)" stroke="rgba(0,255,65,.3)" stroke-width=".5"/>
+          <!-- Right solar panel -->
+          <rect x="156" y="32" width="60" height="46" rx="2" fill="rgba(0,60,120,.45)" stroke="rgba(0,238,252,.45)" stroke-width="1"/>
+          <line x1="176" y1="32" x2="176" y2="78" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
+          <line x1="196" y1="32" x2="196" y2="78" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
+          <line x1="156" y1="47" x2="216" y2="47" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
+          <line x1="156" y1="62" x2="216" y2="62" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
+          <text x="162" y="92" font-size="7" fill="rgba(0,238,252,.5)" font-family="JetBrains Mono">SOLAR-R</text>
+          <!-- Top antenna -->
+          <line x1="110" y1="22" x2="110" y2="8" stroke="rgba(0,255,65,.7)" stroke-width="1.5"/>
+          <ellipse cx="110" cy="6" rx="6" ry="4" fill="none" stroke="rgba(0,255,65,.55)" stroke-width="1"/>
+          <!-- SAR array (bottom) -->
+          <rect x="78" y="88" width="64" height="16" rx="1" fill="rgba(0,238,252,.08)" stroke="rgba(0,238,252,.5)" stroke-width="1"/>
+          <line x1="91"  y1="88" x2="91"  y2="104" stroke="rgba(0,238,252,.3)" stroke-width=".6"/>
+          <line x1="104" y1="88" x2="104" y2="104" stroke="rgba(0,238,252,.3)" stroke-width=".6"/>
+          <line x1="117" y1="88" x2="117" y2="104" stroke="rgba(0,238,252,.3)" stroke-width=".6"/>
+          <line x1="130" y1="88" x2="130" y2="104" stroke="rgba(0,238,252,.3)" stroke-width=".6"/>
+          <text x="91" y="100" font-size="5" fill="rgba(0,238,252,.55)" font-family="JetBrains Mono">SAR · C-BAND</text>
+        </svg>
+      </div>
+      <!-- Details -->
+      <div class="flex-1 relative z-10">
+        <p class="font-label-caps text-on-surface-variant mb-xs tracking-widest">BHOONIDHI SATELLITE NODE</p>
+        <div class="flex items-center gap-sm mb-xs">
+          <span class="flex h-2.5 w-2.5 rounded-full bg-primary-container animate-pulse"></span>
+          <span class="font-data-lg text-data-lg text-primary">ONLINE</span>
+        </div>
+        <div class="grid grid-cols-3 gap-gutter mt-sm">
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SATELLITE</p><p class="font-data-sm text-data-sm text-primary-container">EOS-04 / RISAT-1A</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SENSOR</p><p class="font-data-sm text-data-sm text-secondary">C-Band SAR · 3m res</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">ORBIT</p><p class="font-data-sm text-data-sm text-secondary">529 km SSO</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">AGENCY</p><p class="font-data-sm text-data-sm text-primary-container">ISRO / NRSC</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">PORTAL</p><p class="font-data-sm text-data-sm text-secondary">bhoonidhi.nrsc.gov.in</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">REPEAT CYCLE</p><p class="font-data-sm text-data-sm text-secondary">12 days</p></div>
+        </div>
+      </div>
+      <!-- Signal status panel -->
+      <div class="shrink-0 relative z-10 flex flex-col gap-xs text-right">
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">UPLINK</p><p class="font-data-sm text-data-sm text-primary">NOMINAL</p></div>
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SIGNAL</p><p class="font-data-sm text-data-sm text-primary">−72 dBm</p></div>
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">LAST PASS</p><p class="font-data-sm text-data-sm text-secondary-fixed-dim">06:14 UTC</p></div>
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">NEXT PASS</p><p class="font-data-sm text-data-sm text-secondary-fixed-dim">18:26 UTC</p></div>
+      </div>
+    </div>
+    <div class="gp p-sm border-l-2 border-l-secondary-container">
+      <p class="font-label-caps text-on-surface-variant mb-xs">OPEN-METEO API</p>
+      <p class="font-data-lg text-data-lg text-secondary" id="health-api">LIVE</p>
+      <p class="font-label-caps text-on-surface-variant/60 mt-1" id="health-api-time">Last fetch: —</p>
+    </div>
+    <div class="gp p-sm border-l-2 border-l-tertiary-container">
+      <p class="font-label-caps text-on-surface-variant mb-xs">GEMINI AI MODEL</p>
+      <p class="font-data-lg text-data-lg text-tertiary-fixed-dim">google.genai v2</p>
+      <p class="font-label-caps text-on-surface-variant/60 mt-1">Irrigation + VWC inference</p>
+    </div>
+    <div class="gp p-sm border-l-2 border-l-secondary-container">
+      <p class="font-label-caps text-on-surface-variant mb-xs">GOOGLE DRIVE SYNC</p>
+      <p class="font-data-lg text-data-lg text-secondary">ACTIVE</p>
+      <p class="font-label-caps text-on-surface-variant/60 mt-1">Last push: 18 min ago</p>
+    </div>
+    <div class="gp p-sm border-l-2 border-l-secondary-container">
+      <p class="font-label-caps text-on-surface-variant mb-xs">STITCH MCP</p>
+      <p class="font-data-lg text-data-lg text-secondary">CONNECTED</p>
+      <p class="font-label-caps text-on-surface-variant/60 mt-1">stitch.googleapis.com/mcp</p>
+    </div>
+    <div class="gp p-sm border-l-2 border-l-primary-container">
+      <p class="font-label-caps text-on-surface-variant mb-xs">WEATHER DATA SOURCE</p>
+      <p class="font-data-lg text-data-lg text-primary">api.open-meteo.com</p>
+      <p class="font-label-caps text-on-surface-variant/60 mt-1">Free · No Auth · 10min refresh</p>
+    </div>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer class="fixed bottom-0 right-0 left-20 z-40 hidden md:flex justify-between items-center px-sm bg-surface-container-lowest/90 backdrop-blur-sm h-8 border-t border-white/5">
+  <span class="font-label-caps text-label-caps text-on-surface-variant/40">SYSTEM ACTIVE // NODE_774_OP · DEDIAPADA · GUJARAT</span>
+  <div class="flex items-center gap-lg">
+    <span class="font-label-caps text-label-caps text-secondary-fixed-dim">UPTIME: 99.98%</span>
+    <span class="font-label-caps text-label-caps text-secondary-fixed-dim">LATENCY: 14MS</span>
+    <span class="font-label-caps text-label-caps text-secondary" id="utc-clock">UTC: —</span>
+  </div>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════
+// LIVE STATE (seeds from API, random jitter between)
+// ══════════════════════════════════════════════════
+const S={vA:22.4,vB:27.1,vC:25.3,tmp:34.2,hum:67,et0:4.8,vpd:1.3,wind:12,press:1008,precip_prob:5,apt:36.0,dew:22.0};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rng=(a,b)=>+(a+Math.random()*(b-a)).toFixed(2);
+function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
+function pct(id,v){const e=document.getElementById(id);if(e)e.style.width=clamp(v,0,100).toFixed(1)+'%'}
+
+// ══════════════════════════════════════════════════
+// OPEN-METEO API FETCH
+// ══════════════════════════════════════════════════
+const API_URL='https://api.open-meteo.com/v1/forecast?latitude=21.6277&longitude=73.5903'
+  +'&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature'
+  +',precipitation_probability,precipitation,rain,showers'
+  +',vapour_pressure_deficit,evapotranspiration'
+  +',cloud_cover_high,cloud_cover_low,cloud_cover_mid,cloud_cover'
+  +',surface_pressure,soil_temperature_0cm,soil_temperature_6cm,soil_temperature_18cm'
+  +'&current=relative_humidity_2m,temperature_2m,is_day,wind_speed_10m'
+  +'&timezone=GMT&forecast_days=7';
+
+let weatherData=null;
+const charts={};
+
+function now_idx(times){
+  const now=Date.now();
+  let best=0,bestDiff=Infinity;
+  times.forEach((t,i)=>{const diff=Math.abs(new Date(t).getTime()-now);if(diff<bestDiff){bestDiff=diff;best=i}});
+  return best;
+}
+
+async function fetchWeather(){
+  set('api-status','API: FETCHING...');
+  try{
+    const r=await fetch(API_URL);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    weatherData=d;
+    applyCurrentData(d);
+    buildAllCharts(d);
+    const t=new Date().toLocaleTimeString('en-GB',{hour12:false});
+    set('api-status','API: LIVE ✓ '+t);
+    set('api-time',t);
+    set('health-api-time','Last fetch: '+t);
+    set('health-api','LIVE');
+    // Animate sync bar
+    const bar=document.getElementById('api-sync-bar');
+    if(bar){bar.style.width='0%';setTimeout(()=>bar.style.width='100%',50)}
+    set('geo-elev','ELEV: '+(d.elevation||'—')+' m');
+  }catch(e){
+    set('api-status','API: ERROR — '+e.message);
+    set('health-api','ERROR');
+    console.warn('Open-Meteo fetch failed:',e);
+  }
+}
+
+function applyCurrentData(d){
+  const c=d.current,h=d.hourly;
+  const idx=now_idx(h.time);
+  // Feed state
+  S.tmp=c.temperature_2m;
+  S.hum=c.relative_humidity_2m;
+  S.wind=c.wind_speed_10m;
+  S.apt=h.apparent_temperature[idx]??c.temperature_2m;
+  S.dew=h.dew_point_2m[idx]??20;
+  S.vpd=h.vapour_pressure_deficit[idx]??1.3;
+  S.et0=Math.abs(h.evapotranspiration[idx]??4.8);
+  S.press=h.surface_pressure[idx]??1008;
+  S.precip_prob=h.precipitation_probability[idx]??0;
+  const isDay=c.is_day===1?'DAY ☀':'NIGHT 🌙';
+  // Map page
+  set('map-tmp',S.tmp.toFixed(1)+'°C');
+  set('map-hum',S.hum.toFixed(0)+'%');
+  set('map-wind',S.wind.toFixed(1)+' km/h');
+  set('map-day',isDay);
+  set('precip-alert',S.precip_prob.toFixed(0)+'%');
+  set('rain-alert',S.precip_prob>60?'WARN':S.precip_prob>30?'MONITOR':'CLEAR');
+  set('et0-alert',S.et0>6?'HIGH':S.et0>4?'MODERATE':'LOW');
+  // Climate page
+  set('cl-tmp',S.tmp.toFixed(1));
+  set('cl-apt','Feels '+S.apt.toFixed(1)+'°C');
+  pct('cl-tmp-bar',(S.tmp-20)/25*100);
+  set('cl-hum',S.hum.toFixed(0));
+  set('cl-hum-s',S.hum>70?'HIGH':S.hum>50?'OPTIMAL':'DRY');
+  pct('cl-hum-bar',S.hum);
+  set('cl-wind',S.wind.toFixed(1));
+  set('cl-et0-lbl','ET₀: '+S.et0.toFixed(2)+'mm/d');
+  pct('cl-et0-bar',S.wind/50*100);
+  set('cl-press',S.press.toFixed(0));
+  set('cl-vpd-lbl','VPD: '+S.vpd.toFixed(2)+' kPa');
+  pct('cl-press-bar',(S.press-980)/60*100);
+  // NDVI page
+  set('ndvi-tmp',S.tmp.toFixed(1)+'°C');
+  set('ndvi-apt',S.apt.toFixed(1)+'°C');
+  set('ndvi-dew',S.dew.toFixed(1)+'°C');
+  set('ndvi-hum',S.hum.toFixed(0)+'%');
+  set('ndvi-vpd',S.vpd.toFixed(2)+' kPa');
+  set('ndvi-et0',S.et0.toFixed(2)+' mm/d');
+  set('ndvi-press',S.press.toFixed(0)+' hPa');
+  set('ndvi-precip',S.precip_prob.toFixed(0)+'%');
+  updateVWC();
+}
+
+// ══════════════════════════════════════════════════
+// CHART.JS — build all 5 charts
+// ══════════════════════════════════════════════════
+const C_DEFAULTS={
+  color:'#dfe4e0',
+  borderColor:'rgba(255,255,255,.08)',
+  plugins:{legend:{labels:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:10},boxWidth:12}},tooltip:{backgroundColor:'rgba(15,20,18,.95)',titleColor:'#00ff41',bodyColor:'#b9ccb2',borderColor:'rgba(0,255,65,.2)',borderWidth:1}},
+  scales:{x:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9},maxRotation:0,maxTicksLimit:14},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'}}}
+};
+
+function mkChart(id,cfg){
+  if(charts[id])charts[id].destroy();
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  charts[id]=new Chart(ctx,cfg);
+}
+
+function fmtLabels(times){
+  // show every 6th hour label
+  return times.map((t,i)=>{
+    const d=new Date(t);
+    return i%6===0?`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}h`:'';
+  });
+}
+
+function buildAllCharts(d){
+  const h=d.hourly;
+  const labels=fmtLabels(h.time);
+
+  // 1. Atmosphere & Comfort
+  mkChart('chart-atmosphere',{type:'line',data:{labels,datasets:[
+    {label:'Air Temp (°C)',data:h.temperature_2m,borderColor:'#00ff41',backgroundColor:'rgba(0,255,65,.07)',tension:.3,pointRadius:0,yAxisID:'y'},
+    {label:'Apparent Temp (°C)',data:h.apparent_temperature,borderColor:'#f97316',borderDash:[4,4],tension:.3,pointRadius:0,fill:false,yAxisID:'y'},
+    {label:'Dew Point (°C)',data:h.dew_point_2m,borderColor:'#00eefc',tension:.3,pointRadius:0,fill:false,yAxisID:'y'},
+    {label:'Surface Pressure (hPa)',data:h.surface_pressure,borderColor:'#a855f7',tension:.3,pointRadius:0,fill:false,yAxisID:'y2'}
+  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    x:{...C_DEFAULTS.scales.x},
+    y:{...C_DEFAULTS.scales.y,title:{display:true,text:'Temperature (°C)',color:'#b9ccb2',font:{size:9}}},
+    y2:{position:'right',ticks:{color:'#a855f7',font:{family:'JetBrains Mono',size:9}},grid:{drawOnChartArea:false},title:{display:true,text:'Pressure (hPa)',color:'#a855f7',font:{size:9}}}
+  }}});
+
+  // 2. Precipitation
+  mkChart('chart-precipitation',{type:'bar',data:{labels,datasets:[
+    {label:'Total Precip. (mm)',data:h.precipitation,backgroundColor:'rgba(37,99,235,.6)',yAxisID:'y'},
+    {label:'Rain (mm)',data:h.rain,backgroundColor:'rgba(59,130,246,.5)',yAxisID:'y'},
+    {label:'Showers (mm)',data:h.showers,backgroundColor:'rgba(96,165,250,.4)',yAxisID:'y'},
+    {label:'Precip. Prob (%)',data:h.precipitation_probability,type:'line',borderColor:'#f43f5e',borderWidth:2,pointRadius:0,tension:.3,fill:false,yAxisID:'y2'}
+  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    x:{...C_DEFAULTS.scales.x,stacked:false},
+    y:{...C_DEFAULTS.scales.y,title:{display:true,text:'Amount (mm)',color:'#b9ccb2',font:{size:9}}},
+    y2:{position:'right',min:0,max:100,ticks:{color:'#f43f5e',font:{family:'JetBrains Mono',size:9}},grid:{drawOnChartArea:false},title:{display:true,text:'Probability (%)',color:'#f43f5e',font:{size:9}}}
+  }}});
+
+  // 3. ET0 & VPD
+  mkChart('chart-agri',{type:'bar',data:{labels,datasets:[
+    {label:'Evapotranspiration (mm)',data:h.evapotranspiration.map(v=>Math.abs(v||0)),backgroundColor:'rgba(16,185,129,.55)',yAxisID:'y'},
+    {label:'Vapour Pressure Deficit (kPa)',data:h.vapour_pressure_deficit,type:'line',borderColor:'#b45309',borderWidth:2,pointRadius:0,tension:.3,fill:false,yAxisID:'y2'}
+  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    x:{...C_DEFAULTS.scales.x},
+    y:{...C_DEFAULTS.scales.y,title:{display:true,text:'ET₀ (mm)',color:'#b9ccb2',font:{size:9}}},
+    y2:{position:'right',ticks:{color:'#b45309',font:{family:'JetBrains Mono',size:9}},grid:{drawOnChartArea:false},title:{display:true,text:'VPD (kPa)',color:'#b45309',font:{size:9}}}
+  }}});
+
+  // 4. Cloud Layers
+  mkChart('chart-clouds',{type:'line',data:{labels,datasets:[
+    {label:'Total Cover (%)',data:h.cloud_cover,borderColor:'#475569',borderWidth:2.5,backgroundColor:'rgba(71,85,105,.15)',tension:.3,pointRadius:0,fill:true},
+    {label:'High Cloud (%)',data:h.cloud_cover_high,borderColor:'#cbd5e1',tension:.3,pointRadius:0,fill:false},
+    {label:'Mid Cloud (%)',data:h.cloud_cover_mid,borderColor:'#94a3b8',tension:.3,pointRadius:0,fill:false},
+    {label:'Low Cloud (%)',data:h.cloud_cover_low,borderColor:'#64748b',tension:.3,pointRadius:0,fill:false}
+  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    x:{...C_DEFAULTS.scales.x},
+    y:{...C_DEFAULTS.scales.y,min:0,max:100,title:{display:true,text:'Sky Coverage (%)',color:'#b9ccb2',font:{size:9}}}
+  }}});
+
+  // 5. Soil Dynamics
+  mkChart('chart-soil',{type:'line',data:{labels,datasets:[
+    {label:'Surface 0cm (°C)',data:h.soil_temperature_0cm,borderColor:'#78350f',backgroundColor:'rgba(120,53,15,.1)',tension:.3,pointRadius:0,fill:true},
+    {label:'Shallow 6cm (°C)',data:h.soil_temperature_6cm,borderColor:'#92400e',tension:.3,pointRadius:0,fill:false},
+    {label:'Deep 18cm (°C)',data:h.soil_temperature_18cm,borderColor:'#b45309',tension:.3,pointRadius:0,fill:false}
+  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    x:{...C_DEFAULTS.scales.x},
+    y:{...C_DEFAULTS.scales.y,title:{display:true,text:'Soil Temp (°C)',color:'#b9ccb2',font:{size:9}}}
+  }}});
+}
+
+function switchWeatherTab(name,btn){
+  document.querySelectorAll('.chart-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.wtab').forEach(b=>b.classList.remove('on'));
+  const panel=document.getElementById('tab-'+name);
+  if(panel)panel.classList.add('active');
+  if(btn)btn.classList.add('on');
+  // Resize chart after display
+  setTimeout(()=>{if(charts['chart-'+name])charts['chart-'+name].resize()},50);
+}
+
+// ══════════════════════════════════════════════════
+// VWC + soil simulated state
+// ══════════════════════════════════════════════════
+function updateVWC(){
+  const avg=((S.vA+S.vB+S.vC)/3).toFixed(1);
+  set('vwc-avg-map','VWC: '+avg+'%');
+  set('vwc-alert',S.vA<20?'CRITICAL':S.vA<22?'WATCH':'NORMAL');
+  set('ndvi-vwc',S.vA.toFixed(1)+'%');
+  set('ndvi-vwc-status',S.vA>25?'OPTIMAL':S.vA>20?'ADEQUATE':'LOW — IRRIGATING');
+  const dep=((clamp(23-S.vA,0,10)/100)*.4*1000/.9).toFixed(0);
+  set('irrig-depth',dep+'mm');
+  set('next-irrig','T+'+(S.vA>22?120:30)+'MIN');
+}
+
+function tickVWC(){
+  S.vA=clamp(S.vA+rng(-.3,.1),14,32);
+  S.vB=clamp(S.vB+rng(-.2,.25),14,32);
+  S.vC=clamp(S.vC+rng(-.25,.3),14,32);
+  updateVWC();
+}
+
+// ══════════════════════════════════════════════════
+// SATELLITE MAP (Leaflet + ESRI World Imagery)
+// ══════════════════════════════════════════════════
+(function(){
+  const map=L.map('sat-map',{
+    center:[22,78],zoom:5.4,
+    zoomControl:false,dragging:false,touchZoom:false,
+    doubleClickZoom:false,scrollWheelZoom:false,
+    boxZoom:false,keyboard:false,attributionControl:false
+  });
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.92}).addTo(map);
+  // Pulsing marker icon
+  const icon=L.divIcon({
+    className:'',
+    html:`<div style="position:relative;width:32px;height:32px">
+      <div style="position:absolute;top:50%;left:50%;width:10px;height:10px;background:#00ff41;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 10px #00ff41;animation:pnode 2s infinite"></div>
+      <div style="position:absolute;top:50%;left:50%;width:24px;height:24px;border:1.5px solid rgba(0,255,65,.55);border-radius:50%;transform:translate(-50%,-50%);animation:pnode 2s infinite .4s"></div>
+      <div style="position:absolute;top:50%;left:50%;width:38px;height:38px;border:1px solid rgba(0,255,65,.25);border-radius:50%;transform:translate(-50%,-50%);animation:pnode 2s infinite .8s"></div>
+    </div>`,
+    iconSize:[32,32],iconAnchor:[16,16]
+  });
+  L.marker([21.628,73.592],{icon})
+   .addTo(map)
+   .bindTooltip('DEDIAPADA · 21.628°N 73.592°E<br>AgriSat Farm · 0.15 ha · Gujarat',{
+     permanent:true,direction:'right',offset:[18,0],className:'sat-tip'
+   }).openTooltip();
+})();
+
+// ══════════════════════════════════════════════════
+// FIELD MAP
+// ══════════════════════════════════════════════════
+(function(){
+  const cv=document.getElementById('field-map');if(!cv)return;
+  const ctx=cv.getContext('2d');
+  function draw(){
+    cv.width=cv.parentElement.clientWidth;cv.height=cv.parentElement.clientHeight;
+    const W=cv.width,H=cv.height;
+    ctx.fillStyle='#0a1a0d';ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(0,255,65,.06)';ctx.lineWidth=1;
+    for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+    for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+    const fields=[{x:.3,y:.25,w:.24,h:.3,c:'rgba(0,255,65,.2)',lc:'#00ff41',l:'FIELD-A'},{x:.58,y:.32,w:.2,h:.24,c:'rgba(0,219,233,.14)',lc:'#00dbe9',l:'FIELD-B'},{x:.28,y:.6,w:.22,h:.22,c:'rgba(255,180,50,.1)',lc:'#ffb432',l:'FIELD-C'}];
+    fields.forEach(f=>{ctx.fillStyle=f.c;ctx.strokeStyle=f.lc;ctx.lineWidth=1.5;ctx.beginPath();ctx.rect(f.x*W,f.y*H,f.w*W,f.h*H);ctx.fill();ctx.stroke();ctx.font='bold 11px JetBrains Mono,monospace';ctx.fillStyle=f.lc;ctx.fillText(f.l,f.x*W+6,f.y*H+16)});
+    ctx.beginPath();ctx.arc(W/2,H/2,5,0,Math.PI*2);ctx.fillStyle='#00ff41';ctx.shadowColor='#00ff41';ctx.shadowBlur=16;ctx.fill();ctx.shadowBlur=0;
+  }
+  draw();new ResizeObserver(draw).observe(cv.parentElement);
+})();
+
+// ══════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════
+const pageMap={map:'COMMAND CENTER',ndvi:'ASSET ANALYTICS & NDVI',climate:'CLIMATE & WEATHER ANALYTICS',auto:'AUTOMATION & LOGIC HUB',health:'SYSTEM HEALTH'};
+function nav(id){
+  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none'});
+  document.querySelectorAll('.nav-btn').forEach(b=>{b.classList.remove('text-primary','border-r-2','border-primary-container','bg-primary/10');b.classList.add('text-on-surface-variant/60')});
+  const pg=document.getElementById('page-'+id);
+  if(pg){pg.classList.add('active');pg.style.display='flex'}
+  const btn=document.querySelector(`[data-page="${id}"]`);
+  if(btn){btn.classList.remove('text-on-surface-variant/60');btn.classList.add('text-primary','border-r-2','border-primary-container','bg-primary/10')}
+  // Mobile nav active state
+  document.querySelectorAll('.mob-btn').forEach(b=>b.classList.remove('active'));
+  const mob=document.querySelector(`.mob-btn[data-page="${id}"]`);
+  if(mob)mob.classList.add('active');
+  set('page-title',pageMap[id]||'COMMAND CENTER');
+  // Scroll to top on mobile
+  window.scrollTo({top:0,behavior:'smooth'});
+  // Resize charts when entering climate tab
+  if(id==='climate')setTimeout(()=>Object.values(charts).forEach(c=>c.resize()),100);
+}
+
+// ══════════════════════════════════════════════════
+// SENSOR BARS ANIMATION
+// ══════════════════════════════════════════════════
+function animateBars(){
+  ['sb-a1','sb-b1','sb-c1','sb-t1','sb-e1'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    if(!el.children.length)for(let i=0;i<6;i++){const d=document.createElement('div');d.className='w-1 bg-primary/30';d.style.height='8px';el.appendChild(d)}
+    Array.from(el.children).forEach(b=>{b.style.height=(Math.random()*24+4)+'px';b.style.transition='height .3s ease-in-out'});
+  });
+}
+
+// ══════════════════════════════════════════════════
+// LOG STREAM
+// ══════════════════════════════════════════════════
+const logMsgs=['SENSOR_SCAN_COMPLETE (FIELD_A)','NDVI_MAP UPDATED_V4','IRRIG_VLV_FIELD_A OPEN','ET0_CALCULATED: {et0}mm/d','VWC_READ: FIELD_A={vA}%','AUTOSYNCING_GOOGLE_DRIVE...','NODE_774_STABLE','GEMINI_AI INFERENCE_OK','OPEN_METEO_SYNC COMPLETE','VWC_READ: FIELD_B={vB}%'];
+let li=0;
+const logEl=document.getElementById('log-stream');
+function pushLog(){
+  if(!logEl)return;
+  const msg=logMsgs[li%logMsgs.length].replace('{et0}',S.et0.toFixed(2)).replace('{vA}',S.vA.toFixed(1)).replace('{vB}',S.vB.toFixed(1));
+  const t2=new Date().toLocaleTimeString('en-GB',{hour12:false});
+  const d=document.createElement('div');d.innerHTML=`<span class="text-on-surface-variant/50">[${t2}]</span> ${msg}`;
+  logEl.prepend(d);if(logEl.children.length>12)logEl.lastElementChild.remove();li++;
+}
+
+// ══════════════════════════════════════════════════
+// TERMINAL
+// ══════════════════════════════════════════════════
+const termMsgs=['DRIP_VALVE_FIELD_A OPEN','SENSOR_READ: VWC={vA}%','ET0_COMPENSATION ACTIVE','HANDSHAKE_SUCCESS :: NODE_774','DRIVE_SYNC_COMPLETE :: SHEETS','GEMINI_INFERENCE: IRRIGATE_A','OPEN_METEO_API REFRESHED','TEMP_AMBIENT: {tmp}°C','RAIN_GUARD: PRECIP_PROB={pp}%','FLOW_RATE: 3MM/HR'];
+let ti=0;
+const termEl=document.getElementById('auto-terminal');
+function pushTerm(){
+  if(!termEl)return;
+  const msg=termMsgs[ti%termMsgs.length].replace('{vA}',S.vA.toFixed(1)).replace('{tmp}',S.tmp.toFixed(1)).replace('{pp}',S.precip_prob.toFixed(0));
+  const t2=new Date().toLocaleTimeString('en-GB',{hour12:false});
+  const d=document.createElement('div');d.className='text-on-surface-variant/60 mb-1';
+  d.innerHTML=`[${t2}] <span class="text-primary/80">${msg}</span>`;
+  termEl.appendChild(d);termEl.scrollTop=termEl.scrollHeight;
+  if(termEl.children.length>20)termEl.firstElementChild.remove();ti++;
+}
+
+// ══════════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════════
+function updateClock(){const utc=new Date().toISOString().split('T')[1].split('.')[0];set('utc-clock','UTC: '+utc);set('auto-utc','UTC '+utc)}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// MANUAL VALVE CONTROL
+// ══════════════════════════════════════════════════
+const CROP_DB=[
+  // Cereals
+  {key:'wheat',cat:'Cereals',label:'Wheat',mm:2,dur:30,flow:3},
+  {key:'rice',cat:'Cereals',label:'Rice / Paddy',mm:4,dur:60,flow:6},
+  {key:'maize',cat:'Cereals',label:'Maize / Corn',mm:3,dur:30,flow:4},
+  {key:'barley',cat:'Cereals',label:'Barley',mm:2,dur:30,flow:3},
+  {key:'oats',cat:'Cereals',label:'Oats',mm:2,dur:30,flow:3},
+  {key:'rye',cat:'Cereals',label:'Rye',mm:2,dur:30,flow:3},
+  {key:'sorghum',cat:'Cereals',label:'Sorghum',mm:2,dur:30,flow:3},
+  {key:'pearl_millet',cat:'Cereals',label:'Pearl Millet',mm:2,dur:15,flow:3},
+  {key:'finger_millet',cat:'Cereals',label:'Finger Millet',mm:2,dur:15,flow:3},
+  {key:'foxtail_millet',cat:'Cereals',label:'Foxtail Millet',mm:1,dur:15,flow:2},
+  {key:'proso_millet',cat:'Cereals',label:'Proso Millet',mm:1,dur:15,flow:2},
+  {key:'teff',cat:'Cereals',label:'Teff',mm:1,dur:15,flow:2},
+  {key:'farro',cat:'Cereals',label:'Farro (Emmer)',mm:2,dur:30,flow:3},
+  {key:'spelt',cat:'Cereals',label:'Spelt',mm:2,dur:30,flow:3},
+  {key:'triticale',cat:'Cereals',label:'Triticale',mm:2,dur:30,flow:3},
+  {key:'buckwheat',cat:'Cereals',label:'Buckwheat',mm:2,dur:15,flow:3},
+  {key:'quinoa',cat:'Cereals',label:'Quinoa',mm:1,dur:15,flow:2},
+  {key:'amaranth',cat:'Cereals',label:'Amaranth (Grain)',mm:2,dur:15,flow:3},
+  {key:'canarygrass',cat:'Cereals',label:'Canary Grass',mm:2,dur:15,flow:2},
+  {key:'wild_rice',cat:'Cereals',label:'Wild Rice',mm:6,dur:0,flow:6},
+  {key:'job_tears',cat:'Cereals',label:'Jobs Tears (Adlay)',mm:3,dur:30,flow:4},
+  // Legumes
+  {key:'soybean',cat:'Legumes',label:'Soybean',mm:3,dur:30,flow:4},
+  {key:'chickpea',cat:'Legumes',label:'Chickpea',mm:2,dur:30,flow:3},
+  {key:'lentil',cat:'Legumes',label:'Lentil',mm:2,dur:30,flow:3},
+  {key:'green_pea',cat:'Legumes',label:'Green Pea',mm:2,dur:30,flow:3},
+  {key:'blackeyed_pea',cat:'Legumes',label:'Black-eyed Pea',mm:2,dur:15,flow:3},
+  {key:'kidney_bean',cat:'Legumes',label:'Kidney Bean',mm:2,dur:30,flow:3},
+  {key:'navy_bean',cat:'Legumes',label:'Navy Bean',mm:2,dur:30,flow:3},
+  {key:'pinto_bean',cat:'Legumes',label:'Pinto Bean',mm:2,dur:30,flow:3},
+  {key:'lima_bean',cat:'Legumes',label:'Lima Bean',mm:2,dur:30,flow:3},
+  {key:'mung_bean',cat:'Legumes',label:'Mung Bean',mm:2,dur:15,flow:3},
+  {key:'adzuki',cat:'Legumes',label:'Adzuki Bean',mm:2,dur:15,flow:3},
+  {key:'pigeon_pea',cat:'Legumes',label:'Pigeon Pea (Toor Dal)',mm:2,dur:30,flow:3},
+  {key:'cowpea',cat:'Legumes',label:'Cowpea',mm:2,dur:15,flow:3},
+  {key:'fava_bean',cat:'Legumes',label:'Fava Bean (Broad Bean)',mm:3,dur:30,flow:3},
+  {key:'lupine',cat:'Legumes',label:'Lupine',mm:2,dur:15,flow:3},
+  {key:'peanut',cat:'Legumes',label:'Groundnut / Peanut',mm:2,dur:15,flow:3},
+  {key:'moth_bean',cat:'Legumes',label:'Moth Bean',mm:1,dur:15,flow:2},
+  {key:'horse_gram',cat:'Legumes',label:'Horse Gram',mm:1,dur:15,flow:2},
+  {key:'velvet_bean',cat:'Legumes',label:'Velvet Bean',mm:2,dur:15,flow:3},
+  {key:'winged_bean',cat:'Legumes',label:'Winged Bean',mm:3,dur:30,flow:4},
+  {key:'hyacinth_bean',cat:'Legumes',label:'Hyacinth Bean (Lablab)',mm:2,dur:15,flow:3},
+  {key:'cluster_bean',cat:'Legumes',label:'Cluster Bean (Guar)',mm:1,dur:15,flow:2},
+  {key:'sword_bean',cat:'Legumes',label:'Sword Bean',mm:3,dur:30,flow:4},
+  // Vegetables
+  {key:'tomato',cat:'Vegetables',label:'Tomato',mm:3,dur:30,flow:4},
+  {key:'potato',cat:'Vegetables',label:'Potato',mm:3,dur:30,flow:4},
+  {key:'onion',cat:'Vegetables',label:'Onion',mm:2,dur:30,flow:3},
+  {key:'garlic',cat:'Vegetables',label:'Garlic',mm:2,dur:15,flow:3},
+  {key:'shallot',cat:'Vegetables',label:'Shallot',mm:2,dur:15,flow:3},
+  {key:'cabbage',cat:'Vegetables',label:'Cabbage',mm:3,dur:30,flow:4},
+  {key:'cauliflower',cat:'Vegetables',label:'Cauliflower',mm:3,dur:30,flow:4},
+  {key:'broccoli',cat:'Vegetables',label:'Broccoli',mm:3,dur:30,flow:4},
+  {key:'carrot',cat:'Vegetables',label:'Carrot',mm:2,dur:30,flow:3},
+  {key:'radish',cat:'Vegetables',label:'Radish',mm:1,dur:15,flow:2},
+  {key:'turnip',cat:'Vegetables',label:'Turnip',mm:2,dur:15,flow:3},
+  {key:'beet',cat:'Vegetables',label:'Beetroot',mm:2,dur:30,flow:3},
+  {key:'spinach',cat:'Vegetables',label:'Spinach',mm:2,dur:15,flow:3},
+  {key:'lettuce',cat:'Vegetables',label:'Lettuce',mm:2,dur:15,flow:3},
+  {key:'kale',cat:'Vegetables',label:'Kale',mm:2,dur:15,flow:3},
+  {key:'swiss_chard',cat:'Vegetables',label:'Swiss Chard',mm:2,dur:15,flow:3},
+  {key:'cucumber',cat:'Vegetables',label:'Cucumber',mm:3,dur:30,flow:4},
+  {key:'pumpkin',cat:'Vegetables',label:'Pumpkin',mm:3,dur:30,flow:4},
+  {key:'zucchini',cat:'Vegetables',label:'Zucchini / Courgette',mm:3,dur:30,flow:4},
+  {key:'watermelon',cat:'Vegetables',label:'Watermelon',mm:4,dur:60,flow:5},
+  {key:'muskmelon',cat:'Vegetables',label:'Muskmelon / Cantaloupe',mm:3,dur:30,flow:4},
+  {key:'bitter_gourd',cat:'Vegetables',label:'Bitter Gourd (Karela)',mm:2,dur:30,flow:3},
+  {key:'bottle_gourd',cat:'Vegetables',label:'Bottle Gourd (Lauki)',mm:2,dur:30,flow:3},
+  {key:'ridge_gourd',cat:'Vegetables',label:'Ridge Gourd (Turai)',mm:2,dur:30,flow:3},
+  {key:'snake_gourd',cat:'Vegetables',label:'Snake Gourd',mm:2,dur:30,flow:3},
+  {key:'ash_gourd',cat:'Vegetables',label:'Ash Gourd (Winter Melon)',mm:3,dur:30,flow:4},
+  {key:'eggplant',cat:'Vegetables',label:'Eggplant / Brinjal',mm:3,dur:30,flow:4},
+  {key:'bell_pepper',cat:'Vegetables',label:'Bell Pepper / Capsicum',mm:3,dur:30,flow:4},
+  {key:'chili',cat:'Vegetables',label:'Chili Pepper',mm:2,dur:30,flow:3},
+  {key:'okra',cat:'Vegetables',label:'Okra / Bhindi',mm:2,dur:30,flow:3},
+  {key:'sweet_corn',cat:'Vegetables',label:'Sweet Corn',mm:3,dur:30,flow:4},
+  {key:'asparagus',cat:'Vegetables',label:'Asparagus',mm:3,dur:30,flow:4},
+  {key:'artichoke',cat:'Vegetables',label:'Globe Artichoke',mm:3,dur:30,flow:4},
+  {key:'leek',cat:'Vegetables',label:'Leek',mm:2,dur:30,flow:3},
+  {key:'celery',cat:'Vegetables',label:'Celery',mm:3,dur:30,flow:4},
+  {key:'fennel',cat:'Vegetables',label:'Fennel',mm:2,dur:15,flow:3},
+  {key:'parsnip',cat:'Vegetables',label:'Parsnip',mm:2,dur:15,flow:3},
+  {key:'celeriac',cat:'Vegetables',label:'Celeriac',mm:2,dur:30,flow:3},
+  {key:'kohlrabi',cat:'Vegetables',label:'Kohlrabi',mm:2,dur:15,flow:3},
+  {key:'brussels',cat:'Vegetables',label:'Brussels Sprouts',mm:3,dur:30,flow:4},
+  {key:'bok_choy',cat:'Vegetables',label:'Bok Choy',mm:2,dur:15,flow:3},
+  {key:'napa_cabbage',cat:'Vegetables',label:'Napa Cabbage',mm:2,dur:15,flow:3},
+  {key:'daikon',cat:'Vegetables',label:'Daikon Radish',mm:2,dur:15,flow:3},
+  {key:'chayote',cat:'Vegetables',label:'Chayote (Chow Chow)',mm:3,dur:30,flow:4},
+  {key:'drumstick',cat:'Vegetables',label:'Drumstick (Sahjan)',mm:2,dur:30,flow:3},
+  {key:'ivy_gourd',cat:'Vegetables',label:'Ivy Gourd (Tindora)',mm:2,dur:15,flow:3},
+  {key:'yardlong_bean',cat:'Vegetables',label:'Yardlong Bean',mm:2,dur:15,flow:3},
+  {key:'endive',cat:'Vegetables',label:'Endive / Chicory',mm:2,dur:15,flow:3},
+  {key:'arugula',cat:'Vegetables',label:'Arugula / Rocket',mm:1,dur:15,flow:2},
+  {key:'watercress',cat:'Vegetables',label:'Watercress',mm:6,dur:0,flow:6},
+  {key:'purslane',cat:'Vegetables',label:'Purslane',mm:1,dur:15,flow:2},
+  {key:'amaranth_veg',cat:'Vegetables',label:'Amaranth (Vegetable)',mm:2,dur:15,flow:3},
+  // Root & Tuber Crops
+  {key:'sweet_potato',cat:'Root Crops',label:'Sweet Potato',mm:3,dur:30,flow:4},
+  {key:'cassava',cat:'Root Crops',label:'Cassava / Tapioca',mm:2,dur:30,flow:3},
+  {key:'yam',cat:'Root Crops',label:'Yam',mm:3,dur:30,flow:4},
+  {key:'taro',cat:'Root Crops',label:'Taro / Colocasia',mm:4,dur:30,flow:5},
+  {key:'arrowroot',cat:'Root Crops',label:'Arrowroot',mm:3,dur:30,flow:4},
+  {key:'ginger',cat:'Root Crops',label:'Ginger',mm:3,dur:30,flow:4},
+  {key:'turmeric',cat:'Root Crops',label:'Turmeric',mm:3,dur:30,flow:4},
+  {key:'elephant_yam',cat:'Root Crops',label:'Elephant Foot Yam',mm:3,dur:30,flow:4},
+  {key:'lotus_root',cat:'Root Crops',label:'Lotus Root',mm:6,dur:0,flow:6},
+  {key:'jicama',cat:'Root Crops',label:'Jicama (Yam Bean)',mm:2,dur:30,flow:3},
+  {key:'jerusalem_artichoke',cat:'Root Crops',label:'Jerusalem Artichoke',mm:2,dur:30,flow:3},
+  {key:'canna',cat:'Root Crops',label:'Canna (Edible)',mm:3,dur:30,flow:4},
+  {key:'oca',cat:'Root Crops',label:'Oca',mm:2,dur:30,flow:3},
+  {key:'ulluco',cat:'Root Crops',label:'Ulluco',mm:2,dur:30,flow:3},
+  // Fruits
+  {key:'mango',cat:'Fruits',label:'Mango',mm:4,dur:60,flow:5},
+  {key:'banana',cat:'Fruits',label:'Banana / Plantain',mm:6,dur:0,flow:6},
+  {key:'apple',cat:'Fruits',label:'Apple',mm:4,dur:60,flow:5},
+  {key:'grape',cat:'Fruits',label:'Grape / Vine',mm:3,dur:30,flow:4},
+  {key:'orange',cat:'Fruits',label:'Orange',mm:4,dur:60,flow:5},
+  {key:'lemon',cat:'Fruits',label:'Lemon',mm:3,dur:30,flow:4},
+  {key:'lime',cat:'Fruits',label:'Lime',mm:3,dur:30,flow:4},
+  {key:'pomelo',cat:'Fruits',label:'Pomelo',mm:4,dur:60,flow:5},
+  {key:'grapefruit',cat:'Fruits',label:'Grapefruit',mm:4,dur:60,flow:5},
+  {key:'tangerine',cat:'Fruits',label:'Tangerine / Clementine',mm:3,dur:30,flow:4},
+  {key:'mandarin',cat:'Fruits',label:'Mandarin',mm:3,dur:30,flow:4},
+  {key:'papaya',cat:'Fruits',label:'Papaya',mm:4,dur:60,flow:5},
+  {key:'guava',cat:'Fruits',label:'Guava',mm:3,dur:30,flow:4},
+  {key:'pineapple',cat:'Fruits',label:'Pineapple',mm:3,dur:30,flow:4},
+  {key:'strawberry',cat:'Fruits',label:'Strawberry',mm:2,dur:15,flow:3},
+  {key:'raspberry',cat:'Fruits',label:'Raspberry',mm:2,dur:15,flow:3},
+  {key:'blackberry',cat:'Fruits',label:'Blackberry',mm:2,dur:15,flow:3},
+  {key:'blueberry',cat:'Fruits',label:'Blueberry',mm:2,dur:15,flow:3},
+  {key:'cherry',cat:'Fruits',label:'Cherry',mm:3,dur:30,flow:4},
+  {key:'peach',cat:'Fruits',label:'Peach / Nectarine',mm:3,dur:30,flow:4},
+  {key:'plum',cat:'Fruits',label:'Plum',mm:3,dur:30,flow:4},
+  {key:'apricot',cat:'Fruits',label:'Apricot',mm:3,dur:30,flow:4},
+  {key:'pear',cat:'Fruits',label:'Pear',mm:3,dur:30,flow:4},
+  {key:'fig',cat:'Fruits',label:'Fig',mm:3,dur:30,flow:4},
+  {key:'date_palm',cat:'Fruits',label:'Date Palm',mm:5,dur:60,flow:5},
+  {key:'coconut',cat:'Fruits',label:'Coconut',mm:5,dur:60,flow:5},
+  {key:'avocado',cat:'Fruits',label:'Avocado',mm:4,dur:60,flow:5},
+  {key:'pomegranate',cat:'Fruits',label:'Pomegranate',mm:3,dur:30,flow:4},
+  {key:'jackfruit',cat:'Fruits',label:'Jackfruit',mm:4,dur:60,flow:5},
+  {key:'durian',cat:'Fruits',label:'Durian',mm:5,dur:60,flow:5},
+  {key:'lychee',cat:'Fruits',label:'Lychee',mm:4,dur:60,flow:5},
+  {key:'longan',cat:'Fruits',label:'Longan',mm:4,dur:60,flow:5},
+  {key:'rambutan',cat:'Fruits',label:'Rambutan',mm:4,dur:60,flow:5},
+  {key:'mangosteen',cat:'Fruits',label:'Mangosteen',mm:5,dur:60,flow:5},
+  {key:'dragon_fruit',cat:'Fruits',label:'Dragon Fruit / Pitaya',mm:3,dur:30,flow:4},
+  {key:'passion_fruit',cat:'Fruits',label:'Passion Fruit',mm:3,dur:30,flow:4},
+  {key:'kiwi',cat:'Fruits',label:'Kiwi',mm:3,dur:30,flow:4},
+  {key:'mulberry',cat:'Fruits',label:'Mulberry',mm:3,dur:30,flow:4},
+  {key:'gooseberry',cat:'Fruits',label:'Gooseberry',mm:2,dur:15,flow:3},
+  {key:'elderberry',cat:'Fruits',label:'Elderberry',mm:2,dur:15,flow:3},
+  {key:'cranberry',cat:'Fruits',label:'Cranberry',mm:3,dur:30,flow:4},
+  {key:'custard_apple',cat:'Fruits',label:'Custard Apple (Sitaphal)',mm:3,dur:30,flow:4},
+  {key:'star_fruit',cat:'Fruits',label:'Star Fruit / Carambola',mm:3,dur:30,flow:4},
+  {key:'breadfruit',cat:'Fruits',label:'Breadfruit',mm:4,dur:60,flow:5},
+  {key:'sapodilla',cat:'Fruits',label:'Sapodilla / Chiku',mm:3,dur:30,flow:4},
+  {key:'tamarind',cat:'Fruits',label:'Tamarind',mm:2,dur:30,flow:3},
+  {key:'ber',cat:'Fruits',label:'Ber / Indian Jujube',mm:2,dur:15,flow:3},
+  {key:'persimmon',cat:'Fruits',label:'Persimmon',mm:3,dur:30,flow:4},
+  {key:'quince',cat:'Fruits',label:'Quince',mm:3,dur:30,flow:4},
+  {key:'loquat',cat:'Fruits',label:'Loquat',mm:3,dur:30,flow:4},
+  {key:'wax_apple',cat:'Fruits',label:'Wax Apple (Java Apple)',mm:3,dur:30,flow:4},
+  {key:'langsat',cat:'Fruits',label:'Langsat',mm:4,dur:60,flow:5},
+  {key:'salak',cat:'Fruits',label:'Salak / Snake Fruit',mm:3,dur:30,flow:4},
+  {key:'acai',cat:'Fruits',label:'Acai Berry',mm:5,dur:60,flow:5},
+  {key:'cactus_pear',cat:'Fruits',label:'Prickly Pear / Cactus Pear',mm:1,dur:15,flow:2},
+  {key:'soursop',cat:'Fruits',label:'Soursop / Graviola',mm:4,dur:60,flow:5},
+  {key:'cherimoya',cat:'Fruits',label:'Cherimoya',mm:3,dur:30,flow:4},
+  {key:'tamarillo',cat:'Fruits',label:'Tamarillo (Tree Tomato)',mm:3,dur:30,flow:4},
+  {key:'feijoa',cat:'Fruits',label:'Feijoa (Pineapple Guava)',mm:3,dur:30,flow:4},
+  {key:'pawpaw',cat:'Fruits',label:'Pawpaw (North American)',mm:3,dur:30,flow:4},
+  {key:'noni',cat:'Fruits',label:'Noni',mm:3,dur:30,flow:4},
+  {key:'marula',cat:'Fruits',label:'Marula',mm:2,dur:30,flow:3},
+  {key:'african_star_apple',cat:'Fruits',label:'African Star Apple',mm:3,dur:30,flow:4},
+  {key:'miracle_fruit',cat:'Fruits',label:'Miracle Fruit',mm:3,dur:30,flow:4},
+  // Oil Crops
+  {key:'sunflower',cat:'Oil Crops',label:'Sunflower',mm:3,dur:30,flow:4},
+  {key:'canola',cat:'Oil Crops',label:'Canola / Rapeseed',mm:2,dur:30,flow:3},
+  {key:'sesame',cat:'Oil Crops',label:'Sesame',mm:1,dur:15,flow:2},
+  {key:'castor',cat:'Oil Crops',label:'Castor Bean',mm:2,dur:30,flow:3},
+  {key:'safflower',cat:'Oil Crops',label:'Safflower',mm:2,dur:30,flow:3},
+  {key:'flaxseed',cat:'Oil Crops',label:'Flaxseed / Linseed',mm:2,dur:15,flow:3},
+  {key:'mustard',cat:'Oil Crops',label:'Mustard',mm:2,dur:15,flow:3},
+  {key:'olive',cat:'Oil Crops',label:'Olive',mm:2,dur:30,flow:3},
+  {key:'oil_palm',cat:'Oil Crops',label:'Oil Palm',mm:6,dur:0,flow:6},
+  {key:'jojoba',cat:'Oil Crops',label:'Jojoba',mm:1,dur:15,flow:2},
+  {key:'neem_oil',cat:'Oil Crops',label:'Neem',mm:2,dur:15,flow:3},
+  {key:'jatropha',cat:'Oil Crops',label:'Jatropha',mm:2,dur:15,flow:3},
+  {key:'hemp_oil',cat:'Oil Crops',label:'Hemp (Industrial)',mm:2,dur:30,flow:3},
+  {key:'perilla',cat:'Oil Crops',label:'Perilla',mm:2,dur:15,flow:3},
+  {key:'niger_seed',cat:'Oil Crops',label:'Niger Seed (Ramtil)',mm:1,dur:15,flow:2},
+  {key:'tung',cat:'Oil Crops',label:'Tung Tree',mm:3,dur:30,flow:4},
+  // Fiber Crops
+  {key:'cotton',cat:'Fiber Crops',label:'Cotton',mm:2,dur:30,flow:3},
+  {key:'jute',cat:'Fiber Crops',label:'Jute',mm:4,dur:60,flow:5},
+  {key:'flax_fiber',cat:'Fiber Crops',label:'Flax (Fiber)',mm:2,dur:15,flow:3},
+  {key:'sisal',cat:'Fiber Crops',label:'Sisal',mm:1,dur:15,flow:2},
+  {key:'kenaf',cat:'Fiber Crops',label:'Kenaf',mm:3,dur:30,flow:4},
+  {key:'abaca',cat:'Fiber Crops',label:'Abaca / Manila Hemp',mm:4,dur:60,flow:5},
+  {key:'sunn_hemp',cat:'Fiber Crops',label:'Sunn Hemp',mm:3,dur:30,flow:4},
+  {key:'agave',cat:'Fiber Crops',label:'Agave',mm:1,dur:15,flow:2},
+  // Sugar Crops
+  {key:'sugarcane',cat:'Sugar Crops',label:'Sugarcane',mm:6,dur:0,flow:5},
+  {key:'sugar_beet',cat:'Sugar Crops',label:'Sugar Beet',mm:3,dur:30,flow:4},
+  {key:'stevia',cat:'Sugar Crops',label:'Stevia',mm:2,dur:30,flow:3},
+  {key:'sweet_sorghum',cat:'Sugar Crops',label:'Sweet Sorghum',mm:3,dur:30,flow:4},
+  {key:'sugar_maple',cat:'Sugar Crops',label:'Sugar Maple',mm:3,dur:30,flow:4},
+  // Beverage Crops
+  {key:'coffee',cat:'Beverage',label:'Coffee (Arabica / Robusta)',mm:4,dur:60,flow:5},
+  {key:'tea',cat:'Beverage',label:'Tea',mm:4,dur:60,flow:5},
+  {key:'cocoa',cat:'Beverage',label:'Cocoa / Cacao',mm:5,dur:60,flow:5},
+  {key:'mate',cat:'Beverage',label:'Yerba Mate',mm:4,dur:60,flow:5},
+  {key:'kola',cat:'Beverage',label:'Kola Nut',mm:4,dur:60,flow:5},
+  {key:'guarana',cat:'Beverage',label:'Guarana',mm:4,dur:60,flow:5},
+  {key:'hops',cat:'Beverage',label:'Hops',mm:3,dur:30,flow:4},
+  // Spices
+  {key:'black_pepper',cat:'Spices',label:'Black Pepper',mm:4,dur:30,flow:4},
+  {key:'cardamom',cat:'Spices',label:'Cardamom',mm:4,dur:60,flow:5},
+  {key:'clove',cat:'Spices',label:'Clove',mm:4,dur:60,flow:5},
+  {key:'nutmeg',cat:'Spices',label:'Nutmeg',mm:4,dur:60,flow:5},
+  {key:'cinnamon',cat:'Spices',label:'Cinnamon',mm:4,dur:30,flow:4},
+  {key:'vanilla',cat:'Spices',label:'Vanilla',mm:4,dur:60,flow:5},
+  {key:'saffron',cat:'Spices',label:'Saffron',mm:1,dur:15,flow:2},
+  {key:'coriander',cat:'Spices',label:'Coriander / Cilantro',mm:2,dur:15,flow:3},
+  {key:'cumin',cat:'Spices',label:'Cumin',mm:1,dur:15,flow:2},
+  {key:'fenugreek',cat:'Spices',label:'Fenugreek',mm:2,dur:15,flow:3},
+  {key:'star_anise',cat:'Spices',label:'Star Anise',mm:3,dur:30,flow:4},
+  {key:'allspice',cat:'Spices',label:'Allspice',mm:3,dur:30,flow:4},
+  {key:'paprika',cat:'Spices',label:'Paprika (Dried Pepper)',mm:2,dur:30,flow:3},
+  {key:'long_pepper',cat:'Spices',label:'Long Pepper (Pippali)',mm:3,dur:30,flow:4},
+  {key:'galangal',cat:'Spices',label:'Galangal',mm:3,dur:30,flow:4},
+  {key:'kaffir_lime',cat:'Spices',label:'Kaffir Lime (Makrut)',mm:3,dur:30,flow:4},
+  {key:'asafoetida',cat:'Spices',label:'Asafoetida (Hing)',mm:1,dur:15,flow:2},
+  // Herbs
+  {key:'dill',cat:'Herbs',label:'Dill',mm:2,dur:15,flow:3},
+  {key:'basil',cat:'Herbs',label:'Basil',mm:2,dur:15,flow:3},
+  {key:'mint',cat:'Herbs',label:'Mint / Spearmint',mm:3,dur:30,flow:4},
+  {key:'oregano',cat:'Herbs',label:'Oregano',mm:1,dur:15,flow:2},
+  {key:'thyme',cat:'Herbs',label:'Thyme',mm:1,dur:15,flow:2},
+  {key:'rosemary',cat:'Herbs',label:'Rosemary',mm:1,dur:15,flow:2},
+  {key:'sage',cat:'Herbs',label:'Sage',mm:1,dur:15,flow:2},
+  {key:'parsley',cat:'Herbs',label:'Parsley',mm:2,dur:15,flow:3},
+  {key:'chives',cat:'Herbs',label:'Chives',mm:2,dur:15,flow:3},
+  {key:'bay_leaf',cat:'Herbs',label:'Bay Leaf (Laurel)',mm:2,dur:15,flow:3},
+  {key:'curry_leaf',cat:'Herbs',label:'Curry Leaf',mm:2,dur:30,flow:3},
+  {key:'lemongrass',cat:'Herbs',label:'Lemongrass',mm:3,dur:30,flow:4},
+  {key:'tarragon',cat:'Herbs',label:'Tarragon',mm:2,dur:15,flow:3},
+  {key:'marjoram',cat:'Herbs',label:'Marjoram',mm:1,dur:15,flow:2},
+  {key:'lavender',cat:'Herbs',label:'Lavender',mm:1,dur:15,flow:2},
+  {key:'chamomile',cat:'Herbs',label:'Chamomile',mm:2,dur:15,flow:3},
+  {key:'borage',cat:'Herbs',label:'Borage',mm:2,dur:15,flow:3},
+  {key:'peppermint',cat:'Herbs',label:'Peppermint',mm:3,dur:30,flow:4},
+  {key:'lemon_balm',cat:'Herbs',label:'Lemon Balm',mm:2,dur:15,flow:3},
+  {key:'stevia_herb',cat:'Herbs',label:'Stevia (Leaf)',mm:2,dur:15,flow:3},
+  {key:'chervil',cat:'Herbs',label:'Chervil',mm:2,dur:15,flow:3},
+  {key:'catnip',cat:'Herbs',label:'Catnip',mm:2,dur:15,flow:3},
+  {key:'epazote',cat:'Herbs',label:'Epazote',mm:1,dur:15,flow:2},
+  {key:'shiso',cat:'Herbs',label:'Shiso (Perilla)',mm:2,dur:15,flow:3},
+  {key:'vietnamese_coriander',cat:'Herbs',label:'Vietnamese Coriander',mm:2,dur:15,flow:3},
+  // Forage
+  {key:'alfalfa',cat:'Forage',label:'Alfalfa / Lucerne',mm:4,dur:60,flow:5},
+  {key:'red_clover',cat:'Forage',label:'Red Clover',mm:3,dur:30,flow:4},
+  {key:'white_clover',cat:'Forage',label:'White Clover',mm:3,dur:30,flow:4},
+  {key:'ryegrass',cat:'Forage',label:'Ryegrass',mm:3,dur:30,flow:4},
+  {key:'timothy',cat:'Forage',label:'Timothy Grass',mm:3,dur:30,flow:4},
+  {key:'sudan_grass',cat:'Forage',label:'Sudan Grass',mm:3,dur:30,flow:4},
+  {key:'napier_grass',cat:'Forage',label:'Napier / Elephant Grass',mm:4,dur:60,flow:5},
+  {key:'bermuda_grass',cat:'Forage',label:'Bermuda Grass',mm:3,dur:30,flow:4},
+  {key:'vetch',cat:'Forage',label:'Vetch',mm:2,dur:30,flow:3},
+  {key:'fodder_beet',cat:'Forage',label:'Fodder Beet',mm:3,dur:30,flow:4},
+  {key:'oat_grass',cat:'Forage',label:'Oat Grass',mm:3,dur:30,flow:4},
+  // Plantation
+  {key:'rubber',cat:'Plantation',label:'Rubber Tree (Hevea)',mm:5,dur:60,flow:5},
+  {key:'arecanut',cat:'Plantation',label:'Arecanut / Betel Nut',mm:4,dur:60,flow:5},
+  {key:'teak',cat:'Plantation',label:'Teak',mm:3,dur:30,flow:4},
+  {key:'eucalyptus',cat:'Plantation',label:'Eucalyptus',mm:3,dur:30,flow:4},
+  {key:'bamboo',cat:'Plantation',label:'Bamboo',mm:4,dur:30,flow:5},
+  {key:'moringa',cat:'Plantation',label:'Moringa (Drumstick Tree)',mm:2,dur:15,flow:3},
+  {key:'paulownia',cat:'Plantation',label:'Paulownia',mm:3,dur:30,flow:4},
+  {key:'sandalwood',cat:'Plantation',label:'Sandalwood',mm:2,dur:30,flow:3},
+  {key:'gmelina',cat:'Plantation',label:'Gmelina',mm:3,dur:30,flow:4},
+  // Industrial
+  {key:'tobacco',cat:'Industrial',label:'Tobacco',mm:3,dur:30,flow:4},
+  {key:'indigo',cat:'Industrial',label:'Indigo',mm:3,dur:30,flow:4},
+  {key:'henna',cat:'Industrial',label:'Henna / Mehndi',mm:1,dur:15,flow:2},
+  {key:'woad',cat:'Industrial',label:'Woad',mm:2,dur:15,flow:3},
+  {key:'weld',cat:'Industrial',label:'Weld (Dyer Mignonette)',mm:2,dur:15,flow:3},
+  // Medicinal
+  {key:'aloe_vera',cat:'Medicinal',label:'Aloe Vera',mm:1,dur:15,flow:2},
+  {key:'ashwagandha',cat:'Medicinal',label:'Ashwagandha',mm:1,dur:15,flow:2},
+  {key:'brahmi',cat:'Medicinal',label:'Brahmi (Bacopa)',mm:3,dur:30,flow:4},
+  {key:'tulsi',cat:'Medicinal',label:'Tulsi / Holy Basil',mm:2,dur:15,flow:3},
+  {key:'neem_med',cat:'Medicinal',label:'Neem (Medicinal)',mm:2,dur:15,flow:3},
+  {key:'echinacea',cat:'Medicinal',label:'Echinacea',mm:2,dur:15,flow:3},
+  {key:'ginseng',cat:'Medicinal',label:'Ginseng',mm:3,dur:30,flow:4},
+  {key:'valerian',cat:'Medicinal',label:'Valerian',mm:2,dur:30,flow:3},
+  {key:'arnica',cat:'Medicinal',label:'Arnica',mm:2,dur:15,flow:3},
+  {key:'comfrey',cat:'Medicinal',label:'Comfrey',mm:2,dur:30,flow:3},
+  {key:'feverfew',cat:'Medicinal',label:'Feverfew',mm:2,dur:15,flow:3},
+  {key:'goldenrod',cat:'Medicinal',label:'Goldenrod',mm:2,dur:15,flow:3},
+  {key:'st_johns_wort',cat:'Medicinal',label:'St Johns Wort',mm:2,dur:15,flow:3},
+  {key:'milk_thistle',cat:'Medicinal',label:'Milk Thistle',mm:1,dur:15,flow:2},
+  {key:'calendula',cat:'Medicinal',label:'Calendula (Pot Marigold)',mm:2,dur:15,flow:3},
+  {key:'elderflower',cat:'Medicinal',label:'Elderflower / Sambucus',mm:2,dur:15,flow:3},
+  {key:'turmeric_med',cat:'Medicinal',label:'Turmeric (Medicinal)',mm:3,dur:30,flow:4},
+  {key:'andrographis',cat:'Medicinal',label:'Andrographis (Kalmegh)',mm:2,dur:15,flow:3},
+  {key:'withania',cat:'Medicinal',label:'Withania / Ashwagandha',mm:1,dur:15,flow:2},
+  {key:'sarpagandha',cat:'Medicinal',label:'Sarpagandha (Rauwolfia)',mm:2,dur:30,flow:3},
+  {key:'coleus',cat:'Medicinal',label:'Coleus (Plectranthus)',mm:2,dur:15,flow:3},
+];
+
+const valveState={
+  1:{open:false,start:0,duration:0,field:'FIELD-A',crop:''},
+  2:{open:false,start:0,duration:0,field:'FIELD-B',crop:''},
+  3:{open:false,start:0,duration:0,field:'FIELD-C',crop:''}
+};
+
+function setIrrigMode(mode){
+  const isManual=mode==='manual';
+  document.getElementById('auto-content').style.display=isManual?'none':'';
+  document.getElementById('manual-content').style.display=isManual?'flex':'none';
+  document.getElementById('mode-btn-auto').classList.toggle('active',!isManual);
+  document.getElementById('mode-btn-manual').classList.toggle('active',isManual);
+  const ind=document.getElementById('mode-indicator');
+  ind.textContent=isManual?'MANUAL OVERRIDE':'AUTONOMOUS';
+  ind.className='font-data-sm text-data-sm '+(isManual?'text-error':'text-primary-container');
+  if(isManual){
+    logValve('MANUAL_MODE_ENGAGED — AUTO_LOGIC SUSPENDED');
+  } else {
+    [1,2,3].forEach(z=>{if(valveState[z].open)closeValve(z,true)});
+    logValve('AUTO_MODE_RESTORED — RESUMING AUTONOMOUS LOGIC');
+  }
+}
+
+function toggleValve(z){valveState[z].open?closeValve(z):openValve(z)}
+
+function openValve(z){
+  valveState[z].open=true;
+  valveState[z].start=Date.now();
+  updateValveUI(z);
+  const c=CROP_DB.find(x=>x.key===valveState[z].crop)||{flow:4,label:'NONE'};
+  logValve('VALVE_'+z+' OPENED ▶ '+c.flow+'MM/HR ['+valveState[z].field+'] CROP:'+c.label);
+  updateOpenCount();
+}
+
+function closeValve(z,silent){
+  const was=valveState[z].open;
+  valveState[z].open=false;
+  valveState[z].start=0;
+  updateValveUI(z);
+  if(!silent&&was)logValve(`VALVE_${z} CLOSED ■ FLOW STOPPED [${valveState[z].field}]`);
+  updateOpenCount();
+}
+
+function updateValveUI(z){
+  const open=valveState[z].open;
+  const led=document.getElementById(`v${z}-led`);
+  const st=document.getElementById(`v${z}-status`);
+  const btn=document.getElementById(`v${z}-btn`);
+  const fl=document.getElementById(`v${z}-flow`);
+  if(led){
+    led.style.background=open?'#00ff41':'';
+    led.style.boxShadow=open?'0 0 10px #00ff41,0 0 20px rgba(0,255,65,.4)':'';
+    led.style.borderColor=open?'#00ff41':'';
+  }
+  if(st){
+    st.textContent=open?'OPEN':'CLOSED';
+    st.className='font-data-lg text-[28px] font-bold leading-none '+(open?'text-primary-container':'text-on-surface-variant/30');
+  }
+  if(btn){
+    btn.className='w-full py-sm font-label-caps font-bold text-sm border rounded-lg transition-all active:scale-95 flex items-center justify-center gap-xs '+(open?'valve-open':'valve-closed-btn');
+    btn.innerHTML=`<span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 20">valve</span>${open?'CLOSE VALVE '+z:'OPEN VALVE '+z}`;
+  }
+  if(fl){const c=CROP_DB.find(x=>x.key===valveState[z].crop)||{flow:4};fl.textContent=open?c.flow+' mm/hr':'0 mm/hr';}
+  if(!open){const t=document.getElementById(`v${z}-timer`);if(t)t.textContent='00:00';}
+}
+
+function setDuration(z,mins,btn){
+  valveState[z].duration=mins;
+  btn.closest('.flex').querySelectorAll('.dur-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+function selectDurByMins(z,mins){
+  const g=document.getElementById('v'+z+'-dur-group');
+  if(!g)return;
+  const btns=g.querySelectorAll('.dur-btn');
+  btns.forEach(b=>b.classList.remove('sel'));
+  const idx={15:0,30:1,60:2,0:3}[mins]??3;
+  if(btns[idx])btns[idx].classList.add('sel');
+  valveState[z].duration=mins;
+}
+
+function renderCropDrop(z,q){
+  const drop=document.getElementById('v'+z+'-crop-drop');
+  if(!drop)return;
+  const query=(q||'').toLowerCase().trim();
+  const list=query?CROP_DB.filter(c=>c.label.toLowerCase().includes(query)||c.cat.toLowerCase().includes(query)):CROP_DB;
+  const cats={};
+  list.forEach(c=>{if(!cats[c.cat])cats[c.cat]=[];cats[c.cat].push(c)});
+  let html='<div class="crop-opt" style="color:rgba(255,100,100,.7)" onmousedown="setCrop('+z+',\'\')">NONE — MANUAL CONTROL</div>';
+  Object.entries(cats).forEach(([cat,items])=>{
+    html+='<div class="crop-cat-hdr">'+cat.toUpperCase()+'</div>';
+    items.forEach(c=>{html+='<div class="crop-opt" onmousedown="setCrop('+z+',\''+c.key+'\')">'+c.label.toUpperCase()+'</div>';});
+  });
+  if(list.length===0)html='<div class="crop-opt" style="color:rgba(185,204,178,.3)">NO MATCH FOUND</div>';
+  drop.innerHTML=html;
+}
+
+function showCropDrop(z){
+  const d=document.getElementById('v'+z+'-crop-drop');
+  if(d){d.classList.remove('hidden');renderCropDrop(z,document.getElementById('v'+z+'-crop-search')?.value);}
+}
+
+function hideCropDrop(z){
+  const d=document.getElementById('v'+z+'-crop-drop');
+  if(d)d.classList.add('hidden');
+}
+
+function filterCrops(z,val){renderCropDrop(z,val);}
+
+function setCrop(z,key){
+  valveState[z].crop=key;
+  const c=key?CROP_DB.find(x=>x.key===key):null;
+  const inp=document.getElementById('v'+z+'-crop-search');
+  if(inp)inp.value=c?c.label.toUpperCase():'';
+  hideCropDrop(z);
+  const info=document.getElementById('v'+z+'-crop-info');
+  if(info){
+    if(!c){
+      info.textContent='SEARCH & SELECT CROP TO AUTO-SET IRRIGATION';
+      info.style.color='';
+    } else {
+      const durStr=c.dur===0?'∞':(c.dur<60?c.dur+'m':Math.floor(c.dur/60)+'hr');
+      info.textContent='TARGET: '+c.mm+'mm · FLOW: '+c.flow+'mm/hr · AUTO: '+durStr+' · '+c.cat;
+      info.style.color='rgba(0,238,252,.75)';
+    }
+  }
+  if(c)selectDurByMins(z,c.dur);
+  const fl=document.getElementById('v'+z+'-flow');
+  if(fl&&valveState[z].open)fl.textContent=(c?c.flow:4)+' mm/hr';
+  logValve('ZONE_'+z+' CROP: '+(c?c.label+' → TARGET '+c.mm+'mm · FLOW '+c.flow+'mm/hr':'NONE (manual)'));
+}
+
+function stopAllValves(){
+  [1,2,3].forEach(z=>closeValve(z));
+  logValve('⚠ EMERGENCY STOP — ALL VALVES CLOSED');
+}
+
+function updateOpenCount(){
+  const n=[1,2,3].filter(z=>valveState[z].open).length;
+  const el=document.getElementById('open-valve-count');
+  const wrap=document.getElementById('valve-summary');
+  if(el)el.textContent=n;
+  if(wrap)wrap.style.opacity=n>0?'1':'0';
+}
+
+function logValve(msg){
+  if(!termEl)return;
+  const t=new Date().toLocaleTimeString('en-GB',{hour12:false});
+  const d=document.createElement('div');
+  d.className='mb-1';
+  d.innerHTML=`<span class="text-on-surface-variant/50">[${t}]</span> <span class="text-error/80">${msg}</span>`;
+  termEl.appendChild(d);termEl.scrollTop=termEl.scrollHeight;
+  if(termEl.children.length>20)termEl.firstElementChild.remove();
+}
+
+setInterval(()=>{
+  [1,2,3].forEach(z=>{
+    if(!valveState[z].open)return;
+    const elapsed=Math.floor((Date.now()-valveState[z].start)/1000);
+    const mm=Math.floor(elapsed/60),ss=elapsed%60;
+    const el=document.getElementById(`v${z}-timer`);
+    if(el)el.textContent=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+    if(valveState[z].duration>0&&elapsed>=valveState[z].duration*60){
+      closeValve(z);
+      logValve(`VALVE_${z} AUTO-CLOSED — DURATION REACHED [${valveState[z].field}]`);
+    }
+  });
+},1000);
+
+fetchWeather();
+setInterval(fetchWeather, 10*60*1000); // refresh every 10 min
+setTimeout(()=>{updateVWC();pushLog();pushTerm();},500);
+setInterval(tickVWC,5000);
+setInterval(animateBars,1000);
+setInterval(pushLog,6000);
+setInterval(pushTerm,7000);
+setInterval(updateClock,1000);
+updateClock();
+</script>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav id="mob-nav" class="fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-xl border-t border-white/10 h-14 shadow-[0_-4px_24px_rgba(0,0,0,.6)]">
+  <button class="mob-btn active" data-page="map" onclick="nav('map')">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24">public</span>
+    <span class="mob-btn-lbl">Map</span>
+  </button>
+  <button class="mob-btn" data-page="ndvi" onclick="nav('ndvi')">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">analytics</span>
+    <span class="mob-btn-lbl">Analytics</span>
+  </button>
+  <button class="mob-btn" data-page="climate" onclick="nav('climate')">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">thermostat</span>
+    <span class="mob-btn-lbl">Climate</span>
+  </button>
+  <button class="mob-btn" data-page="auto" onclick="nav('auto')">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">smart_toy</span>
+    <span class="mob-btn-lbl">Auto</span>
+  </button>
+  <button class="mob-btn" data-page="health" onclick="nav('health')">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">monitor_heart</span>
+    <span class="mob-btn-lbl">Health</span>
+  </button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- HARDWARE SETTINGS MODAL                                   -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="hw-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(6,10,9,.85);backdrop-filter:blur(8px)" onclick="if(event.target===this)closeHWModal()">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,92vw);background:rgba(10,15,13,.98);border:1px solid rgba(0,255,65,.2);border-radius:16px;padding:24px;box-shadow:0 24px 80px rgba(0,0,0,.9)">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.12em;color:rgba(0,255,65,.7)">HARDWARE CONNECTION</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.4);margin-top:2px">ESP32 + Raspberry Pi Pico Bridge</p>
+      </div>
+      <button onclick="closeHWModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(185,204,178,.6);width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+
+    <!-- Status badge -->
+    <div id="hw-status-bar" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <span id="hw-status-dot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;transition:all .3s"></span>
+      <div>
+        <p id="hw-status-txt" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;color:rgba(185,204,178,.5)">DISCONNECTED</p>
+        <p id="hw-status-sub" style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.3);margin-top:1px">Select LOCAL or CLOUD ☁ tab to connect</p>
+      </div>
+    </div>
+
+    <!-- Connection mode tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <button id="hw-tab-local" onclick="switchHWTab('local')" style="flex:1;background:rgba(0,255,65,.12);border:1px solid rgba(0,255,65,.35);border-radius:8px;color:#00ff41;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:8px 4px;cursor:pointer;transition:all .15s">
+        📶 LOCAL WiFi
+      </button>
+      <button id="hw-tab-cloud" onclick="switchHWTab('cloud')" style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(185,204,178,.45);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:8px 4px;cursor:pointer;transition:all .15s">
+        ☁ CLOUD MQTT
+      </button>
+    </div>
+
+    <!-- LOCAL WiFi tab content -->
+    <div id="hw-tab-local-body">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.4);margin-bottom:6px;letter-spacing:.06em">ESP32 IP ADDRESS</p>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input id="hw-ip-input" type="text" placeholder="192.168.1.42" style="flex:1;background:rgba(8,12,10,.9);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00ff41;outline:none;transition:border-color .15s" oninput="this.style.borderColor='rgba(255,255,255,.12)'" onkeydown="if(event.key==='Enter')connectESP32HW()">
+        <button onclick="connectESP32HW()" style="background:rgba(0,255,65,.12);border:1px solid rgba(0,255,65,.3);border-radius:8px;color:#00ff41;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:0 14px;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(0,255,65,.2)'" onmouseout="this.style.background='rgba(0,255,65,.12)'">CONNECT</button>
+      </div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.3);margin-bottom:18px">✓ Same WiFi network required · Find IP in Arduino Serial Monitor (115200 baud)</p>
+    </div>
+
+    <!-- CLOUD MQTT tab content (hidden by default) -->
+    <div id="hw-tab-cloud-body" style="display:none">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.4);margin-bottom:6px;letter-spacing:.06em">FARM ID <span style="color:rgba(0,219,233,.5)">(unique name for your farm)</span></p>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input id="hw-farm-id" type="text" placeholder="dediapada-farm-01" style="flex:1;background:rgba(8,12,10,.9);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00dbe9;outline:none;transition:border-color .15s" oninput="this.style.borderColor='rgba(255,255,255,.12)'" onkeydown="if(event.key==='Enter')connectMQTT()">
+        <button onclick="connectMQTT()" style="background:rgba(0,219,233,.1);border:1px solid rgba(0,219,233,.35);border-radius:8px;color:#00dbe9;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:0 10px;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(0,219,233,.2)'" onmouseout="this.style.background='rgba(0,219,233,.1)'">CONNECT</button>
+      </div>
+      <div style="background:rgba(0,219,233,.06);border:1px solid rgba(0,219,233,.15);border-radius:8px;padding:10px 12px;margin-bottom:18px">
+        <p style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:rgba(0,219,233,.7);margin-bottom:4px;letter-spacing:.08em">☁ HOW CLOUD WORKS</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4);line-height:1.7">ESP32 + dashboard both connect to HiveMQ public MQTT broker<br>
+        Dashboard subscribes: <span style="color:rgba(0,219,233,.6)">agrisat/{farmId}/data</span><br>
+        Commands published: <span style="color:rgba(0,255,65,.6)">agrisat/{farmId}/cmd</span><br>
+        Works from <span style="color:#00ff41">anywhere in the world</span> — no VPN needed</p>
+      </div>
+    </div>
+
+    <!-- Live sensor readout (only shown when connected) -->
+    <div id="hw-live-box" style="display:none;background:rgba(0,255,65,.04);border:1px solid rgba(0,255,65,.15);border-radius:10px;padding:14px;margin-bottom:16px">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:rgba(0,255,65,.6);margin-bottom:10px">LIVE SENSOR FEED</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="background:rgba(255,255,255,.04);border-radius:6px;padding:8px;text-align:center">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4);letter-spacing:.08em">FIELD-A</p>
+          <p id="hw-m1" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#00ff41">—%</p>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border-radius:6px;padding:8px;text-align:center">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4);letter-spacing:.08em">FIELD-B</p>
+          <p id="hw-m2" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#00dbe9">—%</p>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border-radius:6px;padding:8px;text-align:center">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4);letter-spacing:.08em">FIELD-C</p>
+          <p id="hw-m3" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#ffb432">—%</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;background:rgba(255,255,255,.04);border-radius:6px;padding:6px 8px">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4)">TEMP</p>
+          <p id="hw-temp" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#00dbe9;font-weight:700">—°C</p>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,.04);border-radius:6px;padding:6px 8px">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4)">HUMIDITY</p>
+          <p id="hw-hum" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#00dbe9;font-weight:700">—%</p>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,.04);border-radius:6px;padding:6px 8px">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4)">PICO</p>
+          <p id="hw-pico" style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:rgba(185,204,178,.4)">OFFLINE</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disconnect button -->
+    <div style="display:flex;gap:8px">
+      <button id="hw-disconnect-btn" onclick="disconnectAllHW()" style="display:none;flex:1;background:rgba(255,100,100,.08);border:1px solid rgba(255,100,100,.25);border-radius:8px;color:rgba(255,100,100,.7);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:10px;cursor:pointer">DISCONNECT</button>
+      <button onclick="closeHWModal()" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(185,204,178,.6);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:10px;cursor:pointer">CLOSE</button>
+    </div>
+    <p id="hw-footer-txt" style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.2);text-align:center;margin-top:12px">TERRA-CORE · LOCAL: WebSocket ws://IP:81 · CLOUD: HiveMQ MQTT</p>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// HARDWARE INTEGRATION — ESP32 + Raspberry Pi Pico
+// LOCAL:  WebSocket  ws://IP:81
+// CLOUD:  MQTT over WSS  wss://broker.hivemq.com:8884/mqtt
+// ══════════════════════════════════════════════════════════════
+
+// ── LOCAL WebSocket state
+let _hwWS        = null;
+let _hwIP        = localStorage.getItem('agrisat_esp32_ip') || '';
+let _hwConnected = false;
+let _hwReconnect = null;
+
+// ── CLOUD MQTT state
+let _mqttClient    = null;
+let _mqttFarmId    = localStorage.getItem('agrisat_farm_id') || '';
+let _mqttConnected = false;
+let _mqttMode      = false;   // true = cloud tab active
+
+// ── Active connection mode
+let _hwMode = localStorage.getItem('agrisat_hw_mode') || 'local';
+
+// ── Modal helpers
+function openHWModal() {
+  document.getElementById('hw-modal').style.display = 'block';
+  document.getElementById('hw-ip-input').value = _hwIP;
+  document.getElementById('hw-farm-id').value = _mqttFarmId;
+  switchHWTab(_hwMode, true);
+}
+function closeHWModal() {
+  document.getElementById('hw-modal').style.display = 'none';
+}
+
+// ── Tab switcher
+function switchHWTab(tab, silent) {
+  _hwMode = tab;
+  if (!silent) localStorage.setItem('agrisat_hw_mode', tab);
+  const tl = document.getElementById('hw-tab-local');
+  const tc = document.getElementById('hw-tab-cloud');
+  const bl = document.getElementById('hw-tab-local-body');
+  const bc = document.getElementById('hw-tab-cloud-body');
+  if (!tl || !tc || !bl || !bc) return;
+  if (tab === 'cloud') {
+    tl.style.background = 'rgba(255,255,255,.04)';
+    tl.style.borderColor = 'rgba(255,255,255,.1)';
+    tl.style.color = 'rgba(185,204,178,.45)';
+    tc.style.background = 'rgba(0,219,233,.1)';
+    tc.style.borderColor = 'rgba(0,219,233,.4)';
+    tc.style.color = '#00dbe9';
+    bl.style.display = 'none';
+    bc.style.display = 'block';
+  } else {
+    tc.style.background = 'rgba(255,255,255,.04)';
+    tc.style.borderColor = 'rgba(255,255,255,.1)';
+    tc.style.color = 'rgba(185,204,178,.45)';
+    tl.style.background = 'rgba(0,255,65,.12)';
+    tl.style.borderColor = 'rgba(0,255,65,.35)';
+    tl.style.color = '#00ff41';
+    bc.style.display = 'none';
+    bl.style.display = 'block';
+  }
+}
+
+// ── Connection status visual update
+function _hwSetStatus(state, sub) {
+  const dot  = document.getElementById('hw-status-dot');
+  const txt  = document.getElementById('hw-status-txt');
+  const sub_ = document.getElementById('hw-status-sub');
+  const hbtn = document.getElementById('hw-btn');
+  const hdot = document.getElementById('hw-dot');
+  const hl   = document.getElementById('hw-label');
+  const discBtn = document.getElementById('hw-disconnect-btn');
+  const liveBox = document.getElementById('hw-live-box');
+
+  const states = {
+    disconnected: { color:'rgba(255,255,255,.2)', label:'DISCONNECTED', btnColor:'rgba(185,204,178,.2)', btnTxt:'rgba(185,204,178,.5)' },
+    connecting:   { color:'rgba(255,200,50,.8)',  label:'CONNECTING…',  btnColor:'rgba(255,200,50,.3)',  btnTxt:'rgba(255,200,50,.9)' },
+    online:       { color:'#00ff41',              label:'CONNECTED',    btnColor:'rgba(0,255,65,.35)',    btnTxt:'#00ff41' },
+    error:        { color:'rgba(255,80,80,.8)',   label:'ERROR',        btnColor:'rgba(255,80,80,.25)',   btnTxt:'rgba(255,80,80,.8)' },
+  };
+  const s = states[state] || states.disconnected;
+
+  dot.style.background  = s.color;
+  dot.style.boxShadow   = state==='online' ? '0 0 8px #00ff41' : 'none';
+  txt.textContent       = s.label;
+  txt.style.color       = s.color;
+  sub_.textContent      = sub || '';
+  hbtn.style.borderColor = s.btnColor;
+  hdot.style.background  = s.color;
+  hdot.style.boxShadow   = state==='online' ? '0 0 6px #00ff41' : 'none';
+  hl.style.color         = s.btnTxt;
+  discBtn.style.display  = state==='online' ? 'block' : 'none';
+  liveBox.style.display  = state==='online' ? 'block' : 'none';
+}
+
+// ── Connect to ESP32 WebSocket
+function connectESP32HW(ip) {
+  const inputIP = document.getElementById('hw-ip-input').value.trim();
+  _hwIP = ip || inputIP || _hwIP;
+  if (!_hwIP) return;
+
+  localStorage.setItem('agrisat_esp32_ip', _hwIP);
+  document.getElementById('hw-ip-input').value = _hwIP;
+
+  // Close existing connection
+  if (_hwWS) { try { _hwWS.close(); } catch(e){} _hwWS = null; }
+  if (_hwReconnect) { clearTimeout(_hwReconnect); _hwReconnect = null; }
+
+  _hwSetStatus('connecting', 'Connecting to ws://' + _hwIP + ':81...');
+
+  try {
+    _hwWS = new WebSocket('ws://' + _hwIP + ':81');
+
+    _hwWS.onopen = () => {
+      _hwConnected = true;
+      _hwSetStatus('online', 'ws://' + _hwIP + ':81 · Live data active');
+      logValve('ESP32 CONNECTED · ' + _hwIP + ' · WebSocket OK');
+    };
+
+    _hwWS.onmessage = (e) => {
+      try { _hwHandleData(JSON.parse(e.data)); } catch(err) {}
+    };
+
+    _hwWS.onclose = () => {
+      _hwConnected = false;
+      _hwSetStatus('disconnected', 'Disconnected · Retrying in 5s…');
+      // Auto-reconnect
+      _hwReconnect = setTimeout(() => connectESP32HW(_hwIP), 5000);
+    };
+
+    _hwWS.onerror = () => {
+      _hwConnected = false;
+      _hwSetStatus('error', 'Cannot reach ' + _hwIP + ' — check IP and WiFi');
+      document.getElementById('hw-ip-input').style.borderColor = 'rgba(255,80,80,.5)';
+    };
+  } catch(e) {
+    _hwSetStatus('error', 'WebSocket error: ' + e.message);
+  }
+}
+
+function disconnectESP32HW() {
+  if (_hwReconnect) { clearTimeout(_hwReconnect); _hwReconnect = null; }
+  if (_hwWS)        { try { _hwWS.close(); } catch(e){} _hwWS = null; }
+  _hwConnected = false;
+  _hwSetStatus('disconnected', 'Manually disconnected');
+  logValve('ESP32 DISCONNECTED · Manual');
+}
+
+// ══════════════════════════════════════════════════════
+// CLOUD MQTT — HiveMQ public broker (WSS port 8884)
+// ══════════════════════════════════════════════════════
+function connectMQTT(farmId) {
+  const inputId = document.getElementById('hw-farm-id').value.trim();
+  _mqttFarmId = farmId || inputId || _mqttFarmId;
+  if (!_mqttFarmId) {
+    document.getElementById('hw-farm-id').style.borderColor = 'rgba(255,80,80,.5)';
+    _hwSetStatus('error', 'Enter a Farm ID to identify your device');
+    return;
+  }
+  // sanitise: lowercase, no spaces
+  _mqttFarmId = _mqttFarmId.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+  document.getElementById('hw-farm-id').value = _mqttFarmId;
+  localStorage.setItem('agrisat_farm_id', _mqttFarmId);
+
+  // Disconnect any existing LOCAL WebSocket first
+  disconnectESP32HW();
+
+  // Disconnect previous MQTT client if any
+  if (_mqttClient) { try { _mqttClient.end(true); } catch(e){} _mqttClient = null; }
+
+  _mqttMode = true;
+  _mqttConnected = false;
+  _hwSetStatus('connecting', '☁ Connecting to HiveMQ · farm: ' + _mqttFarmId + '…');
+  logValve('MQTT CLOUD CONNECTING · farm: ' + _mqttFarmId);
+
+  const brokerUrl  = 'wss://broker.hivemq.com:8884/mqtt';
+  const clientId   = 'agrisat-dash-' + Math.random().toString(16).slice(2, 9);
+  const topicData  = 'agrisat/' + _mqttFarmId + '/data';
+  const topicCmd   = 'agrisat/' + _mqttFarmId + '/cmd';
+
+  try {
+    _mqttClient = mqtt.connect(brokerUrl, {
+      clientId,
+      clean:          true,
+      reconnectPeriod: 6000,
+      connectTimeout:  15000,
+      keepalive:       30,
+    });
+
+    _mqttClient.on('connect', () => {
+      _mqttConnected = true;
+      _hwSetStatus('online', '☁ MQTT · ' + _mqttFarmId + ' · HiveMQ connected');
+      logValve('MQTT CLOUD CONNECTED · ' + _mqttFarmId + ' · ' + brokerUrl);
+      _mqttClient.subscribe(topicData, {qos:0}, (err) => {
+        if (err) logValve('MQTT SUBSCRIBE ERROR: ' + err.message);
+      });
+    });
+
+    _mqttClient.on('message', (topic, payload) => {
+      try { _hwHandleData(JSON.parse(payload.toString())); } catch(e){}
+    });
+
+    _mqttClient.on('reconnect', () => {
+      _mqttConnected = false;
+      _hwSetStatus('connecting', '☁ Reconnecting to HiveMQ…');
+    });
+
+    _mqttClient.on('close', () => {
+      _mqttConnected = false;
+      if (_mqttMode) _hwSetStatus('disconnected', '☁ MQTT disconnected — retrying…');
+    });
+
+    _mqttClient.on('error', (err) => {
+      _mqttConnected = false;
+      _hwSetStatus('error', '☁ MQTT error: ' + err.message);
+      logValve('MQTT ERROR: ' + err.message);
+    });
+
+  } catch(e) {
+    _hwSetStatus('error', '☁ MQTT init error: ' + e.message);
+  }
+
+  // Expose publish helper
+  window._mqttPublish = function(payload) {
+    if (_mqttConnected && _mqttClient) {
+      _mqttClient.publish(topicCmd, JSON.stringify(payload), {qos:0, retain:false});
+    }
+  };
+}
+
+function disconnectMQTT() {
+  _mqttMode = false;
+  _mqttConnected = false;
+  if (_mqttClient) { try { _mqttClient.end(true); } catch(e){} _mqttClient = null; }
+  window._mqttPublish = null;
+  _hwSetStatus('disconnected', '☁ MQTT disconnected');
+  logValve('MQTT CLOUD DISCONNECTED');
+}
+
+// ── Unified disconnect (called by DISCONNECT button)
+function disconnectAllHW() {
+  disconnectESP32HW();
+  disconnectMQTT();
+  logValve('ALL HW DISCONNECTED');
+}
+
+// ── Handle incoming ESP32 data and update dashboard elements
+function _hwHandleData(d) {
+  if (!d) return;
+
+  // ── Moisture sensors → update the live HW modal readout
+  const m = d.moisture || [];
+  if (m[0] !== undefined) document.getElementById('hw-m1').textContent = m[0].toFixed(1) + '%';
+  if (m[1] !== undefined) document.getElementById('hw-m2').textContent = m[1].toFixed(1) + '%';
+  if (m[2] !== undefined) document.getElementById('hw-m3').textContent = m[2].toFixed(1) + '%';
+
+  // ── Temp / humidity → update dashboard live readings
+  if (d.temperature) {
+    const t = d.temperature.toFixed(1);
+    const hw_t = document.getElementById('hw-temp');
+    if (hw_t) hw_t.textContent = t + '°C';
+    // Override Open-Meteo temp with real Pico DHT22 data
+    const el = document.getElementById('ndvi-tmp');
+    if (el) el.textContent = t + '°C';
+    const el2 = document.getElementById('map-tmp');
+    if (el2) el2.textContent = t + '°C';
+    const el3 = document.getElementById('cl-tmp');
+    if (el3) el3.textContent = t;
+  }
+  if (d.humidity) {
+    const h = d.humidity.toFixed(1);
+    const hw_h = document.getElementById('hw-hum');
+    if (hw_h) hw_h.textContent = h + '%';
+    const el = document.getElementById('ndvi-hum');
+    if (el) el.textContent = h + '%';
+    const el2 = document.getElementById('map-hum');
+    if (el2) el2.textContent = h + '%';
+  }
+
+  // ── Average moisture → VWC displays
+  if (m.length >= 3 && m.every(v=>v>0)) {
+    const avg = ((m[0]+m[1]+m[2])/3).toFixed(1);
+    const vwcEl = document.getElementById('ndvi-vwc');
+    if (vwcEl) vwcEl.textContent = avg + '%';
+    const vwcSt = document.getElementById('ndvi-vwc-status');
+    if (vwcSt) {
+      vwcSt.textContent = parseFloat(avg)<25?'DRY — IRRIGATE':parseFloat(avg)>70?'SATURATED':parseFloat(avg)<40?'LOW':'ADEQUATE';
+    }
+    const mapVwc = document.getElementById('vwc-avg-map');
+    if (mapVwc) mapVwc.textContent = 'VWC: ' + avg + '%';
+  }
+
+  // ── Pico status
+  const picoEl = document.getElementById('hw-pico');
+  if (picoEl) {
+    picoEl.textContent = d.pico_online ? 'ONLINE' : 'OFFLINE';
+    picoEl.style.color  = d.pico_online ? '#00ff41' : 'rgba(255,80,80,.7)';
+  }
+
+  // ── Sync valve states (another device may have changed them)
+  const v = d.valve || [];
+  [0,1,2].forEach(i => {
+    if (v[i] !== undefined && v[i] !== valveState[i+1].open) {
+      v[i] ? openValve(i+1) : closeValve(i+1, true);
+    }
+  });
+
+  // ── Auto mode sync
+  if (d.auto_mode !== undefined) {
+    const curMode = document.getElementById('mode-btn-auto')?.classList.contains('active');
+    if (d.auto_mode !== curMode) setIrrigMode(d.auto_mode ? 'auto' : 'manual');
+  }
+}
+
+// ── Shared HW command sender (LOCAL WS or CLOUD MQTT)
+function _hwSend(payload) {
+  if (_hwConnected && _hwWS && _hwWS.readyState === WebSocket.OPEN) {
+    _hwWS.send(JSON.stringify(payload));
+  }
+  if (_mqttConnected && typeof window._mqttPublish === 'function') {
+    window._mqttPublish(payload);
+  }
+}
+
+// ── Intercept valve commands → forward to ESP32 (LOCAL or CLOUD)
+const _origOpen  = openValve;
+const _origClose = closeValve;
+openValve = function(z) {
+  _origOpen(z);
+  _hwSend({zone:z, state:true});
+};
+closeValve = function(z, silent, skipHW) {
+  _origClose(z, silent);
+  if (!skipHW) _hwSend({zone:z, state:false});
+};
+const _origStop = stopAllValves;
+stopAllValves = function() {
+  _origStop();
+  _hwSend({emergency_stop:true});
+};
+
+// ── Auto-reconnect on load if connection was saved
+if (_hwMode === 'cloud' && _mqttFarmId) {
+  setTimeout(() => connectMQTT(_mqttFarmId), 1500);
+} else if (_hwIP) {
+  setTimeout(() => connectESP32HW(_hwIP), 1500);
+}
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// SERVICE WORKER REGISTRATION
+// ══════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => {
+        console.log('[PWA] ServiceWorker registered, scope:', reg.scope);
+        // Check for updates
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          newSW.addEventListener('statechange', () => {
+            if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[PWA] Update available');
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[PWA] SW registration failed:', err));
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// PWA INSTALL PROMPT
+// ══════════════════════════════════════════════════════════
+let _installPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _installPrompt = e;
+  // Show install banner if not already installed
+  const banner = document.getElementById('install-banner');
+  if (banner && !window.matchMedia('(display-mode: standalone)').matches) {
+    setTimeout(() => { banner.style.display = 'block'; }, 3000);
+  }
+});
+
+function installApp() {
+  if (!_installPrompt) return;
+  _installPrompt.prompt();
+  _installPrompt.userChoice.then(choice => {
+    if (choice.outcome === 'accepted') {
+      document.getElementById('install-banner').style.display = 'none';
+    }
+    _installPrompt = null;
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').style.display = 'none';
+  _installPrompt = null;
+  console.log('[PWA] App installed!');
+});
+
+// ══════════════════════════════════════════════════════════
+// FIRST-RUN SETUP SCREEN
+// ══════════════════════════════════════════════════════════
+function _showSetupScreen() {
+  const s = document.getElementById('setup-screen');
+  if (s) {
+    s.style.display = 'flex';
+    // Pre-fill if IP exists
+    const inp = document.getElementById('setup-ip');
+    if (inp && _hwIP) inp.value = _hwIP;
+  }
+}
+
+function _hideSetupScreen() {
+  const s = document.getElementById('setup-screen');
+  if (!s) return;
+  s.style.opacity = '0';
+  s.style.transition = 'opacity 0.5s ease';
+  setTimeout(() => { s.style.display = 'none'; s.style.opacity = '1'; }, 500);
+}
+
+function setupConnect() {
+  const ip = document.getElementById('setup-ip').value.trim();
+  const statusEl = document.getElementById('setup-status');
+  const btn = document.getElementById('setup-connect-btn');
+
+  if (!ip) {
+    document.getElementById('setup-ip').style.borderColor = 'rgba(255,80,80,.5)';
+    statusEl.textContent = 'Please enter the ESP32 IP address';
+    statusEl.style.color = 'rgba(255,100,100,.7)';
+    return;
+  }
+
+  btn.textContent = 'CONNECTING…';
+  btn.style.opacity = '0.6';
+  statusEl.textContent = 'Connecting to ws://' + ip + ':81…';
+  statusEl.style.color = 'rgba(255,200,50,.8)';
+
+  // Try WebSocket connection
+  let testWS;
+  try {
+    testWS = new WebSocket('ws://' + ip + ':81');
+    const timeout = setTimeout(() => {
+      testWS.close();
+      btn.textContent = 'CONNECT TO ESP32';
+      btn.style.opacity = '1';
+      statusEl.textContent = 'Connection timed out — check IP and WiFi';
+      statusEl.style.color = 'rgba(255,80,80,.7)';
+      document.getElementById('setup-ip').style.borderColor = 'rgba(255,80,80,.4)';
+    }, 6000);
+
+    testWS.onopen = () => {
+      clearTimeout(timeout);
+      testWS.close();
+      // Save and connect properly
+      statusEl.textContent = 'Connected! Opening dashboard…';
+      statusEl.style.color = '#00ff41';
+      localStorage.setItem('agrisat_esp32_ip', ip);
+      setTimeout(() => {
+        _hideSetupScreen();
+        connectESP32HW(ip);
+        // Navigate to the auto page on first connect
+        setTimeout(() => nav('auto'), 600);
+      }, 800);
+    };
+
+    testWS.onerror = () => {
+      clearTimeout(timeout);
+      btn.textContent = 'CONNECT TO ESP32';
+      btn.style.opacity = '1';
+      statusEl.textContent = 'Cannot reach ' + ip + ' — check IP and WiFi';
+      statusEl.style.color = 'rgba(255,80,80,.7)';
+      document.getElementById('setup-ip').style.borderColor = 'rgba(255,80,80,.4)';
+    };
+  } catch(e) {
+    btn.textContent = 'CONNECT TO ESP32';
+    btn.style.opacity = '1';
+    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.style.color = 'rgba(255,80,80,.7)';
+  }
+}
+
+function setupSkip() {
+  _hideSetupScreen();
+  // Still try to connect in background if IP was previously saved
+  if (_hwIP) connectESP32HW(_hwIP);
+}
+
+// ── Handle deep-link /?page=xxx from manifest shortcuts
+(function() {
+  const p = new URLSearchParams(location.search).get('page');
+  if (p && ['map','ndvi','climate','auto','health'].includes(p)) {
+    window.addEventListener('DOMContentLoaded', () => setTimeout(() => nav(p), 200));
+  }
+})();
+
+// ── Show setup screen on first launch (no saved IP)
+window.addEventListener('DOMContentLoaded', () => {
+  const savedIP = localStorage.getItem('agrisat_esp32_ip');
+  if (!savedIP) {
+    // First time — show setup screen
+    setTimeout(_showSetupScreen, 300);
+  }
+  // If already installed (standalone mode), suppress install banner
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    document.getElementById('install-banner').style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
