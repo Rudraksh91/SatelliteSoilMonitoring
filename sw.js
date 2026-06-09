@@ -3,8 +3,8 @@
  * Enables offline use, home-screen installation, and fast loading.
  */
 
-const APP_CACHE  = 'agrisat-app-v1.1';
-const CDN_CACHE  = 'agrisat-cdn-v1.1';
+const APP_CACHE  = 'agrisat-app-v1.2';
+const CDN_CACHE  = 'agrisat-cdn-v1.2';
 
 // App shell — these files are cached immediately on install
 const APP_SHELL = [
@@ -65,23 +65,32 @@ self.addEventListener('fetch', event => {
   // ── Skip Open-Meteo API — always need fresh data
   if (url.hostname === 'api.open-meteo.com') return;
 
-  // ── App shell (same origin): Cache-first, fallback to network + cache
+  // ── App shell (same origin): Network-first for HTML, cache-first for assets
   if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(req).then(cached => {
-        if (cached) return cached;
-        return fetch(req).then(res => {
+    const isNavigation = req.mode === 'navigate' || req.destination === 'document';
+    if (isNavigation) {
+      // HTML pages: always try network first so new deploys show immediately
+      event.respondWith(
+        fetch(req).then(res => {
           if (res.ok) {
             const clone = res.clone();
             caches.open(APP_CACHE).then(c => c.put(req, clone));
           }
           return res;
-        }).catch(() => {
-          // Offline fallback: return cached index.html for navigation
-          if (req.mode === 'navigate') return caches.match('/SatelliteSoilMonitoring/index.html');
-        });
-      })
-    );
+        }).catch(() => caches.match(req).then(cached => cached || caches.match('/SatelliteSoilMonitoring/index.html')))
+      );
+    } else {
+      // Static assets (icons, manifest, sw.js): cache-first, update in background
+      event.respondWith(
+        caches.match(req).then(cached => {
+          const networkFetch = fetch(req).then(res => {
+            if (res.ok) caches.open(APP_CACHE).then(c => c.put(req, res.clone()));
+            return res;
+          }).catch(() => null);
+          return cached || networkFetch;
+        })
+      );
+    }
     return;
   }
 
