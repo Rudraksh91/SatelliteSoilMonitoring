@@ -901,6 +901,91 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
     </div>
   </div>
   <div class="grid grid-cols-3 gap-gutter">
+    <!-- SENTINEL-1 SATELLITE — full-width card -->
+    <div class="gp col-span-3 border-t-2 border-t-secondary-container overflow-hidden flex gap-md items-center p-sm relative">
+      <div class="scanline absolute inset-0 pointer-events-none opacity-40"></div>
+      <!-- Sentinel-1 ESA photo + SVG fallback -->
+      <div class="shrink-0 relative z-10 w-[220px] h-[110px] rounded overflow-hidden bg-surface-container-low border border-secondary-container/40">
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Sentinel-1_radar_vision_ESA386375.jpg/480px-Sentinel-1_radar_vision_ESA386375.jpg"
+          alt="Sentinel-1 SAR Satellite — ESA/Copernicus"
+          class="w-full h-full object-cover"
+          id="s1-photo"
+          onerror="document.getElementById('s1-photo').style.display='none';document.getElementById('s1-svg').style.display='block'">
+        <!-- SVG fallback (hidden unless photo fails) -->
+        <svg id="s1-svg" style="display:none" width="220" height="110" viewBox="0 0 220 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Left solar panel A -->
+          <rect x="4"  y="30" width="38" height="40" rx="2" fill="rgba(0,80,160,.5)" stroke="rgba(0,219,233,.45)" stroke-width="1"/>
+          <line x1="17" y1="30" x2="17" y2="70" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <line x1="30" y1="30" x2="30" y2="70" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <line x1="4"  y1="43" x2="42" y2="43" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <line x1="4"  y1="57" x2="42" y2="57" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <!-- Left solar panel B -->
+          <rect x="44" y="30" width="38" height="40" rx="2" fill="rgba(0,80,160,.5)" stroke="rgba(0,219,233,.45)" stroke-width="1"/>
+          <line x1="57" y1="30" x2="57" y2="70" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <line x1="70" y1="30" x2="70" y2="70" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <line x1="44" y1="43" x2="82" y2="43" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <line x1="44" y1="57" x2="82" y2="57" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <text x="8"  y="85" font-size="6" fill="rgba(0,219,233,.5)" font-family="JetBrains Mono">SOLAR-L</text>
+          <!-- Left arm connector -->
+          <rect x="82" y="48" width="16" height="6" fill="rgba(180,140,20,.35)" stroke="rgba(180,140,20,.5)" stroke-width=".5"/>
+          <!-- BODY — gold thermal blanket -->
+          <rect x="98" y="18" width="44" height="62" rx="3" fill="rgba(30,22,5,.92)" stroke="rgba(180,140,20,.7)" stroke-width="1.5"/>
+          <rect x="104" y="24" width="32" height="10" rx="1" fill="rgba(180,140,20,.18)" stroke="rgba(180,140,20,.5)" stroke-width=".7"/>
+          <text x="108" y="32" font-size="5" fill="rgba(180,140,20,.85)" font-family="JetBrains Mono">S-1</text>
+          <rect x="104" y="40" width="14" height="16" rx="1" fill="rgba(0,219,233,.07)" stroke="rgba(0,219,233,.3)" stroke-width=".5"/>
+          <rect x="122" y="40" width="14" height="16" rx="1" fill="rgba(0,219,233,.07)" stroke="rgba(0,219,233,.3)" stroke-width=".5"/>
+          <rect x="104" y="60" width="32" height="8" rx="1" fill="rgba(180,140,20,.12)" stroke="rgba(180,140,20,.4)" stroke-width=".6"/>
+          <!-- Antenna dish on top -->
+          <line x1="120" y1="18" x2="120" y2="7" stroke="rgba(180,140,20,.7)" stroke-width="1.2"/>
+          <ellipse cx="120" cy="5" rx="5" ry="3" fill="none" stroke="rgba(180,140,20,.6)" stroke-width="1"/>
+          <!-- Right arm connector -->
+          <rect x="142" y="48" width="16" height="6" fill="rgba(180,140,20,.35)" stroke="rgba(180,140,20,.5)" stroke-width=".5"/>
+          <!-- Right solar panel -->
+          <rect x="158" y="30" width="58" height="40" rx="2" fill="rgba(0,80,160,.5)" stroke="rgba(0,219,233,.45)" stroke-width="1"/>
+          <line x1="177" y1="30" x2="177" y2="70" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <line x1="197" y1="30" x2="197" y2="70" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <line x1="158" y1="43" x2="216" y2="43" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <line x1="158" y1="57" x2="216" y2="57" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
+          <text x="164" y="85" font-size="6" fill="rgba(0,219,233,.5)" font-family="JetBrains Mono">SOLAR-R</text>
+          <!-- C-Band SAR Antenna (the signature long panel) -->
+          <rect x="62"  y="86" width="116" height="18" rx="1.5" fill="rgba(0,180,255,.07)" stroke="rgba(0,180,255,.6)" stroke-width="1.2"/>
+          <line x1="78"  y1="86" x2="78"  y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
+          <line x1="94"  y1="86" x2="94"  y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
+          <line x1="110" y1="86" x2="110" y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
+          <line x1="126" y1="86" x2="126" y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
+          <line x1="142" y1="86" x2="142" y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
+          <line x1="158" y1="86" x2="158" y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
+          <text x="82" y="98" font-size="5.5" fill="rgba(0,180,255,.65)" font-family="JetBrains Mono">C-BAND SAR ANTENNA</text>
+          <defs><filter id="glow2"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        </svg>
+      </div>
+      <!-- Details -->
+      <div class="flex-1 relative z-10">
+        <p class="font-label-caps text-on-surface-variant mb-xs tracking-widest">SENTINEL-1 · ESA / COPERNICUS NODE</p>
+        <div class="flex items-center gap-sm mb-xs">
+          <span class="flex h-2.5 w-2.5 rounded-full bg-secondary-container animate-pulse"></span>
+          <span class="font-data-lg text-data-lg text-secondary">ACTIVE</span>
+        </div>
+        <div class="grid grid-cols-3 gap-gutter mt-sm">
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SATELLITE</p><p class="font-data-sm text-data-sm text-secondary-container">Sentinel-1A / 1B</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SENSOR</p><p class="font-data-sm text-data-sm text-secondary">C-Band SAR · 5m res</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">ORBIT</p><p class="font-data-sm text-data-sm text-secondary">693 km SSO</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">AGENCY</p><p class="font-data-sm text-data-sm text-secondary-container">ESA · Copernicus</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">PORTAL</p><p class="font-data-sm text-data-sm text-secondary">planetarycomputer.microsoft.com</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">REPEAT CYCLE</p><p class="font-data-sm text-data-sm text-secondary">6 days (A+B)</p></div>
+        </div>
+        <p class="font-label-caps text-[9px] text-on-surface-variant/40 mt-sm">NDVI source · Dediapada Farm · 21.6277°N 73.5903°E · Sentinel-2 multispectral · 10 m</p>
+      </div>
+      <!-- Signal panel -->
+      <div class="shrink-0 relative z-10 flex flex-col gap-xs text-right">
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">DATA ACCESS</p><p class="font-data-sm text-data-sm text-secondary">PLANETARY PC</p></div>
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">LAST SCENE</p><p class="font-data-sm text-data-sm text-secondary-container">2026-05-26</p></div>
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">CLOUD CVR</p><p class="font-data-sm text-data-sm text-secondary-container">&lt; 5%</p></div>
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">HARVEST</p><p class="font-data-sm text-data-sm text-secondary">3-DAY CYCLE</p></div>
+      </div>
+    </div>
+
     <!-- BHOONIDHI SATELLITE — full-width card -->
     <div class="gp col-span-3 border-t-2 border-t-primary-container overflow-hidden flex gap-md items-center p-sm relative">
       <div class="scanline absolute inset-0 pointer-events-none opacity-40"></div>
