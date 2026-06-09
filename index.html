@@ -422,6 +422,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
     <div class="gp flex-1 rounded-lg relative overflow-hidden">
       <div class="absolute inset-0 bg-surface-container-low flex items-center justify-center">
         <canvas id="field-map" class="w-full h-full"></canvas>
+        <img id="ndvi-sat-img" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700" alt="NDVI Satellite — Dediapada Campus" loading="lazy">
       </div>
       <div class="absolute inset-0 pointer-events-none mix-blend-screen opacity-30">
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-primary/30 animate-pulse"></div>
@@ -431,12 +432,32 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
         <span class="text-[10px] font-label-caps text-on-surface-variant block">LAT: 21.6277° N</span>
         <span class="text-[10px] font-label-caps text-on-surface-variant block">LON: 73.5903° E</span>
         <span class="text-[10px] font-label-caps text-on-surface-variant block" id="geo-elev">ELEV: — m</span>
+        <span class="text-[10px] font-label-caps text-on-surface-variant block mt-1" id="ndvi-scene-date">SCENE: —</span>
       </div>
-      <div class="absolute bottom-sm left-sm right-sm flex justify-between items-end">
+      <div class="absolute bottom-sm left-sm right-sm flex justify-between items-end gap-sm">
         <div class="gp p-xs rounded border border-white/10 flex gap-md">
           <div><span class="font-label-caps text-[9px] text-on-surface-variant block">CROP_TYPE</span><span class="font-data-sm text-primary">ORNAMENTAL_SHADE</span></div>
           <div><span class="font-label-caps text-[9px] text-on-surface-variant block">IRRIG_TYPE</span><span class="font-data-sm text-secondary">DRIP_3MM/HR</span></div>
           <div><span class="font-label-caps text-[9px] text-on-surface-variant block">NEXT_CYCLE</span><span class="font-data-sm text-tertiary-fixed-dim" id="next-irrig">CALC...</span></div>
+        </div>
+        <!-- Zone health panel — populated by fetchNdviStatus() -->
+        <div class="gp p-xs rounded border border-white/10 flex flex-col gap-[3px] min-w-[160px]">
+          <div class="font-label-caps text-[8px] text-on-surface-variant mb-[2px]">ZONE_HEALTH · <span id="ndvi-updated">—</span></div>
+          <div class="flex items-center gap-sm">
+            <span class="font-label-caps text-[9px] text-on-surface-variant flex-1 truncate" id="zone-name-0">ZONE_1</span>
+            <span class="font-data-sm text-[9px] text-primary/80 tabular-nums" id="zone-ndvi-0">—</span>
+            <span class="font-label-caps text-[9px] text-on-surface-variant" id="zone-status-0">—</span>
+          </div>
+          <div class="flex items-center gap-sm">
+            <span class="font-label-caps text-[9px] text-on-surface-variant flex-1 truncate" id="zone-name-1">ZONE_2</span>
+            <span class="font-data-sm text-[9px] text-primary/80 tabular-nums" id="zone-ndvi-1">—</span>
+            <span class="font-label-caps text-[9px] text-on-surface-variant" id="zone-status-1">—</span>
+          </div>
+          <div class="flex items-center gap-sm">
+            <span class="font-label-caps text-[9px] text-on-surface-variant flex-1 truncate" id="zone-name-2">ZONE_3</span>
+            <span class="font-data-sm text-[9px] text-primary/80 tabular-nums" id="zone-ndvi-2">—</span>
+            <span class="font-label-caps text-[9px] text-on-surface-variant" id="zone-status-2">—</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1253,6 +1274,51 @@ function tickVWC(){
     ctx.beginPath();ctx.arc(W/2,H/2,5,0,Math.PI*2);ctx.fillStyle='#00ff41';ctx.shadowColor='#00ff41';ctx.shadowBlur=16;ctx.fill();ctx.shadowBlur=0;
   }
   draw();new ResizeObserver(draw).observe(cv.parentElement);
+})();
+
+// ══════════════════════════════════════════════════
+// NDVI STATUS — live satellite data from GitHub raw
+// ══════════════════════════════════════════════════
+(function fetchNdviStatus(){
+  const URL='https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main/ndvi_status.json';
+  const STATUS_COLOR={STRESSED:'#ffb432',MODERATE:'#00dbe9',HEALTHY:'#00ff41',THRIVING:'#7fff7f',HOLD:'#8888ff'};
+  fetch(URL+'?_='+Date.now())
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})
+    .then(data=>{
+      // ── Satellite JPEG overlay ─────────────────────────────────────────────
+      if(data.jpeg_url){
+        const img=document.getElementById('ndvi-sat-img');
+        if(img){img.src=data.jpeg_url;img.onload=()=>{img.style.opacity='0.72';}}
+      }
+      // ── Scene date in top-left overlay ────────────────────────────────────
+      const sdEl=document.getElementById('ndvi-scene-date');
+      if(sdEl&&data.scene_date)sdEl.textContent='SCENE: '+data.scene_date;
+      // ── Updated timestamp in zone health panel ────────────────────────────
+      const upEl=document.getElementById('ndvi-updated');
+      if(upEl&&data.updated){
+        const d=new Date(data.updated);
+        upEl.textContent=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}).toUpperCase();
+      }
+      // ── Zone health rows ──────────────────────────────────────────────────
+      if(Array.isArray(data.zones)){
+        data.zones.slice(0,3).forEach((z,i)=>{
+          const nameEl=document.getElementById('zone-name-'+i);
+          const ndviEl=document.getElementById('zone-ndvi-'+i);
+          const stEl  =document.getElementById('zone-status-'+i);
+          const raw   =z.zone||z.zone_name||z.name||('ZONE_'+(i+1));
+          // Shorten zone name: strip "Zone N – " prefix
+          const label =raw.replace(/^Zone\s*\d+\s*[–-]\s*/i,'').toUpperCase().replace(/\s+/g,'_').slice(0,12);
+          if(nameEl)nameEl.textContent=label;
+          if(ndviEl)ndviEl.textContent=(typeof z.ndvi==='number'?z.ndvi.toFixed(3):'—');
+          if(stEl){
+            const s=(z.status||'').toUpperCase();
+            stEl.textContent=s;
+            stEl.style.color=STATUS_COLOR[s]||'inherit';
+          }
+        });
+      }
+    })
+    .catch(err=>console.warn('NDVI status unavailable:',err));
 })();
 
 // ══════════════════════════════════════════════════

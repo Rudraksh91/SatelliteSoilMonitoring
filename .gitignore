@@ -3,6 +3,7 @@ agrisat_service_account.json
 .streamlit/secrets.toml
 *.json
 !manifest.json
+!ndvi_status.json
 
 # ── Python environment ─────────────────────────────────────
 venv/
