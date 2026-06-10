@@ -1,37 +1,36 @@
 {
-  "updated": "2026-06-06T00:00:00",
+  "updated": "2026-06-10T11:29:06",
   "scene_date": "2026-05-26",
-  "jpeg_name": "NDVI_Dediapada_2026-06-06.jpeg",
+  "jpeg_name": "NDVI_Dediapada_scene-2026-05-26_downloaded-2026-06-10.jpeg",
   "folder_id": "1pmU6XqLXVVwtcFFgJMTPE7LMjbn0Tvwe",
-  "jpeg_id": "1Epdw0iTlRdUBUd3z13sjnNS59gFQYIaF",
-  "jpeg_url": "https://drive.google.com/thumbnail?sz=w1024&id=1Epdw0iTlRdUBUd3z13sjnNS59gFQYIaF",
+  "jpeg_id": "124jmxVN8sr8SSKMpwRketyVUlXRaDdMN",
+  "jpeg_url": "https://drive.google.com/thumbnail?sz=w1024&id=124jmxVN8sr8SSKMpwRketyVUlXRaDdMN",
   "zones": [
     {
       "zone": "Zone 1 – Boys Hostel",
-      "ndvi": 0.1995,
-      "pixels": 210,
+      "ndvi": 0.0853,
+      "pixels": 25,
       "status": "STRESSED",
       "action": "Irrigate within 24 h"
     },
     {
       "zone": "Zone 2 – Main College",
-      "ndvi": 0.2839,
-      "pixels": 1480,
-      "status": "MODERATE",
-      "action": "Irrigate in 2–3 days"
+      "ndvi": 0.1446,
+      "pixels": 72,
+      "status": "STRESSED",
+      "action": "Irrigate within 24 h"
     },
     {
       "zone": "Zone 3 – Diploma College",
-      "ndvi": 0.4191,
-      "pixels": 520,
-      "status": "HEALTHY",
-      "action": "Hold — normal schedule"
+      "ndvi": 0.1253,
+      "pixels": 40,
+      "status": "STRESSED",
+      "action": "Irrigate within 24 h"
     }
   ],
   "weather": {
-    "temp_c": 32.4,
-    "rain_3d_mm": 0.0,
-    "et0_mm_day": 5.8,
-    "vpd_kpa": 2.1
+    "et0_mm_day": 2.39,
+    "rain_3d_mm": 2.2,
+    "vpd_kpa": 0.68
   }
 }
