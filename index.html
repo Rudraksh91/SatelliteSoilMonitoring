@@ -79,6 +79,8 @@ body{
   transition: var(--transition);
   /* rounded corners — overrides any Tailwind rounded-* on the element */
   border-radius: 16px !important;
+  /* lock ALL border sides to neutral white — overrides border-primary-container etc. */
+  border-color: rgba(255,255,255,.11) !important;
   /* slight top-edge inner gradient for the glass-lip look */
   position: relative;
   overflow: hidden;
@@ -113,11 +115,6 @@ body{
     0 20px 60px rgba(0,0,0,.45);
   transform: translateY(-1px);
 }
-/* ── STRIP ALL COLOURED ACCENT BORDERS FROM CARDS ── */
-/* top accent stripes */
-.gp[class*="border-t-"]{border-top-color:rgba(255,255,255,.10)!important}
-/* left accent stripes */
-.gp[class*="border-l-"]{border-left-color:rgba(255,255,255,.10)!important}
 
 /* ── ICONS ── */
 .mso{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
