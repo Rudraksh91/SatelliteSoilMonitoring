@@ -2214,6 +2214,176 @@ updateClock();
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- SATELLITE LOADING SCREEN                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="sat-loader" style="display:none;position:fixed;inset:0;z-index:99999;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:#080c0a">
+
+  <!-- grid background -->
+  <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,65,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.02) 1px,transparent 1px);background-size:36px 36px;pointer-events:none"></div>
+
+  <!-- ambient radial glow -->
+  <div style="position:absolute;width:560px;height:560px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,255,65,.07) 0%,transparent 68%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none"></div>
+
+  <!-- corner HUD brackets -->
+  <div style="position:absolute;top:22px;left:22px;width:26px;height:26px;border-top:1.5px solid rgba(0,255,65,.45);border-left:1.5px solid rgba(0,255,65,.45)"></div>
+  <div style="position:absolute;top:22px;right:22px;width:26px;height:26px;border-top:1.5px solid rgba(0,255,65,.45);border-right:1.5px solid rgba(0,255,65,.45)"></div>
+  <div style="position:absolute;bottom:22px;left:22px;width:26px;height:26px;border-bottom:1.5px solid rgba(0,255,65,.45);border-left:1.5px solid rgba(0,255,65,.45)"></div>
+  <div style="position:absolute;bottom:22px;right:22px;width:26px;height:26px;border-bottom:1.5px solid rgba(0,255,65,.45);border-right:1.5px solid rgba(0,255,65,.45)"></div>
+
+  <!-- top HUD label -->
+  <div style="position:absolute;top:26px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.2em;color:rgba(0,255,65,.35);white-space:nowrap">TERRA-CORE · AGRISAT · SATELLITE UPLINK</div>
+
+  <!-- bottom coordinates -->
+  <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.1em;color:rgba(185,204,178,.18);white-space:nowrap">21.6277°N · 73.5903°E · DEDIAPADA FARM · GUJARAT</div>
+
+  <!-- ── MAIN SVG ANIMATION ── -->
+  <div style="position:relative;flex-shrink:0">
+    <svg width="340" height="300" viewBox="0 0 340 300" style="overflow:visible;display:block">
+      <defs>
+        <clipPath id="ldr-clip"><circle cx="170" cy="148" r="50"/></clipPath>
+        <filter id="ldr-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <!-- elliptical orbit path: cx=170, cy=148, rx=128, ry=50 -->
+        <path id="ldr-orb" d="M298,148 A128,50 0 0,1 170,198 A128,50 0 0,1 42,148 A128,50 0 0,1 170,98 A128,50 0 0,1 298,148"/>
+      </defs>
+
+      <!-- outer faint ellipse -->
+      <ellipse cx="170" cy="148" rx="148" ry="62" fill="none" stroke="rgba(0,219,233,.05)" stroke-width="1" stroke-dasharray="3,10"/>
+
+      <!-- main orbit ellipse -->
+      <ellipse cx="170" cy="148" rx="128" ry="50" fill="none" stroke="rgba(0,255,65,.12)" stroke-width="1" stroke-dasharray="5,5"/>
+
+      <!-- expanding signal rings from earth -->
+      <circle cx="170" cy="148" r="50" fill="none" stroke="rgba(0,255,65,.4)" stroke-width="1">
+        <animate attributeName="r" from="50" to="128" dur="2.5s" repeatCount="indefinite"/>
+        <animate attributeName="stroke-opacity" from="0.4" to="0" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="170" cy="148" r="50" fill="none" stroke="rgba(0,255,65,.3)" stroke-width="1">
+        <animate attributeName="r" from="50" to="128" dur="2.5s" begin="0.83s" repeatCount="indefinite"/>
+        <animate attributeName="stroke-opacity" from="0.3" to="0" dur="2.5s" begin="0.83s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="170" cy="148" r="50" fill="none" stroke="rgba(0,255,65,.2)" stroke-width="1">
+        <animate attributeName="r" from="50" to="128" dur="2.5s" begin="1.66s" repeatCount="indefinite"/>
+        <animate attributeName="stroke-opacity" from="0.2" to="0" dur="2.5s" begin="1.66s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- Earth node body -->
+      <circle cx="170" cy="148" r="50" fill="rgba(0,10,6,.98)" stroke="rgba(0,255,65,.25)" stroke-width="1.5"/>
+
+      <!-- grid lines clipped to earth -->
+      <g clip-path="url(#ldr-clip)" opacity="0.2">
+        <line x1="121" y1="128" x2="219" y2="128" stroke="#00ff41" stroke-width="0.5"/>
+        <line x1="121" y1="148" x2="219" y2="148" stroke="#00ff41" stroke-width="0.5"/>
+        <line x1="121" y1="168" x2="219" y2="168" stroke="#00ff41" stroke-width="0.5"/>
+        <line x1="145" y1="99"  x2="145" y2="197" stroke="#00ff41" stroke-width="0.5"/>
+        <line x1="170" y1="99"  x2="170" y2="197" stroke="#00ff41" stroke-width="0.5"/>
+        <line x1="195" y1="99"  x2="195" y2="197" stroke="#00ff41" stroke-width="0.5"/>
+      </g>
+
+      <!-- radar sweep sector clipped to earth -->
+      <g clip-path="url(#ldr-clip)">
+        <path d="M170,148 L220,148 A50,50 0 0,1 170,198 Z" fill="rgba(0,255,65,.08)">
+          <animateTransform attributeName="transform" type="rotate" from="0,170,148" to="360,170,148" dur="2s" repeatCount="indefinite"/>
+        </path>
+        <line x1="170" y1="148" x2="220" y2="148" stroke="rgba(0,255,65,.6)" stroke-width="1.5" filter="url(#ldr-glow)">
+          <animateTransform attributeName="transform" type="rotate" from="0,170,148" to="360,170,148" dur="2s" repeatCount="indefinite"/>
+        </line>
+      </g>
+
+      <!-- crosshair centre -->
+      <line x1="163" y1="148" x2="177" y2="148" stroke="rgba(0,255,65,.4)" stroke-width="0.8"/>
+      <line x1="170" y1="141" x2="170" y2="155" stroke="rgba(0,255,65,.4)" stroke-width="0.8"/>
+
+      <!-- pulsing centre dot -->
+      <circle cx="170" cy="148" r="5" fill="rgba(0,255,65,.9)" filter="url(#ldr-glow)">
+        <animate attributeName="r" values="4;7;4" dur="1.2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;0.4;1" dur="1.2s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- ── SATELLITE moving along orbit ── -->
+      <g>
+        <animateMotion dur="3s" repeatCount="indefinite" rotate="0">
+          <mpath href="#ldr-orb" xlink:href="#ldr-orb"/>
+        </animateMotion>
+        <!-- soft aura -->
+        <circle r="20" fill="rgba(0,219,233,.05)">
+          <animate attributeName="opacity" values="0.7;0.2;0.7" dur="1.1s" repeatCount="indefinite"/>
+        </circle>
+        <!-- left solar panel -->
+        <rect x="-24" y="-5.5" width="12" height="11" rx="2" fill="rgba(0,110,175,.85)" stroke="rgba(0,219,233,.55)" stroke-width="0.6"/>
+        <line x1="-20" y1="-5.5" x2="-20" y2="5.5" stroke="rgba(0,219,233,.3)" stroke-width="0.5"/>
+        <line x1="-16" y1="-5.5" x2="-16" y2="5.5" stroke="rgba(0,219,233,.3)" stroke-width="0.5"/>
+        <!-- main body -->
+        <rect x="-11" y="-7" width="22" height="14" rx="2.5" fill="rgba(0,219,233,.95)" stroke="rgba(180,248,255,.6)" stroke-width="0.9"/>
+        <line x1="-11" y1="0" x2="11" y2="0" stroke="rgba(255,255,255,.2)" stroke-width="0.6"/>
+        <rect x="-4" y="-7" width="8" height="3" rx="1" fill="rgba(0,255,65,.4)"/>
+        <!-- right solar panel -->
+        <rect x="12" y="-5.5" width="12" height="11" rx="2" fill="rgba(0,110,175,.85)" stroke="rgba(0,219,233,.55)" stroke-width="0.6"/>
+        <line x1="16" y1="-5.5" x2="16" y2="5.5" stroke="rgba(0,219,233,.3)" stroke-width="0.5"/>
+        <line x1="20" y1="-5.5" x2="20" y2="5.5" stroke="rgba(0,219,233,.3)" stroke-width="0.5"/>
+        <!-- antenna up -->
+        <line x1="0" y1="-7" x2="0" y2="-16" stroke="rgba(0,255,65,.85)" stroke-width="1"/>
+        <circle cy="-17" r="2.2" fill="rgba(0,255,65,.95)" filter="url(#ldr-glow)">
+          <animate attributeName="opacity" values="1;0.15;1" dur="0.55s" repeatCount="indefinite"/>
+        </circle>
+        <!-- signal beam toward earth -->
+        <line x1="0" y1="7" x2="0" y2="22" stroke="rgba(0,255,65,.35)" stroke-width="0.8" stroke-dasharray="2.5,2.5"/>
+        <!-- data packet travelling down beam -->
+        <circle cy="12" r="1.5" fill="rgba(0,255,65,.75)">
+          <animate attributeName="cy" values="8;22;8" dur="0.75s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.9;0;0.9" dur="0.75s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+
+      <!-- left HUD data block -->
+      <text x="6" y="84"  font-family="JetBrains Mono,monospace" font-size="7" fill="rgba(0,255,65,.4)"  letter-spacing="1">ALT · 693 KM</text>
+      <text x="6" y="97"  font-family="JetBrains Mono,monospace" font-size="7" fill="rgba(0,255,65,.28)" letter-spacing="1">INC · 98.2°</text>
+      <text x="6" y="110" font-family="JetBrains Mono,monospace" font-size="7" fill="rgba(0,219,233,.3)" letter-spacing="1">SAR · C-BAND</text>
+      <text x="6" y="123" font-family="JetBrains Mono,monospace" font-size="7" fill="rgba(0,219,233,.22)" letter-spacing="1">MODE · SSO</text>
+      <line x1="6" y1="74" x2="70" y2="74" stroke="rgba(0,255,65,.15)" stroke-width="0.5"/>
+      <line x1="6" y1="128" x2="70" y2="128" stroke="rgba(0,255,65,.1)" stroke-width="0.5"/>
+
+      <!-- right HUD data block -->
+      <text x="236" y="84"  font-family="JetBrains Mono,monospace" font-size="7" fill="rgba(0,255,65,.4)"  letter-spacing="1">NDVI · LIVE</text>
+      <text x="228" y="97"  font-family="JetBrains Mono,monospace" font-size="7" fill="rgba(0,255,65,.28)" letter-spacing="1">SWATH·250 KM</text>
+      <text x="232" y="110" font-family="JetBrains Mono,monospace" font-size="7" fill="rgba(0,219,233,.3)" letter-spacing="1">PASS · 6 DAY</text>
+      <text x="232" y="123" font-family="JetBrains Mono,monospace" font-size="7" fill="rgba(0,219,233,.22)" letter-spacing="1">RES  · 10 M</text>
+      <line x1="270" y1="74" x2="334" y2="74" stroke="rgba(0,255,65,.15)" stroke-width="0.5"/>
+      <line x1="270" y1="128" x2="334" y2="128" stroke="rgba(0,255,65,.1)" stroke-width="0.5"/>
+
+      <!-- signal strength bars (bottom right) -->
+      <rect x="260" y="205" width="5" height="9"  rx="1" fill="rgba(0,255,65,.8)"/>
+      <rect x="267" y="199" width="5" height="15" rx="1" fill="rgba(0,255,65,.8)"/>
+      <rect x="274" y="192" width="5" height="22" rx="1" fill="rgba(0,255,65,.8)"/>
+      <rect x="281" y="184" width="5" height="30" rx="1" fill="rgba(0,255,65,.55)"/>
+      <rect x="288" y="209" width="5" height="5"  rx="1" fill="rgba(255,255,255,.12)"/>
+      <text x="260" y="220" font-family="JetBrains Mono,monospace" font-size="6" fill="rgba(0,255,65,.25)" letter-spacing="0.5">SIG·STR</text>
+
+      <!-- bottom-left data tick -->
+      <text x="6" y="216" font-family="JetBrains Mono,monospace" font-size="6.5" fill="rgba(0,255,65,.3)" letter-spacing="0.8">EOS-04 / SAR / SENTINEL-2</text>
+      <text x="6" y="228" font-family="JetBrains Mono,monospace" font-size="6.5" fill="rgba(0,219,233,.2)" letter-spacing="0.8">BHOONIDHI · ISRO · ESA/COPERNICUS</text>
+    </svg>
+  </div>
+
+  <!-- wordmark -->
+  <div style="text-align:center;margin-top:2px;margin-bottom:10px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:900;letter-spacing:.28em;color:#00ff41;text-shadow:0 0 22px rgba(0,255,65,.5),0 0 56px rgba(0,255,65,.15)">TERRA-CORE</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.32em;color:rgba(0,219,233,.5);margin-top:5px">SATELLITE UPLINK IN PROGRESS</div>
+  </div>
+
+  <!-- status line -->
+  <div id="sat-loader-status" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.13em;color:rgba(185,204,178,.4);text-align:center;min-height:14px;margin-bottom:14px;transition:color .3s ease">INITIALIZING...</div>
+
+  <!-- progress bar -->
+  <div style="width:230px;height:1.5px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;margin-bottom:7px">
+    <div id="sat-loader-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#00ff41 0%,#00dbe9 100%);border-radius:2px;box-shadow:0 0 8px rgba(0,255,65,.55)"></div>
+  </div>
+  <div id="sat-loader-pct" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.13em;color:rgba(185,204,178,.22)">0%</div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════════════
 // HARDWARE INTEGRATION — ESP32 + Raspberry Pi Pico
@@ -2639,6 +2809,70 @@ function _hideSetupScreen() {
   setTimeout(() => { s.style.display = 'none'; s.style.opacity = '1'; }, 500);
 }
 
+function showSatLoader(onComplete) {
+  const loader = document.getElementById('sat-loader');
+  const statusEl = document.getElementById('sat-loader-status');
+  const barEl    = document.getElementById('sat-loader-bar');
+  const pctEl    = document.getElementById('sat-loader-pct');
+
+  // Reset state
+  barEl.style.width = '0%';
+  pctEl.textContent = '0%';
+  statusEl.textContent = 'INITIALIZING...';
+  statusEl.style.color = 'rgba(185,204,178,.4)';
+
+  // Fade in
+  loader.style.opacity = '0';
+  loader.style.display = 'flex';
+  loader.style.transition = '';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      loader.style.transition = 'opacity 0.3s ease';
+      loader.style.opacity = '1';
+    });
+  });
+
+  // Cycling status messages
+  const msgs = [
+    { t:   0, txt:'INITIALIZING TERRA-CORE...',    col:'rgba(185,204,178,.45)' },
+    { t: 520, txt:'SATELLITE NODE HANDSHAKE...',   col:'rgba(185,204,178,.45)' },
+    { t:1080, txt:'FETCHING NDVI DATA STREAM...',  col:'rgba(0,219,233,.65)'   },
+    { t:1640, txt:'SYNCING OPEN-METEO WEATHER...', col:'rgba(0,219,233,.65)'   },
+    { t:2200, txt:'CALIBRATING SOIL SENSORS...',   col:'rgba(185,204,178,.45)' },
+    { t:2680, txt:'ALL SYSTEMS NOMINAL ✓',         col:'#00ff41'               },
+  ];
+  const timers = msgs.map(({ t, txt, col }) =>
+    setTimeout(() => { statusEl.textContent = txt; statusEl.style.color = col; }, t)
+  );
+
+  // Smooth progress bar (rAF loop)
+  const DURATION = 3000;
+  const startTime = performance.now();
+  let rafId;
+  function tick(now) {
+    const pct = Math.min(100, ((now - startTime) / DURATION) * 100);
+    barEl.style.width = pct.toFixed(1) + '%';
+    pctEl.textContent = Math.floor(pct) + '%';
+    if (pct < 100) rafId = requestAnimationFrame(tick);
+  }
+  rafId = requestAnimationFrame(tick);
+
+  // Fade out and complete
+  setTimeout(() => {
+    cancelAnimationFrame(rafId);
+    barEl.style.width = '100%';
+    pctEl.textContent = '100%';
+    loader.style.transition = 'opacity 0.45s ease';
+    loader.style.opacity = '0';
+    setTimeout(() => {
+      loader.style.display = 'none';
+      loader.style.opacity = '1';
+      loader.style.transition = '';
+      if (onComplete) onComplete();
+    }, 450);
+  }, DURATION);
+}
+
 function setupConnect() {
   const ip = document.getElementById('setup-ip').value.trim();
   const statusEl = document.getElementById('setup-status');
@@ -2672,16 +2906,16 @@ function setupConnect() {
     testWS.onopen = () => {
       clearTimeout(timeout);
       testWS.close();
-      // Save and connect properly
-      statusEl.textContent = 'Connected! Opening dashboard…';
-      statusEl.style.color = '#00ff41';
       localStorage.setItem('agrisat_esp32_ip', ip);
+      statusEl.textContent = 'Connected! Launching dashboard…';
+      statusEl.style.color = '#00ff41';
       setTimeout(() => {
         _hideSetupScreen();
-        connectESP32HW(ip);
-        // Navigate to the auto page on first connect
-        setTimeout(() => nav('auto'), 600);
-      }, 800);
+        showSatLoader(() => {
+          connectESP32HW(ip);
+          nav('auto');
+        });
+      }, 600);
     };
 
     testWS.onerror = () => {
@@ -2702,8 +2936,9 @@ function setupConnect() {
 
 function setupSkip() {
   _hideSetupScreen();
-  // Still try to connect in background if IP was previously saved
-  if (_hwIP) connectESP32HW(_hwIP);
+  showSatLoader(() => {
+    if (_hwIP) connectESP32HW(_hwIP);
+  });
 }
 
 // ── Handle deep-link /?page=xxx from manifest shortcuts
