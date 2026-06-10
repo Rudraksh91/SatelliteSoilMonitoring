@@ -79,8 +79,14 @@ body{
   transition: var(--transition);
   /* rounded corners — overrides any Tailwind rounded-* on the element */
   border-radius: 16px !important;
-  /* lock ALL border sides to neutral white — overrides border-primary-container etc. */
-  border-color: rgba(255,255,255,.11) !important;
+  /* lock ALL border sides to neutral white — overrides border-primary-container etc.
+     Must set every longhand too: Tailwind border-t-{color} sets border-top-color (longhand)
+     which can win over border-color (shorthand) in some cascade scenarios. */
+  border-color:        rgba(255,255,255,.11) !important;
+  border-top-color:    rgba(255,255,255,.11) !important;
+  border-right-color:  rgba(255,255,255,.11) !important;
+  border-bottom-color: rgba(255,255,255,.11) !important;
+  border-left-color:   rgba(255,255,255,.11) !important;
   /* slight top-edge inner gradient for the glass-lip look */
   position: relative;
   overflow: hidden;
@@ -1003,7 +1009,7 @@ body{
 
 <!-- ═══════ PAGE 5: SYSTEM HEALTH ═══════ -->
 <main id="page-health" class="page ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] p-md overflow-y-auto">
-  <div class="gp p-sm border-t-2 border-primary-container mb-gutter">
+  <div class="gp p-sm border-t-2 mb-gutter">
     <div class="flex justify-between items-center">
       <div><p class="font-label-caps text-on-surface-variant mb-xs">AGRISAT · DEDIAPADA FARM · 21.6277°N 73.5903°E</p><p class="font-data-lg text-data-lg text-primary-container">ALL SYSTEMS NOMINAL</p></div>
       <div class="text-right"><p class="font-label-caps text-on-surface-variant">UPTIME</p><p class="font-display-lg text-[32px] font-bold text-primary-container kpi-glow-green">99.98%</p></div>
@@ -1011,7 +1017,7 @@ body{
   </div>
   <div class="grid grid-cols-3 gap-gutter">
     <!-- SENTINEL-1 SATELLITE — full-width card -->
-    <div class="gp col-span-3 border-t-2 border-t-secondary-container overflow-hidden flex gap-md items-center p-sm relative">
+    <div class="gp col-span-3 border-t-2 overflow-hidden flex gap-md items-center p-sm relative">
       <div class="scanline absolute inset-0 pointer-events-none opacity-40"></div>
       <!-- Sentinel-1 ESA photo + SVG fallback -->
       <div class="shrink-0 relative z-10 w-[220px] h-[110px] rounded overflow-hidden bg-surface-container-low border border-secondary-container/40">
@@ -1096,7 +1102,7 @@ body{
     </div>
 
     <!-- BHOONIDHI SATELLITE — full-width card -->
-    <div class="gp col-span-3 border-t-2 border-t-primary-container overflow-hidden flex gap-md items-center p-sm relative">
+    <div class="gp col-span-3 border-t-2 overflow-hidden flex gap-md items-center p-sm relative">
       <div class="scanline absolute inset-0 pointer-events-none opacity-40"></div>
       <!-- SVG: EOS-04 SAR Satellite -->
       <div class="shrink-0 relative z-10">
@@ -1164,27 +1170,27 @@ body{
         <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">NEXT PASS</p><p class="font-data-sm text-data-sm text-secondary-fixed-dim">18:26 UTC</p></div>
       </div>
     </div>
-    <div class="gp p-sm border-l-2 border-l-secondary-container">
+    <div class="gp p-sm border-l-2">
       <p class="font-label-caps text-on-surface-variant mb-xs">OPEN-METEO API</p>
       <p class="font-data-lg text-data-lg text-secondary" id="health-api">LIVE</p>
       <p class="font-label-caps text-on-surface-variant/60 mt-1" id="health-api-time">Last fetch: —</p>
     </div>
-    <div class="gp p-sm border-l-2 border-l-tertiary-container">
+    <div class="gp p-sm border-l-2">
       <p class="font-label-caps text-on-surface-variant mb-xs">GEMINI AI MODEL</p>
       <p class="font-data-lg text-data-lg text-tertiary-fixed-dim">google.genai v2</p>
       <p class="font-label-caps text-on-surface-variant/60 mt-1">Irrigation + VWC inference</p>
     </div>
-    <div class="gp p-sm border-l-2 border-l-secondary-container">
+    <div class="gp p-sm border-l-2">
       <p class="font-label-caps text-on-surface-variant mb-xs">GOOGLE DRIVE SYNC</p>
       <p class="font-data-lg text-data-lg text-secondary">ACTIVE</p>
       <p class="font-label-caps text-on-surface-variant/60 mt-1">Last push: 18 min ago</p>
     </div>
-    <div class="gp p-sm border-l-2 border-l-secondary-container">
+    <div class="gp p-sm border-l-2">
       <p class="font-label-caps text-on-surface-variant mb-xs">STITCH MCP</p>
       <p class="font-data-lg text-data-lg text-secondary">CONNECTED</p>
       <p class="font-label-caps text-on-surface-variant/60 mt-1">stitch.googleapis.com/mcp</p>
     </div>
-    <div class="gp p-sm border-l-2 border-l-primary-container">
+    <div class="gp p-sm border-l-2">
       <p class="font-label-caps text-on-surface-variant mb-xs">WEATHER DATA SOURCE</p>
       <p class="font-data-lg text-data-lg text-primary">api.open-meteo.com</p>
       <p class="font-label-caps text-on-surface-variant/60 mt-1">Free · No Auth · 10min refresh</p>
