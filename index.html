@@ -39,38 +39,78 @@
 /* ── DESIGN TOKENS ── */
 :root{
   --pg:rgba(0,255,65,.4);
-  --gb:rgba(255,255,255,.08);
+  --gb:rgba(255,255,255,.10);
   --glow-green:rgba(0,255,65,.15);
   --glow-cyan:rgba(0,219,233,.12);
-  --card-bg:linear-gradient(145deg,rgba(20,28,24,.92) 0%,rgba(11,17,14,.88) 100%);
-  --card-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 4px 24px rgba(0,0,0,.4);
+  /* Apple glass: near-transparent tinted fill */
+  --card-bg:rgba(255,255,255,0.045);
+  /* Apple glass: inset top+left highlight, outer depth shadow */
+  --card-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 1px 0 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(0,0,0,.12),
+    0 2px 8px rgba(0,0,0,.25),
+    0 12px 40px rgba(0,0,0,.35);
   --header-h:64px;
-  --transition:all .22s cubic-bezier(.4,0,.2,1);
+  --transition:all .25s cubic-bezier(.4,0,.2,1);
 }
 
-/* ── BODY — dimensional gradient ── */
+/* ── BODY — richer ambient gradients so glass pops ── */
 body{
   background:
-    radial-gradient(ellipse 55% 45% at 12% 65%,rgba(0,255,65,.055) 0%,transparent 60%),
-    radial-gradient(ellipse 45% 35% at 88% 18%,rgba(0,219,233,.04) 0%,transparent 55%),
-    radial-gradient(ellipse 60% 50% at 50% 100%,rgba(0,40,20,.4) 0%,transparent 70%),
-    #090d0b;
+    radial-gradient(ellipse 60% 50% at 10% 70%, rgba(0,255,65,.07) 0%, transparent 58%),
+    radial-gradient(ellipse 50% 40% at 90% 15%, rgba(0,219,233,.06) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 55% at 50% 105%,rgba(0,60,25,.55) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 75% 80%, rgba(0,100,60,.08) 0%, transparent 50%),
+    #080c0a;
   color:#dfe4e0;
   overflow:hidden;
 }
 
-/* ── GLASS PANEL — depth + gradient ── */
+/* ── APPLE GLASS PANEL ── */
 .gp{
-  background:var(--card-bg);
-  backdrop-filter:blur(20px) saturate(1.15);
-  -webkit-backdrop-filter:blur(20px) saturate(1.15);
-  border:1px solid var(--gb);
-  box-shadow:var(--card-shadow);
-  transition:var(--transition);
+  /* near-transparent fill — lets body gradient bleed through */
+  background: var(--card-bg);
+  backdrop-filter: blur(40px) saturate(1.8) brightness(1.08);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8) brightness(1.08);
+  /* crisp, subtle white border */
+  border: 1px solid rgba(255,255,255,.11);
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+  /* slight top-edge inner gradient for the glass-lip look */
+  position: relative;
 }
+/* Top-edge shine pseudo — the signature Apple glass shimmer */
+.gp::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:inherit;
+  background:linear-gradient(
+    160deg,
+    rgba(255,255,255,.08) 0%,
+    rgba(255,255,255,.03) 30%,
+    transparent 55%
+  );
+  z-index:0;
+}
+/* ensure card content sits above the pseudo */
+.gp>*{position:relative;z-index:1}
 
-/* ── GLASS PANEL HOVER LIFT ── */
-.gp:hover{box-shadow:var(--card-shadow),0 0 0 1px rgba(0,255,65,.06),0 8px 32px rgba(0,0,0,.5)}
+/* ── HOVER: brighter fill + lifted shadow ── */
+.gp:hover{
+  background: rgba(255,255,255,.075);
+  border-color: rgba(255,255,255,.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 1px 0 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(0,0,0,.10),
+    0 4px 16px rgba(0,0,0,.28),
+    0 20px 60px rgba(0,0,0,.45),
+    0 0 0 1px rgba(0,255,65,.07);
+  transform: translateY(-1px);
+}
 
 /* ── ICONS ── */
 .mso{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
@@ -128,7 +168,7 @@ body{
 /* scrollbar handled in design refresh block above */
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 /* ── MOBILE NAV ── */
-#mob-nav{display:none}
+#mob-nav{display:none!important}
 .mob-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:2px;padding:6px 4px;color:rgba(185,204,178,.5);transition:color .2s;cursor:pointer;background:none;border:none;-webkit-tap-highlight-color:transparent}
 .mob-btn.active{color:#00ff41}
 .mob-btn span.material-symbols-outlined{font-size:22px}
@@ -139,7 +179,7 @@ body{
   aside{display:none!important}
   header{left:0!important}
   footer{display:none!important}
-  #mob-nav{display:flex}
+  #mob-nav{display:flex!important}
   /* Page base */
   main.page{margin-left:0!important;height:auto!important;overflow-y:auto!important;padding-bottom:56px!important}
   main.page.active{display:flex!important}
@@ -256,7 +296,7 @@ body{
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- PWA INSTALL BANNER (shown when browser supports install)  -->
 <!-- ══════════════════════════════════════════════════════════ -->
-<div id="install-banner" style="display:none;position:fixed;bottom:72px;left:12px;right:12px;z-index:9998;background:rgba(10,16,13,.97);border:1px solid rgba(0,255,65,.2);border-radius:14px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.7);backdrop-filter:blur(16px)">
+<div id="install-banner" style="display:none;position:fixed;bottom:72px;left:12px;right:12px;z-index:9998;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 2px 8px rgba(0,0,0,.3),0 16px 48px rgba(0,0,0,.55);backdrop-filter:blur(40px) saturate(1.8) brightness(1.06);-webkit-backdrop-filter:blur(40px) saturate(1.8) brightness(1.06)">
   <div style="display:flex;align-items:center;gap:12px">
     <img src="icons/icon.svg" style="width:40px;height:40px;border-radius:10px;flex-shrink:0">
     <div style="flex:1">
@@ -269,7 +309,7 @@ body{
 </div>
 
 <!-- SIDEBAR -->
-<aside class="hidden md:flex fixed left-0 top-0 h-full z-50 flex-col w-20 hover:w-64 transition-all duration-300 group" style="background:linear-gradient(180deg,rgba(10,15,12,.97) 0%,rgba(8,12,10,.98) 100%);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-right:1px solid rgba(255,255,255,.07);box-shadow:4px 0 32px rgba(0,0,0,.55),1px 0 0 rgba(0,255,65,.05)">
+<aside class="hidden md:flex fixed left-0 top-0 h-full z-50 flex-col w-20 hover:w-64 transition-all duration-300 group" style="background:rgba(255,255,255,.03);backdrop-filter:blur(48px) saturate(1.9) brightness(1.05);-webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.05);border-right:1px solid rgba(255,255,255,.09);box-shadow:inset -1px 0 0 rgba(255,255,255,.05),4px 0 40px rgba(0,0,0,.6),1px 0 0 rgba(0,255,65,.04)">
   <div class="p-sm flex items-center gap-xs h-16 overflow-hidden shrink-0" style="border-bottom:1px solid rgba(255,255,255,.05)">
     <div class="min-w-[48px] h-[48px] flex items-center justify-center rounded-lg shrink-0" style="background:linear-gradient(135deg,rgba(0,255,65,.15) 0%,rgba(0,255,65,.05) 100%);border:1px solid rgba(0,255,65,.2);box-shadow:0 0 16px rgba(0,255,65,.12),inset 0 1px 0 rgba(255,255,255,.08)">
       <span class="material-symbols-outlined mso text-primary-container" style="font-variation-settings:'FILL' 1;filter:drop-shadow(0 0 6px rgba(0,255,65,.6))">eco</span>
@@ -310,7 +350,7 @@ body{
 </aside>
 
 <!-- TOP BAR -->
-<header class="fixed top-0 right-0 left-0 md:left-20 z-40 flex justify-between items-center px-sm h-16" style="background:linear-gradient(to bottom,rgba(9,13,11,.92) 0%,rgba(9,13,11,.75) 100%);backdrop-filter:blur(24px) saturate(1.3);-webkit-backdrop-filter:blur(24px) saturate(1.3);border-bottom:1px solid rgba(255,255,255,.07);box-shadow:0 1px 0 rgba(0,255,65,.08),0 4px 24px rgba(0,0,0,.35)">
+<header class="fixed top-0 right-0 left-0 md:left-20 z-40 flex justify-between items-center px-sm h-16" style="background:rgba(255,255,255,.04);backdrop-filter:blur(48px) saturate(2) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.06);border-bottom:1px solid rgba(255,255,255,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 1px 0 rgba(0,255,65,.07),0 8px 32px rgba(0,0,0,.4)">
   <div class="flex items-center gap-md">
     <span id="page-title" class="font-headline-md text-headline-md font-bold text-primary kpi-glow-green">COMMAND CENTER</span>
     <div class="h-4 w-px bg-white/10"></div>
@@ -1149,7 +1189,7 @@ body{
 </main>
 
 <!-- FOOTER -->
-<footer class="fixed bottom-0 right-0 left-20 z-40 hidden md:flex justify-between items-center px-sm h-8 border-t" style="background:linear-gradient(to right,rgba(9,13,11,.96) 0%,rgba(11,17,14,.94) 100%);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-color:rgba(255,255,255,.06);box-shadow:0 -1px 0 rgba(0,255,65,.05),0 -4px 24px rgba(0,0,0,.25)">
+<footer class="fixed bottom-0 right-0 left-20 z-40 hidden md:flex justify-between items-center px-sm h-8 border-t" style="background:rgba(255,255,255,.035);backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);border-color:rgba(255,255,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 -1px 0 rgba(0,255,65,.05),0 -8px 32px rgba(0,0,0,.3)">
   <div class="flex items-center gap-xs">
     <span class="flex h-[5px] w-[5px] rounded-full bg-primary-container" style="box-shadow:0 0 5px rgba(0,255,65,.7)"></span>
     <span class="font-label-caps text-label-caps text-on-surface-variant/40" style="font-size:9px">SYSTEM ACTIVE // NODE_774_OP · DEDIAPADA · GUJARAT</span>
@@ -2046,7 +2086,7 @@ updateClock();
 </script>
 
 <!-- MOBILE BOTTOM NAV -->
-<nav id="mob-nav" class="fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-xl border-t border-white/10 h-14 shadow-[0_-4px_24px_rgba(0,0,0,.6)]">
+<nav id="mob-nav" class="fixed bottom-0 left-0 right-0 z-50 h-14" style="background:rgba(255,255,255,.04);backdrop-filter:blur(48px) saturate(2) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.06);border-top:1px solid rgba(255,255,255,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 -8px 32px rgba(0,0,0,.5);display:none">
   <button class="mob-btn active" data-page="map" onclick="nav('map')">
     <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24">public</span>
     <span class="mob-btn-lbl">Map</span>
@@ -2072,8 +2112,8 @@ updateClock();
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- HARDWARE SETTINGS MODAL                                   -->
 <!-- ══════════════════════════════════════════════════════════ -->
-<div id="hw-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(6,10,9,.85);backdrop-filter:blur(8px)" onclick="if(event.target===this)closeHWModal()">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,92vw);background:rgba(10,15,13,.98);border:1px solid rgba(0,255,65,.2);border-radius:16px;padding:24px;box-shadow:0 24px 80px rgba(0,0,0,.9)">
+<div id="hw-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeHWModal()">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,92vw);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <div>
