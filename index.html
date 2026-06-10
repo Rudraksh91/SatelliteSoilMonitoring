@@ -250,7 +250,7 @@ body{
 .crop-search{width:100%;background:rgba(8,12,10,.9);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;color:#00ff41;outline:none;transition:border-color .15s}
 .crop-search::placeholder{color:rgba(185,204,178,.3)}
 .crop-search:focus{border-color:rgba(0,255,65,.3)}
-.crop-drop{position:fixed;z-index:9999;background:rgba(6,10,9,.98);border:1px solid rgba(0,255,65,.15);border-radius:8px;max-height:220px;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.9);scrollbar-width:thin;scrollbar-color:rgba(0,255,65,.2) transparent}
+.crop-drop{position:absolute;z-index:9999;background:rgba(6,10,9,.98);border:1px solid rgba(0,255,65,.15);border-radius:8px;max-height:220px;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.9);scrollbar-width:thin;scrollbar-color:rgba(0,255,65,.2) transparent}
 .crop-opt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;padding:5px 10px;cursor:pointer;color:rgba(185,204,178,.75);transition:background .1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .crop-opt:hover{background:rgba(0,255,65,.1);color:#00ff41}
 .crop-cat-hdr{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:800;letter-spacing:.12em;padding:5px 10px 2px;color:rgba(0,238,252,.45);border-top:1px solid rgba(255,255,255,.05);margin-top:2px}
@@ -2015,14 +2015,16 @@ function renderCropDrop(z,q){
 function showCropDrop(z){
   const d=document.getElementById('v'+z+'-crop-drop');
   const inp=document.getElementById('v'+z+'-crop-search');
-  if(d&&inp){
-    const r=inp.getBoundingClientRect();
-    d.style.top=(r.bottom+3)+'px';
-    d.style.left=r.left+'px';
-    d.style.width=r.width+'px';
-    d.classList.remove('hidden');
-    renderCropDrop(z,inp.value);
-  }
+  if(!d||!inp)return;
+  // Teleport to <body> so backdrop-filter and overflow:hidden on ancestor
+  // cards cannot affect positioning or clip the list
+  if(d.parentNode!==document.body)document.body.appendChild(d);
+  const r=inp.getBoundingClientRect();
+  d.style.top=(r.bottom+window.scrollY+3)+'px';
+  d.style.left=(r.left+window.scrollX)+'px';
+  d.style.width=r.width+'px';
+  d.classList.remove('hidden');
+  renderCropDrop(z,inp.value);
 }
 
 function hideCropDrop(z){
