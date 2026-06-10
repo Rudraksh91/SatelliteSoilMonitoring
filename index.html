@@ -36,23 +36,88 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
-:root{--pg:rgba(0,255,65,.4);--gb:rgba(255,255,255,.1)}
-body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
-.gp{background:rgba(15,20,18,.6);backdrop-filter:blur(12px);border:1px solid var(--gb)}
+/* ── DESIGN TOKENS ── */
+:root{
+  --pg:rgba(0,255,65,.4);
+  --gb:rgba(255,255,255,.08);
+  --glow-green:rgba(0,255,65,.15);
+  --glow-cyan:rgba(0,219,233,.12);
+  --card-bg:linear-gradient(145deg,rgba(20,28,24,.92) 0%,rgba(11,17,14,.88) 100%);
+  --card-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 4px 24px rgba(0,0,0,.4);
+  --header-h:64px;
+  --transition:all .22s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── BODY — dimensional gradient ── */
+body{
+  background:
+    radial-gradient(ellipse 55% 45% at 12% 65%,rgba(0,255,65,.055) 0%,transparent 60%),
+    radial-gradient(ellipse 45% 35% at 88% 18%,rgba(0,219,233,.04) 0%,transparent 55%),
+    radial-gradient(ellipse 60% 50% at 50% 100%,rgba(0,40,20,.4) 0%,transparent 70%),
+    #090d0b;
+  color:#dfe4e0;
+  overflow:hidden;
+}
+
+/* ── GLASS PANEL — depth + gradient ── */
+.gp{
+  background:var(--card-bg);
+  backdrop-filter:blur(20px) saturate(1.15);
+  -webkit-backdrop-filter:blur(20px) saturate(1.15);
+  border:1px solid var(--gb);
+  box-shadow:var(--card-shadow);
+  transition:var(--transition);
+}
+
+/* ── GLASS PANEL HOVER LIFT ── */
+.gp:hover{box-shadow:var(--card-shadow),0 0 0 1px rgba(0,255,65,.06),0 8px 32px rgba(0,0,0,.5)}
+
+/* ── ICONS ── */
 .mso{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
-.scanline{background:linear-gradient(to bottom,transparent 50%,rgba(0,255,65,.02) 50%);background-size:100% 4px}
-.scanline-anim::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,transparent,rgba(0,255,65,.05) 50%,transparent);animation:scanmove 8s linear infinite;pointer-events:none}
+
+/* ── SCANLINE ── */
+.scanline{background:linear-gradient(to bottom,transparent 50%,rgba(0,255,65,.018) 50%);background-size:100% 4px}
+.scanline-anim::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,transparent,rgba(0,255,65,.06) 50%,transparent);animation:scanmove 9s linear infinite;pointer-events:none}
 @keyframes scanmove{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}
-.pulse-node{animation:pnode 2s infinite}
+
+/* ── PULSE & GLOW ── */
+.pulse-node{animation:pnode 2.2s infinite}
 @keyframes pnode{0%{transform:scale(.95);box-shadow:0 0 0 0 var(--pg)}70%{transform:scale(1);box-shadow:0 0 0 10px rgba(0,255,65,0)}100%{transform:scale(.95);box-shadow:0 0 0 0 rgba(0,255,65,0)}}
-@keyframes pglow{0%,100%{box-shadow:0 0 5px rgba(0,255,65,.2)}50%{box-shadow:0 0 15px rgba(0,255,65,.5)}}
-.aglow{animation:pglow 2s infinite ease-in-out}
-.grid-bg{background-image:linear-gradient(rgba(0,255,65,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.05) 1px,transparent 1px);background-size:40px 40px}
-.tl-grid{background-image:linear-gradient(to right,rgba(255,255,255,.05) 1px,transparent 1px);background-size:80px 100%}
-.step{height:8px;flex:1;background:rgba(255,255,255,.1)}
-.step.sp{background:#00ff41;box-shadow:0 0 5px #00ff41}
-.step.ss{background:#00dbe9;box-shadow:0 0 5px #00dbe9}
+@keyframes pglow{0%,100%{box-shadow:0 0 6px rgba(0,255,65,.2),0 0 0 1px rgba(0,255,65,.06)}50%{box-shadow:0 0 20px rgba(0,255,65,.45),0 0 0 1px rgba(0,255,65,.14)}}
+.aglow{animation:pglow 2.5s infinite ease-in-out}
+
+/* ── GRID BACKGROUNDS ── */
+.grid-bg{background-image:linear-gradient(rgba(0,255,65,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.045) 1px,transparent 1px);background-size:40px 40px}
+.tl-grid{background-image:linear-gradient(to right,rgba(255,255,255,.045) 1px,transparent 1px);background-size:80px 100%}
+
+/* ── STEP BARS ── */
+.step{height:8px;flex:1;background:rgba(255,255,255,.08);border-radius:1px}
+.step.sp{background:#00ff41;box-shadow:0 0 6px rgba(0,255,65,.6)}
+.step.ss{background:#00dbe9;box-shadow:0 0 6px rgba(0,219,233,.6)}
+
+/* ── PAGE VISIBILITY ── */
 .page{display:none!important}.page.active{display:flex!important;flex-direction:column}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,255,65,.2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(0,255,65,.45)}
+
+/* ── KPI NUMBER GLOW ── */
+.kpi-glow{text-shadow:0 0 18px currentColor}
+.kpi-glow-green{text-shadow:0 0 16px rgba(0,255,65,.55)}
+.kpi-glow-cyan{text-shadow:0 0 16px rgba(0,219,233,.5)}
+.kpi-glow-amber{text-shadow:0 0 16px rgba(255,180,50,.5)}
+
+/* ── GRADIENT BORDER CARDS ── */
+.card-primary{border-top:2px solid transparent;background-clip:padding-box,border-box;border-image:linear-gradient(90deg,rgba(0,255,65,.6),rgba(0,255,65,.1)) 1}
+.card-secondary{border-top:2px solid transparent;border-image:linear-gradient(90deg,rgba(0,219,233,.6),rgba(0,219,233,.1)) 1}
+
+/* ── NAV BUTTON ACTIVE GLOW ── */
+.nav-btn{cursor:pointer}
+.nav-btn.text-primary{background:linear-gradient(90deg,rgba(0,255,65,.12) 0%,rgba(0,255,65,.04) 100%)!important;box-shadow:inset 2px 0 0 #00ff41}
+.nav-btn:not(.text-primary):hover{background:rgba(255,255,255,.04)!important;color:rgba(235,255,226,.7)!important}
 .wtab{padding:6px 14px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border:1px solid transparent;transition:all .2s;color:#b9ccb2}
 .wtab.on{background:rgba(0,255,65,.12);border-color:rgba(0,255,65,.3);color:#00ff41}
 .wtab:not(.on):hover{background:rgba(255,255,255,.05);color:#dfe4e0}
@@ -60,7 +125,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
 .chart-wrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
 .chart-panel{display:none;flex-direction:column;flex:1;min-height:0}
 .chart-panel.active{display:flex}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0a0f0d}::-webkit-scrollbar-thumb{background:#313633;border-radius:2px}::-webkit-scrollbar-thumb:hover{background:#00ff41}
+/* scrollbar handled in design refresh block above */
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 /* ── MOBILE NAV ── */
 #mob-nav{display:none}
@@ -204,14 +269,14 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
 </div>
 
 <!-- SIDEBAR -->
-<aside class="hidden md:flex fixed left-0 top-0 h-full z-50 flex-col bg-surface/80 backdrop-blur-xl w-20 hover:w-64 transition-all duration-300 border-r border-white/10 shadow-[4px_0_24px_rgba(0,0,0,.5)] group">
-  <div class="p-sm flex items-center gap-xs h-16 overflow-hidden shrink-0">
-    <div class="min-w-[48px] h-[48px] flex items-center justify-center bg-primary-container/10 rounded-lg shrink-0">
-      <span class="material-symbols-outlined mso text-primary-container" style="font-variation-settings:'FILL' 1">eco</span>
+<aside class="hidden md:flex fixed left-0 top-0 h-full z-50 flex-col w-20 hover:w-64 transition-all duration-300 group" style="background:linear-gradient(180deg,rgba(10,15,12,.97) 0%,rgba(8,12,10,.98) 100%);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-right:1px solid rgba(255,255,255,.07);box-shadow:4px 0 32px rgba(0,0,0,.55),1px 0 0 rgba(0,255,65,.05)">
+  <div class="p-sm flex items-center gap-xs h-16 overflow-hidden shrink-0" style="border-bottom:1px solid rgba(255,255,255,.05)">
+    <div class="min-w-[48px] h-[48px] flex items-center justify-center rounded-lg shrink-0" style="background:linear-gradient(135deg,rgba(0,255,65,.15) 0%,rgba(0,255,65,.05) 100%);border:1px solid rgba(0,255,65,.2);box-shadow:0 0 16px rgba(0,255,65,.12),inset 0 1px 0 rgba(255,255,255,.08)">
+      <span class="material-symbols-outlined mso text-primary-container" style="font-variation-settings:'FILL' 1;filter:drop-shadow(0 0 6px rgba(0,255,65,.6))">eco</span>
     </div>
-    <div class="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden">
-      <div class="font-display-lg text-headline-md tracking-widest text-primary drop-shadow-[0_0_8px_rgba(0,255,65,.4)]">TERRA-CORE</div>
-      <div class="font-label-caps text-label-caps text-on-surface-variant/60">AGRISAT · DEDIAPADA</div>
+    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
+      <div class="font-display-lg text-headline-md tracking-widest text-primary" style="text-shadow:0 0 12px rgba(0,255,65,.5),0 0 28px rgba(0,255,65,.2)">TERRA-CORE</div>
+      <div class="font-label-caps text-label-caps text-on-surface-variant/50" style="font-size:9px;letter-spacing:.14em">AGRISAT · DEDIAPADA</div>
     </div>
   </div>
   <nav class="flex-1 py-md flex flex-col gap-base overflow-hidden">
@@ -237,7 +302,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
     </button>
   </nav>
   <div class="mt-auto py-md border-t border-white/5 shrink-0">
-    <button class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all">
+    <button class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
       <span class="material-symbols-outlined mso min-w-[48px] text-center">settings</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Settings</span>
     </button>
@@ -245,13 +310,13 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
 </aside>
 
 <!-- TOP BAR -->
-<header class="fixed top-0 right-0 left-0 md:left-20 z-40 flex justify-between items-center px-sm bg-surface/60 backdrop-blur-md h-16 border-b border-white/10">
+<header class="fixed top-0 right-0 left-0 md:left-20 z-40 flex justify-between items-center px-sm h-16" style="background:linear-gradient(to bottom,rgba(9,13,11,.92) 0%,rgba(9,13,11,.75) 100%);backdrop-filter:blur(24px) saturate(1.3);-webkit-backdrop-filter:blur(24px) saturate(1.3);border-bottom:1px solid rgba(255,255,255,.07);box-shadow:0 1px 0 rgba(0,255,65,.08),0 4px 24px rgba(0,0,0,.35)">
   <div class="flex items-center gap-md">
-    <span id="page-title" class="font-headline-md text-headline-md font-bold text-primary">COMMAND CENTER</span>
+    <span id="page-title" class="font-headline-md text-headline-md font-bold text-primary kpi-glow-green">COMMAND CENTER</span>
     <div class="h-4 w-px bg-white/10"></div>
-    <div class="flex items-center gap-xs">
-      <span class="flex h-2 w-2 rounded-full bg-primary-container animate-pulse"></span>
-      <span class="font-label-caps text-label-caps text-primary tracking-widest">LIVE · DEDIAPADA · 21.628°N 73.592°E</span>
+    <div class="flex items-center gap-xs px-xs py-[3px] rounded-full" style="background:rgba(0,255,65,.07);border:1px solid rgba(0,255,65,.18)">
+      <span class="flex h-[7px] w-[7px] rounded-full bg-primary-container animate-pulse" style="box-shadow:0 0 6px rgba(0,255,65,.8)"></span>
+      <span class="font-label-caps text-label-caps text-primary tracking-widest" style="font-size:9px">LIVE · DEDIAPADA · 21.628°N 73.592°E</span>
     </div>
   </div>
   <div class="flex items-center gap-md">
@@ -320,7 +385,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
       <div class="gp p-sm border-t-2 border-primary-container">
         <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">TOTAL MANAGED AREA</p>
         <div class="flex items-end gap-xs">
-          <span class="font-display-lg text-[32px] font-bold text-primary">0.15</span>
+          <span class="font-display-lg text-[32px] font-bold text-primary kpi-glow-green">0.15</span>
           <span class="font-label-caps text-label-caps text-on-surface-variant mb-2">HA · 3 FIELDS</span>
         </div>
         <div class="mt-sm flex gap-1"><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container/20"></div><div class="h-1 flex-grow bg-primary-container/20"></div></div>
@@ -328,7 +393,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
       <div class="gp p-sm border-t-2 border-secondary-container">
         <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">ACTIVE SENSORS</p>
         <div class="flex justify-between items-center">
-          <span class="font-display-lg text-[32px] font-bold text-secondary">6</span>
+          <span class="font-display-lg text-[32px] font-bold text-secondary kpi-glow-cyan">6</span>
           <span class="font-data-sm text-data-sm text-secondary-fixed-dim bg-secondary/10 px-2 py-0.5 rounded">FIELD A/B/C</span>
         </div>
       </div>
@@ -366,7 +431,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
         <span class="font-data-sm text-primary-fixed-dim">FIELD_A</span>
       </div>
       <div class="py-md text-center">
-        <div class="font-data-lg text-4xl text-primary-container" id="ndvi-vwc">—%</div>
+        <div class="font-data-lg text-4xl text-primary-container kpi-glow-green" id="ndvi-vwc">—%</div>
         <div class="font-label-caps text-on-surface-variant" id="ndvi-vwc-status">LOADING...</div>
       </div>
       <div class="h-16 flex items-end gap-1">
@@ -472,7 +537,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
       </div>
       <div class="w-48 text-right">
         <div class="font-label-caps text-on-surface-variant">IRRIG_DEPTH_A</div>
-        <div class="font-data-lg text-primary-container" id="irrig-depth">—mm</div>
+        <div class="font-data-lg text-primary-container kpi-glow-green" id="irrig-depth">—mm</div>
       </div>
     </div>
   </section>
@@ -516,7 +581,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
         <span class="material-symbols-outlined mso text-primary-container" style="font-variation-settings:'FILL' 1">device_thermostat</span>
       </div>
       <div class="flex items-baseline gap-xs">
-        <span class="font-display-lg text-primary text-[52px] leading-none tracking-tighter" id="cl-tmp">—</span>
+        <span class="font-display-lg text-primary text-[52px] leading-none tracking-tighter kpi-glow-green" id="cl-tmp">—</span>
         <span class="font-headline-md text-on-surface-variant">°C</span>
       </div>
       <div class="mt-xs flex items-center gap-xs">
@@ -530,7 +595,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
         <span class="material-symbols-outlined mso text-secondary-container">humidity_percentage</span>
       </div>
       <div class="flex items-baseline gap-xs">
-        <span class="font-display-lg text-secondary text-[52px] leading-none tracking-tighter" id="cl-hum">—</span>
+        <span class="font-display-lg text-secondary text-[52px] leading-none tracking-tighter kpi-glow-cyan" id="cl-hum">—</span>
         <span class="font-headline-md text-on-surface-variant">%</span>
       </div>
       <div class="mt-xs flex items-center gap-xs">
@@ -544,7 +609,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
         <span class="material-symbols-outlined mso text-tertiary-container">air</span>
       </div>
       <div class="flex items-baseline gap-xs">
-        <span class="font-display-lg text-tertiary-fixed-dim text-[52px] leading-none tracking-tighter" id="cl-wind">—</span>
+        <span class="font-display-lg text-tertiary-fixed-dim text-[52px] leading-none tracking-tighter kpi-glow-amber" id="cl-wind">—</span>
         <span class="font-headline-md text-on-surface-variant">km/h</span>
       </div>
       <div class="mt-xs flex items-center gap-xs">
@@ -558,7 +623,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
         <span class="material-symbols-outlined mso text-primary-container">compress</span>
       </div>
       <div class="flex items-baseline gap-xs">
-        <span class="font-display-lg text-primary text-[52px] leading-none tracking-tighter" id="cl-press">—</span>
+        <span class="font-display-lg text-primary text-[52px] leading-none tracking-tighter kpi-glow-green" id="cl-press">—</span>
         <span class="font-headline-md text-on-surface-variant">hPa</span>
       </div>
       <div class="mt-xs flex items-center gap-xs">
@@ -897,7 +962,7 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
   <div class="gp p-sm border-t-2 border-primary-container mb-gutter">
     <div class="flex justify-between items-center">
       <div><p class="font-label-caps text-on-surface-variant mb-xs">AGRISAT · DEDIAPADA FARM · 21.6277°N 73.5903°E</p><p class="font-data-lg text-data-lg text-primary-container">ALL SYSTEMS NOMINAL</p></div>
-      <div class="text-right"><p class="font-label-caps text-on-surface-variant">UPTIME</p><p class="font-display-lg text-[32px] font-bold text-primary-container">99.98%</p></div>
+      <div class="text-right"><p class="font-label-caps text-on-surface-variant">UPTIME</p><p class="font-display-lg text-[32px] font-bold text-primary-container kpi-glow-green">99.98%</p></div>
     </div>
   </div>
   <div class="grid grid-cols-3 gap-gutter">
@@ -1084,12 +1149,15 @@ body{background:#0a0f0d;color:#dfe4e0;overflow:hidden}
 </main>
 
 <!-- FOOTER -->
-<footer class="fixed bottom-0 right-0 left-20 z-40 hidden md:flex justify-between items-center px-sm bg-surface-container-lowest/90 backdrop-blur-sm h-8 border-t border-white/5">
-  <span class="font-label-caps text-label-caps text-on-surface-variant/40">SYSTEM ACTIVE // NODE_774_OP · DEDIAPADA · GUJARAT</span>
+<footer class="fixed bottom-0 right-0 left-20 z-40 hidden md:flex justify-between items-center px-sm h-8 border-t" style="background:linear-gradient(to right,rgba(9,13,11,.96) 0%,rgba(11,17,14,.94) 100%);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-color:rgba(255,255,255,.06);box-shadow:0 -1px 0 rgba(0,255,65,.05),0 -4px 24px rgba(0,0,0,.25)">
+  <div class="flex items-center gap-xs">
+    <span class="flex h-[5px] w-[5px] rounded-full bg-primary-container" style="box-shadow:0 0 5px rgba(0,255,65,.7)"></span>
+    <span class="font-label-caps text-label-caps text-on-surface-variant/40" style="font-size:9px">SYSTEM ACTIVE // NODE_774_OP · DEDIAPADA · GUJARAT</span>
+  </div>
   <div class="flex items-center gap-lg">
-    <span class="font-label-caps text-label-caps text-secondary-fixed-dim">UPTIME: 99.98%</span>
-    <span class="font-label-caps text-label-caps text-secondary-fixed-dim">LATENCY: 14MS</span>
-    <span class="font-label-caps text-label-caps text-secondary" id="utc-clock">UTC: —</span>
+    <span class="font-label-caps text-label-caps text-secondary-fixed-dim" style="font-size:9px">UPTIME: 99.98%</span>
+    <span class="font-label-caps text-label-caps text-secondary-fixed-dim" style="font-size:9px">LATENCY: 14MS</span>
+    <span class="font-label-caps text-label-caps text-secondary" style="font-size:9px" id="utc-clock">UTC: —</span>
   </div>
 </footer>
 
