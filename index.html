@@ -2246,95 +2246,215 @@ updateClock();
           <feGaussianBlur stdDeviation="2.5" result="b"/>
           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
-        <!-- elliptical orbit path: cx=170, cy=148, rx=128, ry=50 -->
         <path id="ldr-orb" d="M298,148 A128,50 0 0,1 170,198 A128,50 0 0,1 42,148 A128,50 0 0,1 170,98 A128,50 0 0,1 298,148"/>
+        <!-- earth gradients -->
+        <radialGradient id="earth-ocean" cx="38%" cy="32%" r="70%">
+          <stop offset="0%" stop-color="#1e5fa0"/>
+          <stop offset="55%" stop-color="#0d3668"/>
+          <stop offset="100%" stop-color="#040d1e"/>
+        </radialGradient>
+        <radialGradient id="earth-atm" cx="50%" cy="50%" r="50%">
+          <stop offset="70%" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="85%" stop-color="rgba(80,150,255,0.12)"/>
+          <stop offset="100%" stop-color="rgba(130,195,255,0.32)"/>
+        </radialGradient>
+        <radialGradient id="earth-shadow" cx="76%" cy="76%" r="60%">
+          <stop offset="0%" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="100%" stop-color="rgba(0,0,0,0.52)"/>
+        </radialGradient>
+        <!-- satellite gradients -->
+        <linearGradient id="sat-body-grad" x1="0%" y1="0%" x2="70%" y2="100%">
+          <stop offset="0%"   stop-color="#e8bc30"/>
+          <stop offset="40%"  stop-color="#c49020"/>
+          <stop offset="75%"  stop-color="#8a5c0e"/>
+          <stop offset="100%" stop-color="#5a3608"/>
+        </linearGradient>
+        <linearGradient id="sat-panel-l" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stop-color="#0e1d42"/>
+          <stop offset="50%"  stop-color="#091530"/>
+          <stop offset="100%" stop-color="#040c1e"/>
+        </linearGradient>
+        <linearGradient id="sat-panel-r" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#121f40"/>
+          <stop offset="100%" stop-color="#050c20"/>
+        </linearGradient>
       </defs>
 
-      <!-- outer faint ellipse -->
-      <ellipse cx="170" cy="148" rx="148" ry="62" fill="none" stroke="rgba(0,219,233,.05)" stroke-width="1" stroke-dasharray="3,10"/>
-
+      <!-- outer faint orbit ring -->
+      <ellipse cx="170" cy="148" rx="148" ry="62" fill="none" stroke="rgba(0,219,233,.04)" stroke-width="1" stroke-dasharray="3,10"/>
       <!-- main orbit ellipse -->
-      <ellipse cx="170" cy="148" rx="128" ry="50" fill="none" stroke="rgba(0,255,65,.12)" stroke-width="1" stroke-dasharray="5,5"/>
+      <ellipse cx="170" cy="148" rx="128" ry="50" fill="none" stroke="rgba(0,255,65,.10)" stroke-width="1" stroke-dasharray="5,5"/>
 
-      <!-- expanding signal rings from earth -->
-      <circle cx="170" cy="148" r="50" fill="none" stroke="rgba(0,255,65,.4)" stroke-width="1">
+      <!-- uplink signal rings (cyan) -->
+      <circle cx="170" cy="148" r="50" fill="none" stroke="rgba(0,219,233,.4)" stroke-width="1">
         <animate attributeName="r" from="50" to="128" dur="2.5s" repeatCount="indefinite"/>
         <animate attributeName="stroke-opacity" from="0.4" to="0" dur="2.5s" repeatCount="indefinite"/>
       </circle>
-      <circle cx="170" cy="148" r="50" fill="none" stroke="rgba(0,255,65,.3)" stroke-width="1">
+      <circle cx="170" cy="148" r="50" fill="none" stroke="rgba(0,219,233,.3)" stroke-width="1">
         <animate attributeName="r" from="50" to="128" dur="2.5s" begin="0.83s" repeatCount="indefinite"/>
         <animate attributeName="stroke-opacity" from="0.3" to="0" dur="2.5s" begin="0.83s" repeatCount="indefinite"/>
       </circle>
-      <circle cx="170" cy="148" r="50" fill="none" stroke="rgba(0,255,65,.2)" stroke-width="1">
+      <circle cx="170" cy="148" r="50" fill="none" stroke="rgba(0,219,233,.18)" stroke-width="1">
         <animate attributeName="r" from="50" to="128" dur="2.5s" begin="1.66s" repeatCount="indefinite"/>
-        <animate attributeName="stroke-opacity" from="0.2" to="0" dur="2.5s" begin="1.66s" repeatCount="indefinite"/>
+        <animate attributeName="stroke-opacity" from="0.18" to="0" dur="2.5s" begin="1.66s" repeatCount="indefinite"/>
       </circle>
 
-      <!-- Earth node body -->
-      <circle cx="170" cy="148" r="50" fill="rgba(0,10,6,.98)" stroke="rgba(0,255,65,.25)" stroke-width="1.5"/>
+      <!-- ════════════════════════════════════ -->
+      <!--  REALISTIC EARTH GLOBE               -->
+      <!-- ════════════════════════════════════ -->
 
-      <!-- grid lines clipped to earth -->
-      <g clip-path="url(#ldr-clip)" opacity="0.2">
-        <line x1="121" y1="128" x2="219" y2="128" stroke="#00ff41" stroke-width="0.5"/>
-        <line x1="121" y1="148" x2="219" y2="148" stroke="#00ff41" stroke-width="0.5"/>
-        <line x1="121" y1="168" x2="219" y2="168" stroke="#00ff41" stroke-width="0.5"/>
-        <line x1="145" y1="99"  x2="145" y2="197" stroke="#00ff41" stroke-width="0.5"/>
-        <line x1="170" y1="99"  x2="170" y2="197" stroke="#00ff41" stroke-width="0.5"/>
-        <line x1="195" y1="99"  x2="195" y2="197" stroke="#00ff41" stroke-width="0.5"/>
-      </g>
+      <!-- atmosphere outer halo -->
+      <circle cx="170" cy="148" r="57" fill="rgba(20,60,180,0.06)" stroke="rgba(80,160,255,0.20)" stroke-width="7"/>
+      <circle cx="170" cy="148" r="53" fill="none" stroke="rgba(110,185,255,0.11)" stroke-width="3"/>
 
-      <!-- radar sweep sector clipped to earth -->
+      <!-- ocean base -->
+      <circle cx="170" cy="148" r="50" fill="url(#earth-ocean)"/>
+
+      <!-- continents + clouds — clipped, slowly rotating -->
       <g clip-path="url(#ldr-clip)">
-        <path d="M170,148 L220,148 A50,50 0 0,1 170,198 Z" fill="rgba(0,255,65,.08)">
-          <animateTransform attributeName="transform" type="rotate" from="0,170,148" to="360,170,148" dur="2s" repeatCount="indefinite"/>
-        </path>
-        <line x1="170" y1="148" x2="220" y2="148" stroke="rgba(0,255,65,.6)" stroke-width="1.5" filter="url(#ldr-glow)">
-          <animateTransform attributeName="transform" type="rotate" from="0,170,148" to="360,170,148" dur="2s" repeatCount="indefinite"/>
-        </line>
+        <g>
+          <animateTransform attributeName="transform" type="rotate"
+            from="0,170,148" to="360,170,148" dur="28s" repeatCount="indefinite"/>
+          <!-- Africa -->
+          <path d="M174,134 L182,136 L188,142 L190,152 L188,162 L184,174 L178,180 L172,178 L166,170 L164,158 L166,146 L172,138 Z"
+                fill="rgba(48,108,36,0.90)"/>
+          <!-- Madagascar -->
+          <path d="M192,162 L196,158 L197,165 L195,172 L191,170 Z"
+                fill="rgba(48,106,34,0.82)"/>
+          <!-- Arabia -->
+          <path d="M184,134 L193,138 L195,145 L190,153 L186,152 L184,145 L182,138 Z"
+                fill="rgba(88,128,48,0.76)"/>
+          <!-- India -->
+          <path d="M196,140 L203,144 L203,152 L198,163 L194,169 L192,158 L192,148 L194,142 Z"
+                fill="rgba(50,112,38,0.90)"/>
+          <!-- Sri Lanka -->
+          <circle cx="197" cy="169" r="1.6" fill="rgba(50,110,36,0.72)"/>
+          <!-- South-East Asia -->
+          <path d="M205,144 L213,140 L215,149 L210,156 L205,153 Z"
+                fill="rgba(46,104,34,0.80)"/>
+          <!-- Eurasia / Asia -->
+          <path d="M186,120 L210,124 L220,134 L215,144 L207,148 L198,146 L192,140 L188,132 Z"
+                fill="rgba(44,100,33,0.86)"/>
+          <!-- Europe -->
+          <path d="M160,124 L172,120 L181,124 L182,133 L176,137 L168,136 L162,130 Z"
+                fill="rgba(42,98,32,0.84)"/>
+          <!-- North America -->
+          <path d="M136,128 L148,124 L158,128 L160,139 L154,151 L146,155 L136,144 Z"
+                fill="rgba(44,100,33,0.80)"/>
+          <!-- South America -->
+          <path d="M150,154 L161,150 L165,158 L163,173 L158,185 L152,187 L148,177 L150,164 Z"
+                fill="rgba(46,103,34,0.83)"/>
+          <!-- Greenland -->
+          <path d="M148,114 L159,116 L161,123 L155,127 L146,123 Z"
+                fill="rgba(215,232,248,0.58)"/>
+          <!-- Antarctica -->
+          <path d="M120,191 L220,191 L215,198 L125,198 Z"
+                fill="rgba(228,242,254,0.62)"/>
+          <!-- cloud streaks -->
+          <ellipse cx="162" cy="144" rx="12" ry="3.2" fill="rgba(255,255,255,0.12)" transform="rotate(-15,162,144)"/>
+          <ellipse cx="181" cy="167" rx="9" ry="2.6" fill="rgba(255,255,255,0.10)" transform="rotate(12,181,167)"/>
+          <ellipse cx="151" cy="160" rx="8" ry="2.1" fill="rgba(255,255,255,0.09)"/>
+          <ellipse cx="176" cy="125" rx="11" ry="2.6" fill="rgba(255,255,255,0.08)" transform="rotate(-8,176,125)"/>
+          <ellipse cx="197" cy="136" rx="7" ry="2" fill="rgba(255,255,255,0.07)" transform="rotate(5,197,136)"/>
+        </g>
       </g>
 
-      <!-- crosshair centre -->
-      <line x1="163" y1="148" x2="177" y2="148" stroke="rgba(0,255,65,.4)" stroke-width="0.8"/>
-      <line x1="170" y1="141" x2="170" y2="155" stroke="rgba(0,255,65,.4)" stroke-width="0.8"/>
+      <!-- lat/lon grid (static, not rotating) -->
+      <g clip-path="url(#ldr-clip)" opacity="0.11">
+        <line x1="120" y1="148" x2="220" y2="148" stroke="white" stroke-width="0.45"/>
+        <line x1="120" y1="135" x2="220" y2="135" stroke="white" stroke-width="0.3"/>
+        <line x1="120" y1="161" x2="220" y2="161" stroke="white" stroke-width="0.3"/>
+        <line x1="120" y1="122" x2="220" y2="122" stroke="white" stroke-width="0.25"/>
+        <line x1="120" y1="174" x2="220" y2="174" stroke="white" stroke-width="0.25"/>
+        <line x1="145" y1="98"  x2="145" y2="198" stroke="white" stroke-width="0.3"/>
+        <line x1="170" y1="98"  x2="170" y2="198" stroke="white" stroke-width="0.45"/>
+        <line x1="195" y1="98"  x2="195" y2="198" stroke="white" stroke-width="0.3"/>
+      </g>
 
-      <!-- pulsing centre dot -->
-      <circle cx="170" cy="148" r="5" fill="rgba(0,255,65,.9)" filter="url(#ldr-glow)">
-        <animate attributeName="r" values="4;7;4" dur="1.2s" repeatCount="indefinite"/>
-        <animate attributeName="opacity" values="1;0.4;1" dur="1.2s" repeatCount="indefinite"/>
-      </circle>
+      <!-- atmosphere edge glow -->
+      <circle cx="170" cy="148" r="50" fill="url(#earth-atm)"/>
+      <!-- night-side shadow -->
+      <circle cx="170" cy="148" r="50" fill="url(#earth-shadow)"/>
+      <!-- specular highlight (sunlit top-left) -->
+      <ellipse cx="152" cy="132" rx="18" ry="13" fill="rgba(255,255,255,0.042)" transform="rotate(-25,152,132)"/>
 
-      <!-- ── SATELLITE moving along orbit ── -->
+      <!-- ════════════════════════════════════ -->
+      <!--  REALISTIC SATELLITE                 -->
+      <!-- ════════════════════════════════════ -->
       <g>
-        <animateMotion dur="3s" repeatCount="indefinite" rotate="0">
+        <animateMotion dur="3s" repeatCount="indefinite" rotate="auto">
           <mpath href="#ldr-orb" xlink:href="#ldr-orb"/>
         </animateMotion>
-        <!-- soft aura -->
-        <circle r="20" fill="rgba(0,219,233,.05)">
-          <animate attributeName="opacity" values="0.7;0.2;0.7" dur="1.1s" repeatCount="indefinite"/>
+
+        <!-- glow aura -->
+        <ellipse rx="36" ry="17" fill="rgba(0,219,233,0.04)">
+          <animate attributeName="opacity" values="0.8;0.25;0.8" dur="1.4s" repeatCount="indefinite"/>
+        </ellipse>
+
+        <!-- ── LEFT SOLAR PANEL ── -->
+        <rect x="-30" y="-1.2" width="18" height="2.4" fill="rgba(190,195,205,0.85)"/>
+        <rect x="-49" y="-9.5" width="21" height="19" rx="1.5" fill="url(#sat-panel-l)" stroke="rgba(0,180,220,0.40)" stroke-width="0.7"/>
+        <line x1="-49" y1="-3"   x2="-28" y2="-3"   stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
+        <line x1="-49" y1="3"    x2="-28" y2="3"    stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
+        <line x1="-49" y1="9"    x2="-28" y2="9"    stroke="rgba(0,200,240,0.18)" stroke-width="0.4"/>
+        <line x1="-43" y1="-9.5" x2="-43" y2="9.5"  stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
+        <line x1="-37" y1="-9.5" x2="-37" y2="9.5"  stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
+        <line x1="-31" y1="-9.5" x2="-31" y2="9.5"  stroke="rgba(0,200,240,0.18)" stroke-width="0.4"/>
+        <rect x="-49" y="-9.5" width="21" height="5" rx="1.5" fill="rgba(255,255,255,0.06)"/>
+
+        <!-- ── RIGHT SOLAR PANEL ── -->
+        <rect x="12" y="-1.2" width="18" height="2.4" fill="rgba(190,195,205,0.85)"/>
+        <rect x="28" y="-9.5" width="21" height="19" rx="1.5" fill="url(#sat-panel-r)" stroke="rgba(0,180,220,0.40)" stroke-width="0.7"/>
+        <line x1="28"  y1="-3"   x2="49"  y2="-3"   stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
+        <line x1="28"  y1="3"    x2="49"  y2="3"    stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
+        <line x1="28"  y1="9"    x2="49"  y2="9"    stroke="rgba(0,200,240,0.18)" stroke-width="0.4"/>
+        <line x1="34"  y1="-9.5" x2="34"  y2="9.5"  stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
+        <line x1="40"  y1="-9.5" x2="40"  y2="9.5"  stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
+        <line x1="46"  y1="-9.5" x2="46"  y2="9.5"  stroke="rgba(0,200,240,0.18)" stroke-width="0.4"/>
+        <rect x="28"  y="-9.5" width="21" height="5" rx="1.5" fill="rgba(255,255,255,0.06)"/>
+
+        <!-- ── MAIN BODY (gold thermal blanket) ── -->
+        <rect x="-12" y="-10" width="24" height="20" rx="2.5"
+              fill="url(#sat-body-grad)" stroke="rgba(255,200,80,0.35)" stroke-width="0.7"/>
+        <!-- thermal seam lines -->
+        <line x1="-12" y1="-4" x2="12" y2="-4" stroke="rgba(160,100,15,0.35)" stroke-width="0.5"/>
+        <line x1="-12" y1="2"  x2="12" y2="2"  stroke="rgba(160,100,15,0.35)" stroke-width="0.5"/>
+        <line x1="-12" y1="8"  x2="12" y2="8"  stroke="rgba(160,100,15,0.35)" stroke-width="0.5"/>
+        <line x1="-4"  y1="-10" x2="-4" y2="10" stroke="rgba(160,100,15,0.25)" stroke-width="0.4"/>
+        <line x1="4"   y1="-10" x2="4"  y2="10" stroke="rgba(160,100,15,0.25)" stroke-width="0.4"/>
+        <!-- imaging aperture (nadir-facing) -->
+        <rect x="-6" y="4" width="12" height="6" rx="1.5"
+              fill="rgba(0,0,10,0.92)" stroke="rgba(0,210,240,0.45)" stroke-width="0.6"/>
+        <ellipse cx="0" cy="7" rx="3.5" ry="2.5"
+                 fill="rgba(0,30,70,0.85)" stroke="rgba(0,180,220,0.30)" stroke-width="0.4"/>
+        <!-- star tracker (top-left black box) -->
+        <rect x="-11" y="-10" width="6" height="5" rx="1"
+              fill="rgba(14,16,26,0.96)" stroke="rgba(155,165,185,0.30)" stroke-width="0.5"/>
+        <!-- S-band dish (top-right) -->
+        <ellipse cx="9" cy="-11" rx="4.5" ry="2.5"
+                 fill="rgba(210,215,225,0.76)" stroke="rgba(180,185,200,0.40)" stroke-width="0.5"/>
+        <line x1="9" y1="-8.5" x2="9" y2="-10" stroke="rgba(180,185,200,0.55)" stroke-width="0.6"/>
+        <!-- body sheen -->
+        <rect x="-12" y="-10" width="24" height="6" rx="2.5" fill="rgba(255,230,120,0.07)"/>
+        <!-- status LED -->
+        <circle cx="5" cy="0" r="2" fill="rgba(0,255,65,0.95)" filter="url(#ldr-glow)">
+          <animate attributeName="opacity" values="1;0.05;1" dur="0.55s" repeatCount="indefinite"/>
         </circle>
-        <!-- left solar panel -->
-        <rect x="-24" y="-5.5" width="12" height="11" rx="2" fill="rgba(0,110,175,.85)" stroke="rgba(0,219,233,.55)" stroke-width="0.6"/>
-        <line x1="-20" y1="-5.5" x2="-20" y2="5.5" stroke="rgba(0,219,233,.3)" stroke-width="0.5"/>
-        <line x1="-16" y1="-5.5" x2="-16" y2="5.5" stroke="rgba(0,219,233,.3)" stroke-width="0.5"/>
-        <!-- main body -->
-        <rect x="-11" y="-7" width="22" height="14" rx="2.5" fill="rgba(0,219,233,.95)" stroke="rgba(180,248,255,.6)" stroke-width="0.9"/>
-        <line x1="-11" y1="0" x2="11" y2="0" stroke="rgba(255,255,255,.2)" stroke-width="0.6"/>
-        <rect x="-4" y="-7" width="8" height="3" rx="1" fill="rgba(0,255,65,.4)"/>
-        <!-- right solar panel -->
-        <rect x="12" y="-5.5" width="12" height="11" rx="2" fill="rgba(0,110,175,.85)" stroke="rgba(0,219,233,.55)" stroke-width="0.6"/>
-        <line x1="16" y1="-5.5" x2="16" y2="5.5" stroke="rgba(0,219,233,.3)" stroke-width="0.5"/>
-        <line x1="20" y1="-5.5" x2="20" y2="5.5" stroke="rgba(0,219,233,.3)" stroke-width="0.5"/>
-        <!-- antenna up -->
-        <line x1="0" y1="-7" x2="0" y2="-16" stroke="rgba(0,255,65,.85)" stroke-width="1"/>
-        <circle cy="-17" r="2.2" fill="rgba(0,255,65,.95)" filter="url(#ldr-glow)">
-          <animate attributeName="opacity" values="1;0.15;1" dur="0.55s" repeatCount="indefinite"/>
+
+        <!-- ── HIGH-GAIN ANTENNA BOOM (upward) ── -->
+        <line x1="0" y1="-10" x2="0" y2="-20" stroke="rgba(200,205,215,0.80)" stroke-width="0.9"/>
+        <ellipse cx="0" cy="-21" rx="4" ry="2.2"
+                 fill="rgba(210,215,225,0.72)" stroke="rgba(180,185,200,0.40)" stroke-width="0.5"/>
+        <circle cx="0" cy="-21" r="1.5" fill="rgba(0,255,65,0.90)" filter="url(#ldr-glow)">
+          <animate attributeName="opacity" values="1;0.1;1" dur="0.50s" repeatCount="indefinite"/>
         </circle>
-        <!-- signal beam toward earth -->
-        <line x1="0" y1="7" x2="0" y2="22" stroke="rgba(0,255,65,.35)" stroke-width="0.8" stroke-dasharray="2.5,2.5"/>
-        <!-- data packet travelling down beam -->
-        <circle cy="12" r="1.5" fill="rgba(0,255,65,.75)">
-          <animate attributeName="cy" values="8;22;8" dur="0.75s" repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="0.9;0;0.9" dur="0.75s" repeatCount="indefinite"/>
+
+        <!-- ── NADIR SIGNAL BEAM ── -->
+        <line x1="0" y1="10" x2="0" y2="26"
+              stroke="rgba(0,255,65,0.28)" stroke-width="0.8" stroke-dasharray="2,2.5"/>
+        <circle cy="14" r="1.5" fill="rgba(0,255,65,0.85)">
+          <animate attributeName="cy" values="12;26;12" dur="0.8s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;0;1" dur="0.8s" repeatCount="indefinite"/>
         </circle>
       </g>
 
@@ -2354,7 +2474,7 @@ updateClock();
       <line x1="270" y1="74" x2="334" y2="74" stroke="rgba(0,255,65,.15)" stroke-width="0.5"/>
       <line x1="270" y1="128" x2="334" y2="128" stroke="rgba(0,255,65,.1)" stroke-width="0.5"/>
 
-      <!-- signal strength bars (bottom right) -->
+      <!-- signal strength bars -->
       <rect x="260" y="205" width="5" height="9"  rx="1" fill="rgba(0,255,65,.8)"/>
       <rect x="267" y="199" width="5" height="15" rx="1" fill="rgba(0,255,65,.8)"/>
       <rect x="274" y="192" width="5" height="22" rx="1" fill="rgba(0,255,65,.8)"/>
