@@ -96,6 +96,34 @@ body::before{
   font-family:'JetBrains Mono',monospace;font-size:11px;
   font-weight:700;color:var(--green);letter-spacing:.06em;
 }
+/* ── AUTHOR CARDS (equal prominence) ── */
+.authors-row{
+  display:flex;flex-direction:row;flex-wrap:wrap;
+  gap:12px;justify-content:center;align-items:stretch;
+  position:relative;z-index:1;margin-bottom:36px;
+}
+.author-card{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:14px 20px;
+  background:rgba(0,255,65,.05);
+  border:1px solid rgba(0,255,65,.22);
+  border-radius:14px;
+  backdrop-filter:blur(20px);
+  box-shadow:0 0 18px rgba(0,255,65,.08),inset 0 1px 0 rgba(0,255,65,.12);
+  min-width:110px;
+}
+.author-card .a-label{
+  font-family:'JetBrains Mono',monospace;font-size:7px;
+  font-weight:700;letter-spacing:.18em;
+  color:rgba(0,255,65,.45);text-transform:uppercase;
+}
+.author-card .a-name{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  font-weight:800;letter-spacing:.06em;
+  color:#00ff41;
+  text-shadow:0 0 12px rgba(0,255,65,.7),0 0 24px rgba(0,255,65,.35);
+  text-align:center;line-height:1.3;
+}
 .cover-toc{
   position:relative;z-index:1;
   display:flex;flex-direction:column;gap:0;
@@ -193,6 +221,9 @@ body::before{
 /* ── WIRING DIAGRAM ── */
 .wire-diagram{width:100%;overflow-x:auto;padding:8px 0}
 .wire-diagram svg{min-width:640px;width:100%;display:block}
+.svg-block{width:100%;overflow-x:auto;padding:8px 0;margin-top:32px}
+.svg-block svg{min-width:560px;width:100%;display:block}
+.svg-block-label{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:10px}
 
 /* ── COMPONENT BOX (SVG) ── */
 /* drawn inline */
@@ -316,6 +347,8 @@ body::before{
 @media(max-width:480px){
   .grid2{grid-template-columns:1fr}
   .cover-meta{gap:16px}
+  .authors-row{gap:8px}
+  .author-card{padding:10px 14px}
 }
 
 /* Print */
@@ -355,16 +388,27 @@ body::before{
       <span class="value">0.15 HA · 3 ZONES</span>
     </div>
     <div class="cover-meta-item">
-      <span class="label">PREPARED BY</span>
-      <span class="value" style="display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center">
-        <span>RUDRAKSH PATEL</span>
-        <span style="font-size:9px;color:rgba(0,255,65,.5);letter-spacing:.08em">RUSHANG PATEL</span>
-        <span style="font-size:9px;color:rgba(0,255,65,.5);letter-spacing:.08em">MIT PATEL</span>
-      </span>
-    </div>
-    <div class="cover-meta-item">
       <span class="label">DATE</span>
       <span class="value">JUNE 2026</span>
+    </div>
+  </div>
+
+  <!-- PRESENTED BY — equal-prominence author cards -->
+  <div style="position:relative;z-index:1;text-align:center;margin-bottom:8px">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.18em;color:rgba(185,204,178,.4)">PRESENTED BY</span>
+  </div>
+  <div class="authors-row">
+    <div class="author-card">
+      <span class="a-label">Lead Engineer</span>
+      <span class="a-name">RUDRAKSH<br/>PATEL</span>
+    </div>
+    <div class="author-card">
+      <span class="a-label">Co-Engineer</span>
+      <span class="a-name">RUSHANG<br/>PATEL</span>
+    </div>
+    <div class="author-card">
+      <span class="a-label">Co-Engineer</span>
+      <span class="a-name">MIT<br/>PATEL</span>
     </div>
   </div>
 
@@ -473,6 +517,79 @@ body::before{
         <div class="stat-lbl">AI EFFICIENCY</div>
       </div>
     </div>
+  </div>
+
+  <!-- ── SYSTEM ARCHITECTURE LAYERS SVG ── -->
+  <div class="svg-block">
+    <svg viewBox="0 0 860 420" xmlns="http://www.w3.org/2000/svg" style="font-family:'JetBrains Mono',monospace">
+      <defs>
+        <filter id="arc-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="arc-glow2"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <style>.arc-flow{stroke-dasharray:8 5;animation:arcf 2s linear infinite}@keyframes arcf{to{stroke-dashoffset:-26}}</style>
+      </defs>
+      <!-- Layer backgrounds -->
+      <!-- Space Layer -->
+      <rect x="10" y="10" width="840" height="62" rx="12" fill="rgba(0,219,233,.04)" stroke="rgba(0,219,233,.22)" stroke-width="1.2"/>
+      <text x="30" y="34" fill="rgba(0,219,233,.55)" font-size="8" font-weight="700" letter-spacing="2">SPACE LAYER</text>
+      <!-- satellites -->
+      <text x="130" y="50" fill="rgba(0,219,233,.9)" font-size="11" font-weight="700">EOS-04 SAR</text>
+      <text x="130" y="64" fill="rgba(185,204,178,.45)" font-size="8">ISRO · 12-day</text>
+      <text x="310" y="50" fill="rgba(0,219,233,.9)" font-size="11" font-weight="700">SENTINEL-1</text>
+      <text x="310" y="64" fill="rgba(185,204,178,.45)" font-size="8">ESA · 6-day</text>
+      <text x="490" y="50" fill="rgba(100,180,255,.9)" font-size="11" font-weight="700">OPEN-METEO</text>
+      <text x="490" y="64" fill="rgba(185,204,178,.45)" font-size="8">ET₀ · Rain · VPD</text>
+      <text x="670" y="50" fill="rgba(180,130,255,.9)" font-size="11" font-weight="700">GEMINI AI</text>
+      <text x="670" y="64" fill="rgba(185,204,178,.45)" font-size="8">google.genai v2</text>
+
+      <!-- Arrow 1 -->
+      <line x1="430" y1="72" x2="430" y2="116" stroke="rgba(0,255,65,.4)" stroke-width="1.5" class="arc-flow" marker-end="url(#a1)"/>
+      <defs><marker id="a1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="rgba(0,255,65,.5)"/></marker></defs>
+      <text x="440" y="99" fill="rgba(0,255,65,.4)" font-size="7">NDVI+ET₀+AI</text>
+
+      <!-- Cloud / Software Layer -->
+      <rect x="10" y="118" width="840" height="62" rx="12" fill="rgba(0,255,65,.035)" stroke="rgba(0,255,65,.18)" stroke-width="1.2"/>
+      <text x="30" y="142" fill="rgba(0,255,65,.5)" font-size="8" font-weight="700" letter-spacing="2">CLOUD LAYER</text>
+      <text x="130" y="158" fill="rgba(0,255,65,.9)" font-size="11" font-weight="700">GitHub Pages</text>
+      <text x="130" y="172" fill="rgba(185,204,178,.45)" font-size="8">PWA Dashboard</text>
+      <text x="310" y="158" fill="rgba(255,180,50,.9)" font-size="11" font-weight="700">Google Drive</text>
+      <text x="310" y="172" fill="rgba(185,204,178,.45)" font-size="8">NDVI image store</text>
+      <text x="490" y="158" fill="rgba(185,204,178,.8)" font-size="11" font-weight="700">ndvi_status.json</text>
+      <text x="490" y="172" fill="rgba(185,204,178,.45)" font-size="8">auto-committed</text>
+      <text x="670" y="158" fill="rgba(0,219,233,.9)" font-size="11" font-weight="700">Service Worker</text>
+      <text x="670" y="172" fill="rgba(185,204,178,.45)" font-size="8">offline cache</text>
+
+      <!-- Arrow 2 -->
+      <line x1="430" y1="180" x2="430" y2="224" stroke="rgba(255,100,200,.4)" stroke-width="1.5" class="arc-flow" marker-end="url(#a2)"/>
+      <defs><marker id="a2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="rgba(255,100,200,.5)"/></marker></defs>
+      <text x="440" y="207" fill="rgba(255,100,200,.4)" font-size="7">USB SERIAL</text>
+
+      <!-- Hub Layer -->
+      <rect x="10" y="226" width="840" height="62" rx="12" fill="rgba(255,100,200,.04)" stroke="rgba(255,100,200,.22)" stroke-width="1.2"/>
+      <text x="30" y="250" fill="rgba(255,100,200,.5)" font-size="8" font-weight="700" letter-spacing="2">HUB LAYER</text>
+      <text x="200" y="266" fill="rgba(255,100,200,.95)" font-size="13" font-weight="800">Raspberry Pi 4/5</text>
+      <text x="200" y="280" fill="rgba(185,204,178,.45)" font-size="8">Office · Always-On · ndvi_harvester.py</text>
+      <text x="560" y="266" fill="rgba(255,180,50,.95)" font-size="13" font-weight="800">Central ESP32 + LoRa</text>
+      <text x="560" y="280" fill="rgba(185,204,178,.45)" font-size="8">Office gateway · 868 MHz broadcast</text>
+
+      <!-- Arrow 3 -->
+      <line x1="430" y1="288" x2="430" y2="332" stroke="rgba(255,180,50,.4)" stroke-width="1.5" class="arc-flow" marker-end="url(#a3)"/>
+      <defs><marker id="a3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="rgba(255,180,50,.5)"/></marker></defs>
+      <text x="440" y="315" fill="rgba(255,180,50,.4)" font-size="7">LoRa 868 MHz</text>
+
+      <!-- Field Layer -->
+      <rect x="10" y="334" width="840" height="62" rx="12" fill="rgba(0,255,65,.04)" stroke="rgba(0,255,65,.22)" stroke-width="1.2"/>
+      <text x="30" y="358" fill="rgba(0,255,65,.5)" font-size="8" font-weight="700" letter-spacing="2">FIELD LAYER</text>
+      <text x="130" y="374" fill="rgba(0,255,65,.9)" font-size="11" font-weight="700">ESP32 Node A</text>
+      <text x="130" y="388" fill="rgba(185,204,178,.45)" font-size="8">Boys Hostel / North</text>
+      <text x="380" y="374" fill="rgba(0,255,65,.9)" font-size="11" font-weight="700">ESP32 Node B</text>
+      <text x="380" y="388" fill="rgba(185,204,178,.45)" font-size="8">Main College / East</text>
+      <text x="630" y="374" fill="rgba(0,255,65,.9)" font-size="11" font-weight="700">ESP32 Node C</text>
+      <text x="630" y="388" fill="rgba(185,204,178,.45)" font-size="8">Diploma / South</text>
+
+      <!-- Bottom label -->
+      <text x="430" y="412" text-anchor="middle" fill="rgba(185,204,178,.25)" font-size="8.5" letter-spacing="1.5">↓ SOLENOID VALVES → DRIP IRRIGATION LINES → FIELDS A / B / C</text>
+    </svg>
+    <div class="svg-block-label">FIG 1 — System Architecture · 5-Layer Stack</div>
   </div>
 
 </div>
@@ -898,6 +1015,67 @@ body::before{
 
   </div>
 
+  <!-- ── AI DECISION FLOWCHART SVG ── -->
+  <div class="svg-block">
+    <svg viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg" style="font-family:'JetBrains Mono',monospace">
+      <defs>
+        <filter id="fc-glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <style>.fc-flow{stroke-dasharray:6 4;animation:fcf 1.6s linear infinite}@keyframes fcf{to{stroke-dashoffset:-20}}</style>
+        <marker id="fca" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="rgba(0,255,65,.6)"/></marker>
+        <marker id="fca-r" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="rgba(255,100,64,.6)"/></marker>
+        <marker id="fca-g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="rgba(0,255,65,.8)"/></marker>
+      </defs>
+      <!-- START -->
+      <rect x="330" y="14" width="200" height="44" rx="22" fill="rgba(0,219,233,.08)" stroke="rgba(0,219,233,.4)" stroke-width="1.5" filter="url(#fc-glow)"/>
+      <text x="430" y="41" text-anchor="middle" fill="rgba(0,219,233,.95)" font-size="11" font-weight="700" letter-spacing="1.5">SYSTEM START</text>
+      <line x1="430" y1="58" x2="430" y2="90" stroke="rgba(0,255,65,.4)" stroke-width="1.5" class="fc-flow" marker-end="url(#fca)"/>
+      <!-- STEP 1 -->
+      <rect x="290" y="90" width="280" height="48" rx="10" fill="rgba(0,219,233,.06)" stroke="rgba(0,219,233,.28)" stroke-width="1.2"/>
+      <text x="430" y="111" text-anchor="middle" fill="rgba(0,219,233,.9)" font-size="10" font-weight="700">EOS-04 / SENTINEL-1</text>
+      <text x="430" y="128" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="8.5">NDVI extracted per zone (0–1)</text>
+      <line x1="430" y1="138" x2="430" y2="168" stroke="rgba(0,255,65,.4)" stroke-width="1.5" class="fc-flow" marker-end="url(#fca)"/>
+      <!-- STEP 2 -->
+      <rect x="290" y="168" width="280" height="48" rx="10" fill="rgba(100,180,255,.06)" stroke="rgba(100,180,255,.25)" stroke-width="1.2"/>
+      <text x="430" y="189" text-anchor="middle" fill="rgba(100,180,255,.9)" font-size="10" font-weight="700">OPEN-METEO FETCH</text>
+      <text x="430" y="206" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="8.5">ET₀ · VPD · 3-day rainfall</text>
+      <line x1="430" y1="216" x2="430" y2="248" stroke="rgba(0,255,65,.4)" stroke-width="1.5" class="fc-flow" marker-end="url(#fca)"/>
+      <!-- DECISION 1: Rain Guard -->
+      <polygon points="430,248 570,290 430,332 290,290" fill="rgba(255,180,50,.05)" stroke="rgba(255,180,50,.4)" stroke-width="1.5" filter="url(#fc-glow)"/>
+      <text x="430" y="286" text-anchor="middle" fill="rgba(255,180,50,.95)" font-size="10" font-weight="700">RAIN GUARD?</text>
+      <text x="430" y="302" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="8">rain_3d &gt; 8mm or P(rain) &gt; 60%</text>
+      <!-- YES → HOLD (right) -->
+      <line x1="570" y1="290" x2="740" y2="290" stroke="rgba(255,100,64,.45)" stroke-width="1.5" class="fc-flow" marker-end="url(#fca-r)"/>
+      <text x="626" y="283" fill="rgba(255,180,50,.7)" font-size="8" font-weight="700">YES</text>
+      <rect x="740" y="268" width="108" height="44" rx="10" fill="rgba(255,100,64,.08)" stroke="rgba(255,100,64,.35)" stroke-width="1.2"/>
+      <text x="794" y="288" text-anchor="middle" fill="rgba(255,100,64,.9)" font-size="10" font-weight="700">HOLD</text>
+      <text x="794" y="303" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="8">skip irrigation</text>
+      <!-- NO → down -->
+      <line x1="430" y1="332" x2="430" y2="364" stroke="rgba(0,255,65,.4)" stroke-width="1.5" class="fc-flow" marker-end="url(#fca)"/>
+      <text x="438" y="352" fill="rgba(255,180,50,.7)" font-size="8" font-weight="700">NO</text>
+      <!-- DECISION 2: VWC -->
+      <polygon points="430,364 570,406 430,448 290,406" fill="rgba(0,219,233,.05)" stroke="rgba(0,219,233,.38)" stroke-width="1.5" filter="url(#fc-glow)"/>
+      <text x="430" y="400" text-anchor="middle" fill="rgba(0,219,233,.95)" font-size="10" font-weight="700">VWC BELOW</text>
+      <text x="430" y="417" text-anchor="middle" fill="rgba(0,219,233,.95)" font-size="10" font-weight="700">THRESHOLD?</text>
+      <!-- NO → HOLD (left) -->
+      <line x1="290" y1="406" x2="120" y2="406" stroke="rgba(255,100,64,.45)" stroke-width="1.5" class="fc-flow" marker-end="url(#fca-r)"/>
+      <text x="187" y="399" fill="rgba(255,180,50,.7)" font-size="8" font-weight="700">NO</text>
+      <rect x="12" y="384" width="108" height="44" rx="10" fill="rgba(255,100,64,.08)" stroke="rgba(255,100,64,.35)" stroke-width="1.2"/>
+      <text x="66" y="404" text-anchor="middle" fill="rgba(255,100,64,.9)" font-size="10" font-weight="700">HOLD</text>
+      <text x="66" y="419" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="8">soil adequate</text>
+      <!-- YES → IRRIGATE -->
+      <line x1="430" y1="448" x2="430" y2="480" stroke="rgba(0,255,65,.5)" stroke-width="2" class="fc-flow" marker-end="url(#fca-g)"/>
+      <text x="438" y="468" fill="rgba(255,180,50,.7)" font-size="8" font-weight="700">YES</text>
+      <!-- IRRIGATE box -->
+      <rect x="290" y="480" width="280" height="34" rx="10" fill="rgba(0,255,65,.1)" stroke="rgba(0,255,65,.55)" stroke-width="1.8" filter="url(#fc-glow)"/>
+      <text x="430" y="502" text-anchor="middle" fill="rgba(0,255,65,1)" font-size="12" font-weight="800" letter-spacing="2">IRRIGATE</text>
+      <!-- Gemini note -->
+      <text x="720" y="350" fill="rgba(180,130,255,.55)" font-size="8" font-weight="700">← GEMINI AI</text>
+      <text x="720" y="363" fill="rgba(180,130,255,.4)" font-size="7.5">processes inputs &amp;</text>
+      <text x="720" y="375" fill="rgba(180,130,255,.4)" font-size="7.5">returns per-zone verdict</text>
+    </svg>
+    <div class="svg-block-label">FIG 2 — AI Irrigation Decision Logic · Gemini Water-Balance Model</div>
+  </div>
+
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
@@ -1179,6 +1357,87 @@ body::before{
     </table>
   </div>
 
+  <!-- ── BAR CHARTS: Water Efficiency + Cost Comparison ── -->
+  <div class="svg-block">
+    <svg viewBox="0 0 860 280" xmlns="http://www.w3.org/2000/svg" style="font-family:'JetBrains Mono',monospace">
+      <defs>
+        <filter id="bar-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <style>
+          .bar-anim-f{animation:barF 1.4s cubic-bezier(.22,.61,.36,1) forwards}
+          .bar-anim-i{animation:barI 1.6s cubic-bezier(.22,.61,.36,1) forwards}
+          .bar-anim-t{animation:barT 1.8s cubic-bezier(.22,.61,.36,1) forwards}
+          @keyframes barF{from{transform:scaleY(0);transform-origin:bottom}to{transform:scaleY(1);transform-origin:bottom}}
+          @keyframes barI{from{transform:scaleY(0);transform-origin:bottom}to{transform:scaleY(1);transform-origin:bottom}}
+          @keyframes barT{from{transform:scaleY(0);transform-origin:bottom}to{transform:scaleY(1);transform-origin:bottom}}
+        </style>
+      </defs>
+
+      <!-- ── LEFT: WATER EFFICIENCY CHART ── -->
+      <text x="210" y="20" text-anchor="middle" fill="rgba(185,204,178,.7)" font-size="10" font-weight="700" letter-spacing="1">WATER EFFICIENCY</text>
+      <!-- Y axis -->
+      <line x1="70" y1="30" x2="70" y2="220" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+      <line x1="70" y1="220" x2="370" y2="220" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+      <!-- Y labels -->
+      <text x="62" y="224" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">0%</text>
+      <text x="62" y="175" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">25%</text>
+      <text x="62" y="127" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">50%</text>
+      <text x="62" y="79" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">75%</text>
+      <text x="62" y="35" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">100%</text>
+      <!-- grid lines -->
+      <line x1="70" y1="175" x2="370" y2="175" stroke="rgba(255,255,255,.04)" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="70" y1="127" x2="370" y2="127" stroke="rgba(255,255,255,.04)" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="70" y1="79" x2="370" y2="79" stroke="rgba(255,255,255,.04)" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="70" y1="35" x2="370" y2="35" stroke="rgba(255,255,255,.04)" stroke-width="1" stroke-dasharray="4 4"/>
+      <!-- Flood: 35% → bar height = 190*0.35 = 66.5 → top=220-66.5=153.5 -->
+      <rect x="100" y="153" width="60" height="67" rx="4" fill="rgba(255,100,64,.18)" stroke="rgba(255,100,64,.4)" stroke-width="1" class="bar-anim-f"/>
+      <text x="130" y="148" text-anchor="middle" fill="rgba(255,100,64,.9)" font-size="10" font-weight="700">35%</text>
+      <text x="130" y="236" text-anchor="middle" fill="rgba(185,204,178,.45)" font-size="8">FLOOD</text>
+      <!-- IoT: 75% → height=142.5 → top=77.5 -->
+      <rect x="190" y="77" width="60" height="143" rx="4" fill="rgba(255,180,50,.18)" stroke="rgba(255,180,50,.4)" stroke-width="1" class="bar-anim-i"/>
+      <text x="220" y="72" text-anchor="middle" fill="rgba(255,180,50,.9)" font-size="10" font-weight="700">75%</text>
+      <text x="220" y="236" text-anchor="middle" fill="rgba(185,204,178,.45)" font-size="8">IoT SENSORS</text>
+      <!-- TERRA: 88% → height=167.2 → top=52.8 -->
+      <rect x="282" y="53" width="60" height="167" rx="4" fill="rgba(0,255,65,.18)" stroke="rgba(0,255,65,.5)" stroke-width="1.5" class="bar-anim-t" filter="url(#bar-glow)"/>
+      <text x="312" y="48" text-anchor="middle" fill="rgba(0,255,65,1)" font-size="10" font-weight="800">88%</text>
+      <text x="312" y="236" text-anchor="middle" fill="rgba(0,255,65,.85)" font-size="8" font-weight="700">TERRA-CORE</text>
+
+      <!-- divider -->
+      <line x1="435" y1="20" x2="435" y2="250" stroke="rgba(255,255,255,.06)" stroke-width="1" stroke-dasharray="5 5"/>
+
+      <!-- ── RIGHT: COST COMPARISON CHART ── -->
+      <text x="650" y="20" text-anchor="middle" fill="rgba(185,204,178,.7)" font-size="10" font-weight="700" letter-spacing="1">SETUP COST (₹ per farm)</text>
+      <!-- Y axis -->
+      <line x1="510" y1="30" x2="510" y2="220" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+      <line x1="510" y1="220" x2="820" y2="220" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+      <!-- Y labels (max 80k) -->
+      <text x="502" y="224" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">₹0</text>
+      <text x="502" y="175" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">₹20k</text>
+      <text x="502" y="127" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">₹40k</text>
+      <text x="502" y="79" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">₹60k</text>
+      <text x="502" y="35" text-anchor="end" fill="rgba(185,204,178,.35)" font-size="7.5">₹80k</text>
+      <line x1="510" y1="175" x2="820" y2="175" stroke="rgba(255,255,255,.04)" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="510" y1="127" x2="820" y2="127" stroke="rgba(255,255,255,.04)" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="510" y1="79" x2="820" y2="79" stroke="rgba(255,255,255,.04)" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="510" y1="35" x2="820" y2="35" stroke="rgba(255,255,255,.04)" stroke-width="1" stroke-dasharray="4 4"/>
+      <!-- Flood: ₹2k → 2/80=2.5% → height=4.75 → tiny -->
+      <rect x="540" y="218" width="60" height="5" rx="2" fill="rgba(255,100,64,.4)" stroke="rgba(255,100,64,.5)" stroke-width="1" class="bar-anim-f"/>
+      <text x="570" y="212" text-anchor="middle" fill="rgba(255,100,64,.9)" font-size="10" font-weight="700">₹2k</text>
+      <text x="570" y="236" text-anchor="middle" fill="rgba(185,204,178,.45)" font-size="8">FLOOD</text>
+      <!-- IoT: ₹80k → max → height=190 → top=30 -->
+      <rect x="630" y="30" width="60" height="190" rx="4" fill="rgba(255,180,50,.18)" stroke="rgba(255,180,50,.4)" stroke-width="1" class="bar-anim-i"/>
+      <text x="660" y="25" text-anchor="middle" fill="rgba(255,180,50,.9)" font-size="10" font-weight="700">₹80k</text>
+      <text x="660" y="236" text-anchor="middle" fill="rgba(185,204,178,.45)" font-size="8">IoT SENSORS</text>
+      <!-- TERRA: ₹13.3k → 13.3/80=16.6% → height=31.6 → top=188.4 -->
+      <rect x="722" y="189" width="60" height="31" rx="4" fill="rgba(0,255,65,.18)" stroke="rgba(0,255,65,.5)" stroke-width="1.5" class="bar-anim-t" filter="url(#bar-glow)"/>
+      <text x="752" y="183" text-anchor="middle" fill="rgba(0,255,65,1)" font-size="10" font-weight="800">₹13.3k</text>
+      <text x="752" y="236" text-anchor="middle" fill="rgba(0,255,65,.85)" font-size="8" font-weight="700">TERRA-CORE</text>
+
+      <!-- bottom labels -->
+      <text x="430" y="262" text-anchor="middle" fill="rgba(185,204,178,.2)" font-size="8" letter-spacing="1">LOWER COST IS BETTER →  ·  ← HIGHER EFFICIENCY IS BETTER</text>
+    </svg>
+    <div class="svg-block-label">FIG 3 — Water Efficiency vs Setup Cost Comparison</div>
+  </div>
+
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
@@ -1294,6 +1553,94 @@ body::before{
       </div>
     </div>
 
+  </div>
+
+  <!-- ── GANTT ROADMAP SVG ── -->
+  <div class="svg-block" style="margin-top:40px">
+    <svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg" style="font-family:'JetBrains Mono',monospace">
+      <defs>
+        <filter id="gantt-glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <style>
+          .gantt-bar{animation:ganttIn 1s cubic-bezier(.22,.61,.36,1) both}
+          @keyframes ganttIn{from{transform:scaleX(0);transform-origin:left}to{transform:scaleX(1);transform-origin:left}}
+          .g1{animation-delay:.1s}.g2{animation-delay:.25s}.g3{animation-delay:.4s}.g4{animation-delay:.55s}.g5{animation-delay:.7s}.g6{animation-delay:.85s}
+        </style>
+      </defs>
+
+      <!-- Title -->
+      <text x="430" y="18" text-anchor="middle" fill="rgba(185,204,178,.55)" font-size="9.5" font-weight="700" letter-spacing="2">DEVELOPMENT ROADMAP · 2026 → 2028</text>
+
+      <!-- Column headers (quarters) -->
+      <!-- Total width: 860, left label area: 180px, chart area: 660px (180→840) -->
+      <!-- 9 quarters: Q3'26 Q4'26 Q1'27 Q2'27 Q3'27 Q4'27 Q1'28 Q2'28 Q3'28 each = 73.3px -->
+      <line x1="180" y1="28" x2="840" y2="28" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+      <line x1="180" y1="290" x2="840" y2="290" stroke="rgba(255,255,255,.06)" stroke-width="1"/>
+
+      <!-- Quarter markers (every 73.3px from 180) -->
+      <text x="216" y="40" fill="rgba(185,204,178,.3)" font-size="7.5" text-anchor="middle">Q3'26</text>
+      <text x="290" y="40" fill="rgba(185,204,178,.3)" font-size="7.5" text-anchor="middle">Q4'26</text>
+      <text x="363" y="40" fill="rgba(185,204,178,.3)" font-size="7.5" text-anchor="middle">Q1'27</text>
+      <text x="436" y="40" fill="rgba(185,204,178,.3)" font-size="7.5" text-anchor="middle">Q2'27</text>
+      <text x="509" y="40" fill="rgba(185,204,178,.3)" font-size="7.5" text-anchor="middle">Q3'27</text>
+      <text x="583" y="40" fill="rgba(185,204,178,.3)" font-size="7.5" text-anchor="middle">Q4'27</text>
+      <text x="656" y="40" fill="rgba(185,204,178,.3)" font-size="7.5" text-anchor="middle">Q1'28</text>
+      <text x="729" y="40" fill="rgba(185,204,178,.3)" font-size="7.5" text-anchor="middle">Q2'28</text>
+      <text x="803" y="40" fill="rgba(185,204,178,.3)" font-size="7.5" text-anchor="middle">Q3'28</text>
+
+      <!-- Vertical grid lines -->
+      <line x1="253" y1="44" x2="253" y2="285" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+      <line x1="326" y1="44" x2="326" y2="285" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+      <line x1="400" y1="44" x2="400" y2="285" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+      <line x1="473" y1="44" x2="473" y2="285" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+      <line x1="546" y1="44" x2="546" y2="285" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+      <line x1="619" y1="44" x2="619" y2="285" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+      <line x1="693" y1="44" x2="693" y2="285" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+      <line x1="766" y1="44" x2="766" y2="285" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+
+      <!-- Row heights: 6 phases, rows at y=54,90,126,162,198,234, height=24 -->
+
+      <!-- Phase 1: Q3'26 (1 quarter = 73px) → x=180 w=73 -->
+      <text x="6" y="71" fill="rgba(255,180,50,.8)" font-size="8" font-weight="700">PHASE 1</text>
+      <text x="6" y="83" fill="rgba(185,204,178,.4)" font-size="7">Hardware</text>
+      <rect x="180" y="54" width="73" height="24" rx="5" fill="rgba(255,180,50,.22)" stroke="rgba(255,180,50,.5)" stroke-width="1" class="gantt-bar g1" filter="url(#gantt-glow)"/>
+      <text x="216" y="70" text-anchor="middle" fill="rgba(255,180,50,.95)" font-size="8" font-weight="700">Q3 2026 · 3 mo</text>
+
+      <!-- Phase 2: Q4'26–Q1'27 (2 quarters = 146px) → x=253 w=146 -->
+      <text x="6" y="107" fill="rgba(0,219,233,.8)" font-size="8" font-weight="700">PHASE 2</text>
+      <text x="6" y="119" fill="rgba(185,204,178,.4)" font-size="7">NDVI ML</text>
+      <rect x="253" y="90" width="146" height="24" rx="5" fill="rgba(0,219,233,.18)" stroke="rgba(0,219,233,.45)" stroke-width="1" class="gantt-bar g2"/>
+      <text x="326" y="106" text-anchor="middle" fill="rgba(0,219,233,.95)" font-size="8" font-weight="700">Q4'26–Q1'27 · 6 mo</text>
+
+      <!-- Phase 3: Q2'27 (1 quarter) → x=400 w=73 -->
+      <text x="6" y="143" fill="rgba(0,255,65,.8)" font-size="8" font-weight="700">PHASE 3</text>
+      <text x="6" y="155" fill="rgba(185,204,178,.4)" font-size="7">Water Meter</text>
+      <rect x="400" y="126" width="73" height="24" rx="5" fill="rgba(0,255,65,.18)" stroke="rgba(0,255,65,.45)" stroke-width="1" class="gantt-bar g3"/>
+      <text x="436" y="142" text-anchor="middle" fill="rgba(0,255,65,.95)" font-size="8" font-weight="700">Q2 2027 · 3 mo</text>
+
+      <!-- Phase 4: Q2'27 (1 quarter) → x=400 w=73 (overlapping phase 3 start) -->
+      <text x="6" y="179" fill="rgba(180,130,255,.8)" font-size="8" font-weight="700">PHASE 4</text>
+      <text x="6" y="191" fill="rgba(185,204,178,.4)" font-size="7">SMS Alerts</text>
+      <rect x="473" y="162" width="73" height="24" rx="5" fill="rgba(180,130,255,.18)" stroke="rgba(180,130,255,.45)" stroke-width="1" class="gantt-bar g4"/>
+      <text x="509" y="178" text-anchor="middle" fill="rgba(180,130,255,.95)" font-size="8" font-weight="700">Q3 2027 · 3 mo</text>
+
+      <!-- Phase 5: Q3–Q4'27 (2 quarters = 146px) → x=546 w=146 -->
+      <text x="6" y="215" fill="rgba(255,180,50,.8)" font-size="8" font-weight="700">PHASE 5</text>
+      <text x="6" y="227" fill="rgba(185,204,178,.4)" font-size="7">Scale-Out</text>
+      <rect x="546" y="198" width="147" height="24" rx="5" fill="rgba(255,180,50,.18)" stroke="rgba(255,180,50,.45)" stroke-width="1" class="gantt-bar g5"/>
+      <text x="619" y="214" text-anchor="middle" fill="rgba(255,180,50,.95)" font-size="8" font-weight="700">Q3–Q4'27 · Village</text>
+
+      <!-- Phase 6: Q1–Q3'28 (3 quarters = 219px) → x=693 w=147 -->
+      <text x="6" y="251" fill="rgba(0,255,65,.8)" font-size="8" font-weight="700">PHASE 6</text>
+      <text x="6" y="263" fill="rgba(185,204,178,.4)" font-size="7">Advanced AI</text>
+      <rect x="693" y="234" width="147" height="24" rx="5" fill="rgba(0,255,65,.22)" stroke="rgba(0,255,65,.55)" stroke-width="1.5" class="gantt-bar g6" filter="url(#gantt-glow)"/>
+      <text x="766" y="250" text-anchor="middle" fill="rgba(0,255,65,.95)" font-size="8" font-weight="700">2028 · Yield Prediction</text>
+
+      <!-- Today marker -->
+      <line x1="204" y1="44" x2="204" y2="285" stroke="rgba(0,255,65,.5)" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <rect x="186" y="272" width="36" height="14" rx="3" fill="rgba(0,255,65,.12)" stroke="rgba(0,255,65,.35)" stroke-width="1"/>
+      <text x="204" y="282" text-anchor="middle" fill="rgba(0,255,65,.8)" font-size="7" font-weight="700">NOW</text>
+    </svg>
+    <div class="svg-block-label">FIG 4 — Development Roadmap Gantt · Q3 2026 → 2028</div>
   </div>
 
   <div class="callout callout-cyan" style="margin-top:32px">
