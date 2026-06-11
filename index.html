@@ -2,7 +2,7 @@
 <html class="dark" lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimum-scale=1.0, maximum-scale=5.0"/>
 <title>TERRA-CORE | AgriSat Dediapada</title>
 
 <!-- ── PWA Manifest ───────────────────────────────────────── -->
@@ -300,6 +300,193 @@ body.theme-light .mode-toggle.sel,.theme-light .mode-toggle[style*="background"]
   /* Rule cards: 2-col → 1-col */
   .flex-1.grid.grid-cols-3.gap-md{grid-template-columns:1fr 1fr!important;gap:8px!important}
 }
+
+/* ─────────────────────────────────────────────────────────────
+   MOBILE LANDSCAPE  (phones rotated — height ≤ 500px)
+   ───────────────────────────────────────────────────────────── */
+@media(max-height:500px) and (orientation:landscape){
+  /* Shrink header */
+  header{height:48px!important}
+  :root{--header-h:48px}
+  /* Pages bump up */
+  main.page{margin-top:48px!important}
+  /* Compact bottom nav */
+  #mob-nav{height:42px!important}
+  .mob-btn{padding:4px 2px!important}
+  .mob-btn-lbl{display:none!important}
+  .mob-btn span.material-symbols-outlined{font-size:20px!important}
+  /* Map: shorter strip + scrollable panels */
+  #page-map>div:first-child{height:160px!important}
+  #sat-map{height:160px!important}
+  /* Health: 2-col */
+  #page-health .grid.grid-cols-3{grid-template-columns:repeat(2,1fr)!important}
+  /* Reduce chart minHeight */
+  .chart-wrap{min-height:180px!important}
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TABLET PORTRAIT  768 – 1023 px  (iPad 9.7" portrait, etc.)
+   ───────────────────────────────────────────────────────────── */
+@media(min-width:768px) and (max-width:1023px){
+  /* ── Sidebar: icon-only, no hover expand on touch ── */
+  aside{width:72px!important;transition:none!important}
+  /* Force all hover-expand spans invisible */
+  aside span.opacity-0{display:none!important}
+  aside .group-hover\:opacity-100{opacity:0!important;pointer-events:none!important;width:0!important;overflow:hidden!important}
+  /* The title block inside header of sidebar */
+  aside .overflow-hidden > div{display:none!important}
+
+  /* ── Main pages: use 72px sidebar offset ── */
+  main.page{margin-left:72px!important}
+  header{left:72px!important}
+  footer{left:72px!important}
+
+  /* ── Pages scroll vertically ── */
+  body{overflow-y:auto;overflow-x:hidden}
+  main.page{height:auto!important;min-height:calc(100dvh - 64px - 32px);overflow-y:auto!important}
+  main.page.active{display:flex!important}
+
+  /* ── PAGE 1: Global Map ──
+     On tablet portrait the 12-col 3/6/3 split is very tight.
+     Collapse the two side panels into a scrollable strip below the map. */
+  #page-map{flex-direction:column!important;padding:0!important}
+  #page-map>div:first-child{position:relative!important;height:320px!important;flex-shrink:0;width:100%}
+  #sat-map{height:320px!important}
+  #page-map>.relative.z-10{
+    position:relative!important;height:auto!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:12px!important;padding:14px!important;
+    background:rgba(10,15,13,.96)!important
+  }
+  /* Hide center bottom KPI bar (redundant on tablet) */
+  #page-map .col-span-6{display:none!important}
+  /* Side panels become grid items */
+  #page-map .col-span-3{grid-column:unset!important;width:100%!important}
+
+  /* ── PAGE 2: Asset Analytics ──
+     Stack left + right panels, centre NDVI full-width in between */
+  #page-ndvi{display:flex!important;flex-direction:column!important;grid-template-columns:none!important;height:auto!important;overflow-y:auto!important}
+  #page-ndvi section{grid-column:unset!important;width:100%!important;flex-shrink:0}
+  #page-ndvi section.col-span-6 .gp.flex-1{min-height:320px}
+
+  /* ── PAGE 3: Climate ── */
+  #page-climate{display:flex!important;flex-direction:column!important;height:auto!important;overflow-y:auto!important}
+  /* Metric card row: 3-col */
+  #page-climate>div:first-child{grid-template-columns:repeat(3,1fr)!important}
+  #page-climate .flex-1.gp{min-height:360px!important}
+
+  /* ── PAGE 4: Automation ── */
+  #page-auto .h-full{height:auto!important}
+  #page-auto>div.h-full{display:flex!important;flex-direction:column!important;height:auto!important}
+  #page-auto section[style*="height:45%"]{height:auto!important;min-height:260px!important;max-height:none!important}
+  #page-auto .flex-1.grid.grid-cols-12{display:flex!important;flex-direction:column!important;height:auto!important}
+  #page-auto .col-span-8,#page-auto .col-span-4{grid-column:unset!important;width:100%!important;min-height:260px!important}
+
+  /* ── PAGE 5: System Health ── */
+  #page-health{height:auto!important;overflow-y:auto!important}
+  #page-health .grid.grid-cols-3{grid-template-columns:repeat(2,1fr)!important}
+  #page-health .col-span-3.flex{flex-direction:column!important;align-items:flex-start!important;gap:16px!important}
+
+  /* ── Charts ── */
+  .chart-wrap{min-height:280px!important}
+  /* Tab bar scroll */
+  .flex.gap-xs.flex-wrap{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .wtab{white-space:nowrap!important}
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TABLET LANDSCAPE / SMALL LAPTOP  1024 – 1279 px
+   ───────────────────────────────────────────────────────────── */
+@media(min-width:1024px) and (max-width:1279px){
+  /* Sidebar stays at w-20 collapsed, expands on hover */
+  /* Pages: reduce padding slightly */
+  #page-map{padding:12px!important}
+  #page-ndvi{padding:12px!important}
+  #page-climate{padding:12px!important}
+  #page-auto{padding:12px!important}
+  #page-health{padding:12px!important}
+
+  /* Climate metrics: 3-col */
+  #page-climate>div:first-child{grid-template-columns:repeat(3,1fr)!important}
+
+  /* Health: 2-col on wider tablet landscape for certain grids */
+  /* (3-col already works at these widths) */
+}
+
+/* ─────────────────────────────────────────────────────────────
+   LARGE DESKTOP  ≥ 1280 px  — minor polish
+   ───────────────────────────────────────────────────────────── */
+@media(min-width:1280px){
+  /* Show API status that was hidden on smaller screens */
+  #api-status{display:block!important}
+}
+
+/* ─────────────────────────────────────────────────────────────
+   HEADER — truncate title on narrow screens
+   ───────────────────────────────────────────────────────────── */
+@media(max-width:480px){
+  #page-title{font-size:14px!important;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* Hide live status badge on very small screens */
+  header .rounded-full{display:none!important}
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SCREEN-ROTATION HINT TOAST
+   ───────────────────────────────────────────────────────────── */
+#rotation-hint{
+  position:fixed;
+  bottom:72px;
+  left:50%;
+  transform:translateX(-50%) translateY(20px);
+  z-index:99999;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 18px 10px 14px;
+  background:rgba(10,15,13,.92);
+  border:1px solid rgba(0,255,65,.25);
+  border-radius:40px;
+  box-shadow:0 4px 24px rgba(0,0,0,.5),0 0 16px rgba(0,255,65,.08);
+  backdrop-filter:blur(20px) saturate(1.8);
+  -webkit-backdrop-filter:blur(20px) saturate(1.8);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .3s ease, transform .3s ease;
+  white-space:nowrap;
+}
+#rotation-hint.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+#rotation-hint .rh-icon{
+  font-size:20px;color:#00ff41;
+  animation:rot-spin 1.4s cubic-bezier(.4,0,.2,1) infinite
+}
+@keyframes rot-spin{
+  0%{transform:rotate(0deg)}
+  40%{transform:rotate(-90deg)}
+  60%{transform:rotate(-90deg)}
+  100%{transform:rotate(0deg)}
+}
+#rotation-hint .rh-text{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;font-weight:700;letter-spacing:.1em;
+  color:rgba(185,204,178,.8)
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SAFE-AREA INSETS (iPhone notch / Dynamic Island)
+   ───────────────────────────────────────────────────────────── */
+header{
+  padding-top:max(0px, env(safe-area-inset-top));
+}
+#mob-nav{
+  padding-bottom:max(0px, env(safe-area-inset-bottom));
+  height:calc(56px + env(safe-area-inset-bottom))!important;
+}
+#page-map,#page-ndvi,#page-climate,#page-auto,#page-health{
+  padding-left:max(0px, env(safe-area-inset-left));
+  padding-right:max(0px, env(safe-area-inset-right));
+}
+
 #sat-map{width:100%;height:100%;background:#010b16}
 #sat-map .leaflet-tile-pane{filter:brightness(.68) saturate(.75)}
 #sat-map .leaflet-control-attribution{display:none}
@@ -1508,6 +1695,8 @@ function tickVWC(){
     doubleClickZoom:false,scrollWheelZoom:false,
     boxZoom:false,keyboard:false,attributionControl:false
   });
+  // Expose globally so the resize handler can invalidate on orientation change
+  window._satMap = map;
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.92}).addTo(map);
   // Pulsing marker icon
   const icon=L.divIcon({
@@ -2195,6 +2384,12 @@ updateClock();
     <span class="mob-btn-lbl">Health</span>
   </button>
 </nav>
+
+<!-- ═══ SCREEN ROTATION HINT ═══ -->
+<div id="rotation-hint" role="status" aria-live="polite">
+  <span class="material-symbols-outlined rh-icon" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">screen_rotation</span>
+  <span class="rh-text" id="rh-text">ROTATE FOR BETTER VIEW</span>
+</div>
 
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- ═══════ SETTINGS MODAL ═══════ -->
@@ -3280,6 +3475,113 @@ function applyTheme(theme, animate){
     if(lightChk){ lightChk.textContent='radio_button_unchecked'; lightChk.style.color='rgba(185,204,178,.3)'; lightChk.style.fontVariationSettings="'FILL' 0"; }
   }
 }
+
+// ══════════════════════════════════════════════════
+// SCREEN ROTATION & RESPONSIVE RESIZE HANDLER
+// ══════════════════════════════════════════════════
+(function(){
+
+  /* ── tiny debounce ── */
+  function debounce(fn, ms){
+    let t; return function(){ clearTimeout(t); t=setTimeout(fn, ms); };
+  }
+
+  /* ── rotation toast ── */
+  let _rhTimer = null;
+  function showRotationHint(msg){
+    const el = document.getElementById('rotation-hint');
+    const tx = document.getElementById('rh-text');
+    if(!el) return;
+    if(tx) tx.textContent = msg;
+    el.classList.add('visible');
+    clearTimeout(_rhTimer);
+    _rhTimer = setTimeout(()=>{ el.classList.remove('visible'); }, 2800);
+  }
+
+  /* ── invalidate Leaflet map sizes ── */
+  function invalidateLeafletMaps(){
+    // Use the stored global reference first
+    if(window._satMap){
+      try{ window._satMap.invalidateSize({animate:false}); } catch(e){}
+    }
+    // Also scan for any other Leaflet containers (field map, etc.)
+    document.querySelectorAll('.leaflet-container').forEach(function(el){
+      el.dispatchEvent(new Event('resize'));
+    });
+  }
+
+  /* ── resize Chart.js canvases ── */
+  function resizeCharts(){
+    if(typeof charts !== 'undefined'){
+      Object.values(charts).forEach(function(c){
+        try{ if(c && c.resize) c.resize(); } catch(e){}
+      });
+    }
+  }
+
+  /* ── recalculate crop dropdown if open ── */
+  function repositionDropdown(){
+    [1,2,3].forEach(function(z){
+      const d = document.getElementById('v'+z+'-crop-drop');
+      if(d && !d.classList.contains('hidden')) showCropDrop(z);
+    });
+  }
+
+  /* ── decide if we should suggest a different orientation ── */
+  function evaluateOrientation(){
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const isPhone   = Math.min(w,h) <= 500;           // narrow dimension ≤ 500px
+    const isTablet  = Math.min(w,h) > 500 && Math.min(w,h) <= 900;
+    const landscape = w > h;
+
+    // Phones: suggest landscape for data-heavy pages, portrait for map
+    if(isPhone){
+      const cur = document.querySelector('.page.active');
+      if(!cur) return;
+      const id = cur.id;
+      if(!landscape && (id==='climate' || id==='ndvi' || id==='auto')){
+        showRotationHint('↻ ROTATE FOR MORE DATA');
+      } else if(landscape && id==='map'){
+        showRotationHint('↺ PORTRAIT FOR FULL MAP');
+      }
+    }
+    // Tablets: suggest landscape only in portrait
+    if(isTablet && !landscape){
+      showRotationHint('↻ LANDSCAPE FOR BEST VIEW');
+    }
+  }
+
+  /* ── master handler ── */
+  function onResize(){
+    invalidateLeafletMaps();
+    resizeCharts();
+    repositionDropdown();
+    evaluateOrientation();
+  }
+
+  /* ── wire events ── */
+  // orientationchange fires before dimensions update — add 350ms delay
+  window.addEventListener('orientationchange', function(){
+    setTimeout(onResize, 350);
+  });
+
+  // resize covers desktops and many mobile browsers that don't fire orientationchange
+  window.addEventListener('resize', debounce(onResize, 200));
+
+  // screen.orientation API (modern browsers)
+  if(screen && screen.orientation){
+    screen.orientation.addEventListener('change', function(){
+      setTimeout(onResize, 350);
+    });
+  }
+
+  // Initial check after load
+  window.addEventListener('DOMContentLoaded', function(){
+    setTimeout(evaluateOrientation, 800);
+  });
+
+})();
 </script>
 </body>
 </html>
