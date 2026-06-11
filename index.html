@@ -134,6 +134,56 @@ body.theme-light .nav-btn.text-primary{color:#007a30 !important}
 body.theme-light .mode-toggle{background:rgba(0,0,0,.04) !important;color:rgba(20,60,30,.6) !important}
 body.theme-light .mode-toggle.sel,.theme-light .mode-toggle[style*="background"]{background:rgba(0,150,60,.15) !important}
 
+/* ── LIGHT THEME FONTS ──
+   Switch UI chrome to Inter (clean, readable).
+   Keep JetBrains Mono ONLY for live data values, coordinates,
+   log stream, and terminal-style readouts.
+── */
+body.theme-light{font-family:'Inter',sans-serif !important}
+
+/* Nav & sidebar labels */
+body.theme-light .nav-btn{font-family:'Inter',sans-serif !important;font-size:12px !important;letter-spacing:.01em !important}
+body.theme-light .mob-btn-lbl{font-family:'Inter',sans-serif !important;font-size:9px !important;letter-spacing:.02em !important;font-weight:600 !important}
+
+/* Mode / Auto / Manual toggles */
+body.theme-light .mode-toggle{font-family:'Inter',sans-serif !important;letter-spacing:.03em !important;font-weight:600 !important}
+
+/* Weather tabs */
+body.theme-light .wtab{font-family:'Inter',sans-serif !important;letter-spacing:.02em !important;font-size:10.5px !important}
+
+/* Duration buttons */
+body.theme-light .dur-btn{font-family:'Inter',sans-serif !important;letter-spacing:.02em !important;font-size:9.5px !important}
+
+/* Crop search & dropdown */
+body.theme-light .crop-search{font-family:'Inter',sans-serif !important;letter-spacing:.01em !important;color:#007a30 !important;background:rgba(255,255,255,.9) !important;border-color:rgba(0,100,50,.2) !important}
+body.theme-light .crop-opt{font-family:'Inter',sans-serif !important;letter-spacing:.01em !important;font-size:10px !important}
+body.theme-light .crop-cat-hdr{font-family:'Inter',sans-serif !important;font-size:8px !important;letter-spacing:.06em !important;font-weight:700 !important}
+
+/* Tailwind text classes used for headings & body */
+body.theme-light [class*="font-mono"]{font-family:'Inter',sans-serif !important;letter-spacing:.01em !important}
+body.theme-light [class*="text-headline"]{font-family:'Inter',sans-serif !important;letter-spacing:-.01em !important}
+body.theme-light [class*="text-body"]{font-family:'Inter',sans-serif !important;letter-spacing:0 !important}
+body.theme-light [class*="text-label"]{font-family:'Inter',sans-serif !important;letter-spacing:.04em !important}
+body.theme-light [class*="tracking-wider"]{letter-spacing:.05em !important}
+
+/* Tooltip in light mode */
+body.theme-light .sat-tip{background:rgba(255,255,255,.96) !important;border-color:rgba(0,120,60,.25) !important;color:#006830 !important;font-family:'Inter',sans-serif !important;letter-spacing:.02em !important;box-shadow:0 4px 16px rgba(0,80,40,.12) !important}
+
+/* ── Keep Mono for actual data ── */
+body.theme-light #log-stream,
+body.theme-light [id*="ndvi"],
+body.theme-light [id*="et0"],
+body.theme-light [id*="vpd"],
+body.theme-light [id*="rainfall"],
+body.theme-light [id*="temp"],
+body.theme-light [id*="humid"],
+body.theme-light [id*="lat"],
+body.theme-light [id*="lon"],
+body.theme-light [id*="coord"],
+body.theme-light [id*="timer"],
+body.theme-light [id*="flow"],
+body.theme-light code{font-family:'JetBrains Mono',monospace !important}
+
 /* ── APPLE GLASS PANEL ── */
 .gp{
   /* near-transparent fill — lets body gradient bleed through */
