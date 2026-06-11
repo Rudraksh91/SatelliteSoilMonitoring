@@ -65,7 +65,74 @@ body{
     #080c0a;
   color:#dfe4e0;
   overflow:hidden;
+  transition:background .4s ease, color .3s ease;
 }
+
+/* ── LIGHT THEME ─────────────────────────────────────── */
+body.theme-light{
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 70%, rgba(0,200,80,.10) 0%, transparent 58%),
+    radial-gradient(ellipse 50% 40% at 90% 15%, rgba(0,180,200,.08) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 55% at 50% 105%,rgba(200,240,210,.60) 0%, transparent 65%),
+    #f0f7f0 !important;
+  color:#0d2010;
+}
+body.theme-light .gp{
+  background:rgba(255,255,255,.78) !important;
+  border-color:rgba(0,100,50,.10) !important;
+  border-top-color:rgba(0,100,50,.10) !important;
+  border-right-color:rgba(0,100,50,.10) !important;
+  border-bottom-color:rgba(0,100,50,.10) !important;
+  border-left-color:rgba(0,100,50,.10) !important;
+  box-shadow:0 1px 2px rgba(0,0,0,.05),0 6px 28px rgba(0,80,40,.09) !important;
+}
+body.theme-light header{
+  background:rgba(240,250,242,.88) !important;
+  border-bottom-color:rgba(0,100,50,.14) !important;
+}
+body.theme-light aside{
+  background:rgba(240,250,242,.85) !important;
+  border-right-color:rgba(0,100,50,.12) !important;
+}
+body.theme-light footer,
+body.theme-light #mob-nav{
+  background:rgba(240,250,242,.88) !important;
+  border-top-color:rgba(0,100,50,.12) !important;
+}
+/* Text */
+body.theme-light{color:#0d2010}
+body.theme-light .text-on-surface-variant,
+body.theme-light [class*="text-on-surface-variant"]{color:#3a5c3c !important}
+body.theme-light .bg-white\/5{background:rgba(0,0,0,.04) !important}
+body.theme-light .bg-white\/10{background:rgba(0,0,0,.07) !important}
+body.theme-light .border-white\/5{border-color:rgba(0,0,0,.06) !important}
+body.theme-light .border-white\/10{border-color:rgba(0,0,0,.10) !important}
+body.theme-light .bg-surface-container-lowest{background:rgba(230,245,232,.8) !important}
+body.theme-light .bg-surface-container-low{background:rgba(220,240,224,.8) !important}
+body.theme-light .bg-error\/10{background:rgba(220,30,30,.07) !important}
+body.theme-light .border-error\/30{border-color:rgba(220,30,30,.3) !important}
+body.theme-light .text-error{color:#c00020 !important}
+body.theme-light .bg-secondary\/10{background:rgba(0,150,160,.10) !important}
+body.theme-light .bg-primary\/10{background:rgba(0,160,60,.10) !important}
+/* Grid background */
+body.theme-light .grid-bg{
+  background-image:linear-gradient(rgba(0,130,60,.06) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(0,130,60,.06) 1px,transparent 1px) !important;
+}
+/* Scanline lighter */
+body.theme-light .scanline{
+  background:linear-gradient(to bottom,transparent 50%,rgba(0,130,60,.015) 50%);
+  background-size:100% 4px;
+}
+/* Log stream */
+body.theme-light #log-stream{color:rgba(0,110,50,.8) !important}
+/* Nav buttons text */
+body.theme-light .nav-btn{color:rgba(30,80,40,.55) !important}
+body.theme-light .nav-btn:hover{color:#00a040 !important;background:rgba(0,150,60,.08) !important}
+body.theme-light .nav-btn.text-primary{color:#007a30 !important}
+/* Mode toggle bar */
+body.theme-light .mode-toggle{background:rgba(0,0,0,.04) !important;color:rgba(20,60,30,.6) !important}
+body.theme-light .mode-toggle.sel,.theme-light .mode-toggle[style*="background"]{background:rgba(0,150,60,.15) !important}
 
 /* ── APPLE GLASS PANEL ── */
 .gp{
@@ -352,7 +419,7 @@ body{
     </button>
   </nav>
   <div class="mt-auto py-md border-t border-white/5 shrink-0">
-    <button class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
+    <button onclick="openSettingsModal()" class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
       <span class="material-symbols-outlined mso min-w-[48px] text-center">settings</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Settings</span>
     </button>
@@ -2130,6 +2197,68 @@ updateClock();
 </nav>
 
 <!-- ══════════════════════════════════════════════════════════ -->
+<!-- ═══════ SETTINGS MODAL ═══════ -->
+<div id="settings-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeSettingsModal()">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px,92vw);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+      <div>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:rgba(185,204,178,.45);margin-bottom:4px">TERRA-CORE · AGRISAT</p>
+        <p style="font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:#dfe4e0;letter-spacing:-.01em">Settings</p>
+      </div>
+      <button onclick="closeSettingsModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(185,204,178,.6);width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+
+    <!-- Theme Section -->
+    <div style="margin-bottom:20px">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:rgba(0,238,252,.55);margin-bottom:14px;text-transform:uppercase">Display Theme</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <!-- Dark Theme Card -->
+        <button id="theme-btn-dark" onclick="setTheme('dark')" style="position:relative;padding:16px 14px;border-radius:14px;border:1.5px solid rgba(0,255,65,.35);background:rgba(6,10,9,.85);cursor:pointer;text-align:left;transition:all .2s">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;color:#00ff41">DARK</span>
+            <span id="theme-check-dark" class="material-symbols-outlined" style="font-size:16px;color:#00ff41;font-variation-settings:'FILL' 1">check_circle</span>
+          </div>
+          <!-- Mini preview -->
+          <div style="border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
+            <div style="height:8px;background:#0d1a10"></div>
+            <div style="padding:6px;background:#080c0a;display:flex;gap:4px">
+              <div style="flex:1;height:20px;border-radius:4px;background:rgba(0,255,65,.08);border:1px solid rgba(0,255,65,.15)"></div>
+              <div style="flex:1;height:20px;border-radius:4px;background:rgba(0,219,233,.06);border:1px solid rgba(0,219,233,.12)"></div>
+            </div>
+          </div>
+          <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.4);margin-top:8px;letter-spacing:.06em">Default · Mission Control</p>
+        </button>
+
+        <!-- Light Theme Card -->
+        <button id="theme-btn-light" onclick="setTheme('light')" style="position:relative;padding:16px 14px;border-radius:14px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);cursor:pointer;text-align:left;transition:all .2s">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;color:rgba(185,204,178,.7)">LIGHT</span>
+            <span id="theme-check-light" class="material-symbols-outlined" style="font-size:16px;color:rgba(185,204,178,.3);font-variation-settings:'FILL' 0">radio_button_unchecked</span>
+          </div>
+          <!-- Mini preview -->
+          <div style="border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,.08)">
+            <div style="height:8px;background:#d0ead2"></div>
+            <div style="padding:6px;background:#f0f7f0;display:flex;gap:4px">
+              <div style="flex:1;height:20px;border-radius:4px;background:rgba(255,255,255,.9);border:1px solid rgba(0,120,60,.12)"></div>
+              <div style="flex:1;height:20px;border-radius:4px;background:rgba(255,255,255,.9);border:1px solid rgba(0,120,60,.12)"></div>
+            </div>
+          </div>
+          <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.4);margin-top:8px;letter-spacing:.06em">Light · Field Mode</p>
+        </button>
+      </div>
+    </div>
+
+    <div style="height:1px;background:rgba(255,255,255,.07);margin-bottom:20px"></div>
+
+    <!-- Version info -->
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.3);letter-spacing:.06em">TERRA-CORE AgriSat · v2.4.1 · Dediapada Farm</p>
+      <button onclick="closeSettingsModal()" style="padding:8px 18px;background:rgba(0,255,65,.12);border:1px solid rgba(0,255,65,.25);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;color:#00ff41;cursor:pointer">DONE</button>
+    </div>
+  </div>
+</div>
+
 <!-- HARDWARE SETTINGS MODAL                                   -->
 <!-- ══════════════════════════════════════════════════════════ -->
 <div id="hw-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeHWModal()">
@@ -3096,7 +3225,61 @@ window.addEventListener('DOMContentLoaded', () => {
   if (window.matchMedia('(display-mode: standalone)').matches) {
     document.getElementById('install-banner').style.display = 'none';
   }
+  // Apply saved theme
+  const savedTheme = localStorage.getItem('agrisat_theme') || 'dark';
+  applyTheme(savedTheme, false);
 });
+
+// ── SETTINGS MODAL ──────────────────────────────────────────
+function openSettingsModal(){
+  document.getElementById('settings-modal').style.display='block';
+}
+function closeSettingsModal(){
+  document.getElementById('settings-modal').style.display='none';
+}
+
+function setTheme(theme){
+  localStorage.setItem('agrisat_theme', theme);
+  applyTheme(theme, true);
+}
+
+function applyTheme(theme, animate){
+  const body = document.body;
+  const darkBtn  = document.getElementById('theme-btn-dark');
+  const lightBtn = document.getElementById('theme-btn-light');
+  const darkChk  = document.getElementById('theme-check-dark');
+  const lightChk = document.getElementById('theme-check-light');
+
+  if(theme === 'light'){
+    body.classList.add('theme-light');
+    // Light button — selected
+    if(lightBtn){
+      lightBtn.style.borderColor = 'rgba(0,160,60,.5)';
+      lightBtn.style.background  = 'rgba(0,160,60,.08)';
+    }
+    if(lightChk){ lightChk.textContent='check_circle'; lightChk.style.color='#007a30'; lightChk.style.fontVariationSettings="'FILL' 1"; }
+    // Dark button — unselected
+    if(darkBtn){
+      darkBtn.style.borderColor = 'rgba(255,255,255,.12)';
+      darkBtn.style.background  = 'rgba(255,255,255,.04)';
+    }
+    if(darkChk){ darkChk.textContent='radio_button_unchecked'; darkChk.style.color='rgba(185,204,178,.3)'; darkChk.style.fontVariationSettings="'FILL' 0"; }
+  } else {
+    body.classList.remove('theme-light');
+    // Dark button — selected
+    if(darkBtn){
+      darkBtn.style.borderColor = 'rgba(0,255,65,.35)';
+      darkBtn.style.background  = 'rgba(6,10,9,.85)';
+    }
+    if(darkChk){ darkChk.textContent='check_circle'; darkChk.style.color='#00ff41'; darkChk.style.fontVariationSettings="'FILL' 1"; }
+    // Light button — unselected
+    if(lightBtn){
+      lightBtn.style.borderColor = 'rgba(255,255,255,.12)';
+      lightBtn.style.background  = 'rgba(255,255,255,.05)';
+    }
+    if(lightChk){ lightChk.textContent='radio_button_unchecked'; lightChk.style.color='rgba(185,204,178,.3)'; lightChk.style.fontVariationSettings="'FILL' 0"; }
+  }
+}
 </script>
 </body>
 </html>
