@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>TERRA-CORE AgriSat — Technical Report</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#00ff41;
+  --cyan:#00dbe9;
+  --gold:#ffb432;
+  --purple:#b482ff;
+  --red:#ff6464;
+  --surface:#060a09;
+  --card:rgba(255,255,255,.045);
+  --border:rgba(255,255,255,.10);
+  --text:rgba(220,236,218,.88);
+  --muted:rgba(185,204,178,.45);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',sans-serif;
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 70%,rgba(0,255,65,.05) 0%,transparent 60%),
+    radial-gradient(ellipse 55% 45% at 90% 15%,rgba(0,219,233,.04) 0%,transparent 55%),
+    radial-gradient(ellipse 70% 55% at 50% 110%,rgba(0,50,20,.55) 0%,transparent 65%),
+    #060a09;
+  color:var(--text);
+  min-height:100dvh;
+  overflow-x:hidden;
+}
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,255,65,.18);border-radius:4px}
+
+/* ── SCANLINE OVERLAY ── */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(transparent,transparent 3px,rgba(0,255,65,.012) 3px,rgba(0,255,65,.012) 4px);
+}
+
+/* ── COVER PAGE ── */
+.cover{
+  min-height:100dvh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  position:relative;padding:40px 24px;text-align:center;
+  border-bottom:1px solid rgba(0,255,65,.1);
+  overflow:hidden;
+}
+.cover-grid{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,255,65,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,255,65,.04) 1px,transparent 1px);
+  background-size:48px 48px;
+}
+.cover-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;
+  letter-spacing:.18em;color:rgba(0,219,233,.65);
+  border:1px solid rgba(0,219,233,.2);padding:5px 14px;
+  border-radius:99px;background:rgba(0,219,233,.04);
+  margin-bottom:32px;position:relative;z-index:1;
+}
+.cover-dot{width:6px;height:6px;border-radius:50%;background:#00dbe9;
+  box-shadow:0 0 8px rgba(0,219,233,.9);animation:pdot 1.8s infinite}
+@keyframes pdot{0%,100%{opacity:1}50%{opacity:.3}}
+.cover h1{
+  font-size:clamp(32px,6vw,68px);font-weight:900;
+  letter-spacing:-.04em;line-height:1;
+  background:linear-gradient(120deg,#00ff41 0%,#b9ffcc 40%,#00dbe9 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:10px;position:relative;z-index:1;
+}
+.cover .sub{
+  font-family:'JetBrains Mono',monospace;font-size:clamp(9px,1.5vw,13px);
+  font-weight:600;letter-spacing:.22em;color:rgba(0,219,233,.6);
+  margin-bottom:40px;position:relative;z-index:1;text-transform:uppercase;
+}
+.cover-meta{
+  display:flex;flex-wrap:wrap;gap:24px;justify-content:center;
+  position:relative;z-index:1;margin-bottom:56px;
+}
+.cover-meta-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.cover-meta-item .label{
+  font-family:'JetBrains Mono',monospace;font-size:7.5px;
+  letter-spacing:.14em;color:var(--muted);
+}
+.cover-meta-item .value{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  font-weight:700;color:var(--green);letter-spacing:.06em;
+}
+.cover-toc{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;gap:0;
+  width:100%;max-width:520px;
+  border:1px solid rgba(255,255,255,.08);border-radius:16px;
+  overflow:hidden;
+  background:rgba(255,255,255,.02);
+  backdrop-filter:blur(20px);
+}
+.toc-item{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.05);
+  text-decoration:none;transition:background .2s;
+}
+.toc-item:last-child{border-bottom:none}
+.toc-item:hover{background:rgba(0,255,65,.05)}
+.toc-num{
+  font-family:'JetBrains Mono',monospace;font-size:9px;
+  font-weight:700;color:var(--muted);letter-spacing:.1em;
+  min-width:28px;
+}
+.toc-title{font-size:13px;font-weight:600;color:var(--text);flex:1;text-align:left}
+.toc-icon{font-size:16px;color:var(--muted)}
+.toc-icon.material-symbols-outlined{font-size:18px;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
+
+/* ── SECTION WRAPPER ── */
+.section{
+  max-width:980px;margin:0 auto;
+  padding:80px 24px;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  position:relative;z-index:1;
+}
+.section:last-of-type{border-bottom:none}
+
+/* ── SECTION HEADER ── */
+.sec-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;
+  letter-spacing:.18em;color:var(--muted);margin-bottom:12px;
+}
+.sec-num{color:var(--green);font-weight:800}
+.sec-h2{
+  font-size:clamp(22px,3.5vw,36px);font-weight:800;
+  letter-spacing:-.03em;margin-bottom:10px;
+}
+.sec-lead{
+  font-size:15px;line-height:1.7;color:rgba(185,204,178,.7);
+  max-width:680px;margin-bottom:40px;
+}
+
+/* ── GLASS CARD ── */
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:24px;
+  backdrop-filter:blur(32px) saturate(1.6);
+  -webkit-backdrop-filter:blur(32px) saturate(1.6);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 2px 8px rgba(0,0,0,.2),0 12px 40px rgba(0,0,0,.3);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(155deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.02) 35%,transparent 60%);
+}
+.card>*{position:relative;z-index:1}
+.card-green{border-color:rgba(0,255,65,.18);box-shadow:inset 0 1px 0 rgba(0,255,65,.1),0 0 28px rgba(0,255,65,.05),0 12px 40px rgba(0,0,0,.3)}
+.card-cyan{border-color:rgba(0,219,233,.18);box-shadow:inset 0 1px 0 rgba(0,219,233,.1),0 0 28px rgba(0,219,233,.05),0 12px 40px rgba(0,0,0,.3)}
+.card-gold{border-color:rgba(255,180,50,.18);box-shadow:inset 0 1px 0 rgba(255,180,50,.08),0 0 24px rgba(255,180,50,.05),0 12px 40px rgba(0,0,0,.3)}
+.card-purple{border-color:rgba(180,130,255,.18);box-shadow:inset 0 1px 0 rgba(180,130,255,.08),0 0 24px rgba(180,130,255,.05),0 12px 40px rgba(0,0,0,.3)}
+
+/* ── CARD LABEL / TITLE ── */
+.card-label{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.16em;color:var(--muted);margin-bottom:6px;text-transform:uppercase}
+.card-title{font-size:16px;font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
+.card-body{font-size:13px;line-height:1.65;color:rgba(185,204,178,.65)}
+
+/* ── TAG PILL ── */
+.tag{display:inline-flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.1em;padding:3px 9px;border-radius:99px}
+.tag-green{background:rgba(0,255,65,.1);color:var(--green);border:1px solid rgba(0,255,65,.2)}
+.tag-cyan{background:rgba(0,219,233,.1);color:var(--cyan);border:1px solid rgba(0,219,233,.2)}
+.tag-gold{background:rgba(255,180,50,.1);color:var(--gold);border:1px solid rgba(255,180,50,.2)}
+.tag-purple{background:rgba(180,130,255,.1);color:var(--purple);border:1px solid rgba(180,130,255,.2)}
+.tag-white{background:rgba(255,255,255,.06);color:rgba(185,204,178,.7);border:1px solid rgba(255,255,255,.12)}
+
+/* ── GRID LAYOUTS ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* ── STAT BLOCK ── */
+.stat{text-align:center;padding:20px 16px}
+.stat-val{font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-.03em;line-height:1}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.14em;color:var(--muted);margin-top:6px}
+
+/* ── WIRING DIAGRAM ── */
+.wire-diagram{width:100%;overflow-x:auto;padding:8px 0}
+.wire-diagram svg{min-width:640px;width:100%;display:block}
+
+/* ── COMPONENT BOX (SVG) ── */
+/* drawn inline */
+
+/* ── FEATURE ROW ── */
+.feature-row{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.feature-row:last-child{border-bottom:none}
+.feature-icon{
+  width:40px;height:40px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:10px;
+}
+.feature-body{flex:1}
+.feature-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.feature-desc{font-size:12.5px;line-height:1.6;color:rgba(185,204,178,.6)}
+
+/* ── STEP / PROCESS ── */
+.step-list{display:flex;flex-direction:column;gap:0;position:relative}
+.step-list::before{
+  content:'';position:absolute;left:19px;top:20px;bottom:20px;
+  width:1.5px;background:linear-gradient(to bottom,rgba(0,255,65,.3),rgba(0,255,65,.08));
+}
+.step-item{display:flex;gap:16px;align-items:flex-start;padding:16px 0}
+.step-dot{
+  width:40px;height:40px;flex-shrink:0;
+  background:rgba(0,255,65,.08);border:1.5px solid rgba(0,255,65,.25);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:var(--green);
+  box-shadow:0 0 12px rgba(0,255,65,.12);
+  position:relative;z-index:1;
+}
+.step-content{flex:1;padding-top:8px}
+.step-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.step-desc{font-size:12.5px;line-height:1.6;color:rgba(185,204,178,.6)}
+
+/* ── TABLE ── */
+.rpt-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.rpt-table th{
+  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;
+  letter-spacing:.12em;color:var(--muted);text-align:left;
+  padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.1);
+}
+.rpt-table td{
+  padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.05);
+  vertical-align:top;color:rgba(185,204,178,.75);
+}
+.rpt-table tr:last-child td{border-bottom:none}
+.rpt-table td:first-child{color:var(--text);font-weight:600}
+
+/* ── BENEFIT CARD ── */
+.benefit-num{
+  font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:800;
+  letter-spacing:-.02em;line-height:1;margin-bottom:6px;
+}
+
+/* ── TIMELINE ── */
+.timeline{display:flex;flex-direction:column;gap:0;position:relative}
+.timeline::before{
+  content:'';position:absolute;left:15px;top:24px;bottom:24px;
+  width:1.5px;background:linear-gradient(to bottom,rgba(0,219,233,.3),rgba(0,219,233,.08));
+}
+.tl-item{display:flex;gap:18px;padding:18px 0;position:relative}
+.tl-dot{
+  width:32px;height:32px;flex-shrink:0;
+  background:rgba(0,219,233,.08);border:1.5px solid rgba(0,219,233,.25);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:1;margin-top:4px;
+}
+.tl-dot .material-symbols-outlined{font-size:14px;color:var(--cyan);font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 20}
+.tl-phase{
+  font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:700;
+  letter-spacing:.12em;color:var(--cyan);margin-bottom:4px;
+}
+.tl-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.tl-desc{font-size:12.5px;line-height:1.6;color:rgba(185,204,178,.6)}
+.tl-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+
+/* ── CALLOUT BOX ── */
+.callout{
+  padding:18px 20px;border-radius:14px;border-left:3px solid;
+  background:rgba(255,255,255,.025);margin:24px 0;
+}
+.callout-green{border-color:var(--green);background:rgba(0,255,65,.04)}
+.callout-gold{border-color:var(--gold);background:rgba(255,180,50,.04)}
+.callout-cyan{border-color:var(--cyan);background:rgba(0,219,233,.04)}
+.callout-title{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:800;letter-spacing:.14em;margin-bottom:6px}
+.callout-body{font-size:13px;line-height:1.6;color:rgba(185,204,178,.7)}
+
+/* ── PAGE DIVIDER ── */
+.divider{
+  max-width:980px;margin:0 auto;
+  display:flex;align-items:center;gap:16px;
+  padding:0 24px;
+}
+.divider-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,65,.12),transparent)}
+.divider-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.14em;color:var(--muted)}
+
+/* ── FOOTER ── */
+.report-footer{
+  max-width:980px;margin:0 auto;padding:40px 24px 60px;
+  display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.report-footer-brand{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--muted)}
+.report-footer-links{display:flex;gap:16px}
+.report-footer-links a{
+  font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:600;
+  letter-spacing:.08em;color:var(--green);text-decoration:none;
+  padding:4px 10px;border:1px solid rgba(0,255,65,.2);border-radius:6px;
+  background:rgba(0,255,65,.05);transition:all .2s;
+}
+.report-footer-links a:hover{background:rgba(0,255,65,.12)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:720px){
+  .grid2,.grid3,.grid4{grid-template-columns:1fr}
+  .cover h1{font-size:clamp(28px,8vw,48px)}
+  .section{padding:56px 16px}
+  .wire-diagram svg{min-width:480px}
+}
+@media(max-width:480px){
+  .grid2{grid-template-columns:1fr}
+  .cover-meta{gap:16px}
+}
+
+/* Print */
+@media print{
+  body{background:#fff;color:#000}
+  .card{background:#f8f8f8;border-color:#ddd}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     COVER PAGE
+══════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-grid"></div>
+
+  <div class="cover-badge">
+    <div class="cover-dot"></div>
+    TECHNICAL REPORT · AGRISAT-DEDIAPADA-v2.4 · 2026
+  </div>
+
+  <h1>TERRA-CORE<br/>AgriSat System</h1>
+  <p class="sub">Satellite-Driven Autonomous Precision Irrigation</p>
+
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <span class="label">LOCATION</span>
+      <span class="value">DEDIAPADA · GUJARAT</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="label">COORDINATES</span>
+      <span class="value">21.6277°N 73.5903°E</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="label">FARM AREA</span>
+      <span class="value">0.15 HA · 3 ZONES</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="label">PREPARED BY</span>
+      <span class="value">RUDRAKSH PATEL</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="label">DATE</span>
+      <span class="value">JUNE 2026</span>
+    </div>
+  </div>
+
+  <div class="cover-toc">
+    <a href="#s1" class="toc-item">
+      <span class="toc-num">01</span>
+      <span class="toc-title">System Overview</span>
+      <span class="material-symbols-outlined toc-icon">satellite_alt</span>
+    </a>
+    <a href="#s2" class="toc-item">
+      <span class="toc-num">02</span>
+      <span class="toc-title">Hardware Wiring & Connections</span>
+      <span class="material-symbols-outlined toc-icon">developer_board</span>
+    </a>
+    <a href="#s3" class="toc-item">
+      <span class="toc-num">03</span>
+      <span class="toc-title">How The System Works</span>
+      <span class="material-symbols-outlined toc-icon">settings_suggest</span>
+    </a>
+    <a href="#s4" class="toc-item">
+      <span class="toc-num">04</span>
+      <span class="toc-title">Component Specifications</span>
+      <span class="material-symbols-outlined toc-icon">memory</span>
+    </a>
+    <a href="#s5" class="toc-item">
+      <span class="toc-num">05</span>
+      <span class="toc-title">Benefits & Achievements</span>
+      <span class="material-symbols-outlined toc-icon">workspace_premium</span>
+    </a>
+    <a href="#s6" class="toc-item">
+      <span class="toc-num">06</span>
+      <span class="toc-title">Future Roadmap</span>
+      <span class="material-symbols-outlined toc-icon">rocket_launch</span>
+    </a>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 1 — SYSTEM OVERVIEW
+══════════════════════════════════════════════════════════ -->
+<div class="section" id="s1">
+
+  <div class="sec-badge"><span class="sec-num">01</span> &nbsp; SYSTEM OVERVIEW</div>
+  <h2 class="sec-h2">What is TERRA-CORE AgriSat?</h2>
+  <p class="sec-lead">A fully sensor-free, satellite-driven irrigation management system that uses EOS-04 and Sentinel-1 SAR imagery combined with AI to decide when and how much to irrigate — with zero physical soil sensors in the field.</p>
+
+  <div class="callout callout-green">
+    <div class="callout-title" style="color:var(--green)">⚡ KEY INNOVATION</div>
+    <div class="callout-body">Traditional precision irrigation requires expensive IoT soil sensors buried at every field point. TERRA-CORE eliminates all ground sensors entirely — soil moisture is derived from satellite radar backscatter data (SAR) combined with weather physics (ET₀). This reduces cost by ~85% while covering the entire field area rather than just sampled points.</div>
+  </div>
+
+  <div class="grid3" style="margin-top:28px">
+    <div class="card card-cyan">
+      <div class="card-label" style="color:rgba(0,219,233,.6)">DATA LAYER</div>
+      <div class="card-title">Satellites</div>
+      <div class="card-body">EOS-04 SAR (ISRO) + Sentinel-1 (ESA) provide C-Band radar imagery. NDVI extracted from these images reveals vegetation health and soil moisture indirectly without any ground contact.</div>
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px">
+        <span class="tag tag-cyan">EOS-04</span>
+        <span class="tag tag-cyan">SENTINEL-1</span>
+        <span class="tag tag-white">FREE DATA</span>
+      </div>
+    </div>
+    <div class="card card-purple">
+      <div class="card-label" style="color:rgba(180,130,255,.6)">AI LAYER</div>
+      <div class="card-title">Gemini AI</div>
+      <div class="card-body">Google's Gemini AI processes NDVI values, evapotranspiration rate (ET₀), vapor pressure deficit (VPD), and rainfall accumulation to generate per-zone irrigation decisions automatically.</div>
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px">
+        <span class="tag tag-purple">GEMINI v2 SDK</span>
+        <span class="tag tag-white">91% EFFICIENCY</span>
+      </div>
+    </div>
+    <div class="card card-gold">
+      <div class="card-label" style="color:rgba(255,180,50,.6)">HARDWARE LAYER</div>
+      <div class="card-title">ESP32 + LoRa</div>
+      <div class="card-body">Raspberry Pi acts as the central hub. One ESP32+LoRa at the office receives AI decisions and broadcasts wirelessly to 3 field-mounted ESP32 units that open/close solenoid valves.</div>
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px">
+        <span class="tag tag-gold">LoRa WIRELESS</span>
+        <span class="tag tag-white">3 FIELD NODES</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="grid4" style="margin-top:20px">
+    <div class="card" style="padding:0">
+      <div class="stat">
+        <div class="stat-val" style="color:var(--green)">0</div>
+        <div class="stat-lbl">GROUND SENSORS</div>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="stat">
+        <div class="stat-val" style="color:var(--cyan)">2</div>
+        <div class="stat-lbl">SAR SATELLITES</div>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="stat">
+        <div class="stat-val" style="color:var(--gold)">3</div>
+        <div class="stat-lbl">IRRIGATED ZONES</div>
+      </div>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="stat">
+        <div class="stat-val" style="color:var(--purple)">91%</div>
+        <div class="stat-lbl">AI EFFICIENCY</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 2 — WIRING
+══════════════════════════════════════════════════════════ -->
+<div class="section" id="s2">
+
+  <div class="sec-badge"><span class="sec-num">02</span> &nbsp; HARDWARE WIRING & CONNECTIONS</div>
+  <h2 class="sec-h2">Full Hardware Wiring Diagram</h2>
+  <p class="sec-lead">The system has two hardware tiers: a central gateway at the office building and three field node units deployed at each irrigation zone.</p>
+
+  <!-- SVG WIRING DIAGRAM -->
+  <div class="wire-diagram">
+    <svg viewBox="0 0 900 580" xmlns="http://www.w3.org/2000/svg" style="font-family:'JetBrains Mono',monospace">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="rgba(0,255,65,.5)"/>
+        </marker>
+        <marker id="arr-gold" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="rgba(255,180,50,.6)"/>
+        </marker>
+        <marker id="arr-cyan" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="rgba(0,219,233,.5)"/>
+        </marker>
+        <filter id="glow-g">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-c">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <!-- dash animation -->
+        <style>
+          .wire-data{stroke-dasharray:6 4;animation:dash 1.8s linear infinite}
+          .wire-lora{stroke-dasharray:4 6;animation:dash 2.2s linear infinite}
+          .wire-pwr {stroke-dasharray:3 5;animation:dash 2.8s linear infinite reverse}
+          @keyframes dash{to{stroke-dashoffset:-20}}
+        </style>
+      </defs>
+
+      <!-- ── BACKGROUND GRID ── -->
+      <rect width="900" height="580" fill="rgba(6,10,9,.0)"/>
+      <g stroke="rgba(0,255,65,.04)" stroke-width="1">
+        <line x1="0" y1="50" x2="900" y2="50"/>
+        <line x1="0" y1="100" x2="900" y2="100"/>
+        <line x1="0" y1="200" x2="900" y2="200"/>
+        <line x1="0" y1="340" x2="900" y2="340"/>
+        <line x1="0" y1="480" x2="900" y2="480"/>
+        <line x1="0" y1="530" x2="900" y2="530"/>
+      </g>
+
+      <!-- ──────────────────────────────
+           ROW 1: INTERNET SOURCES
+      ────────────────────────────── -->
+      <!-- EOS-04 -->
+      <rect x="20" y="12" width="130" height="58" rx="10" fill="rgba(0,219,233,.06)" stroke="rgba(0,219,233,.28)" stroke-width="1.2"/>
+      <text x="85" y="34" text-anchor="middle" fill="rgba(0,219,233,.9)" font-size="9" font-weight="700" letter-spacing="1">EOS-04 SAR</text>
+      <text x="85" y="50" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="7.5">ISRO · Bhoonidhi</text>
+      <text x="85" y="62" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">12-day revisit · 3m</text>
+
+      <!-- Sentinel-1 -->
+      <rect x="165" y="12" width="130" height="58" rx="10" fill="rgba(0,255,65,.06)" stroke="rgba(0,255,65,.25)" stroke-width="1.2"/>
+      <text x="230" y="34" text-anchor="middle" fill="rgba(0,255,65,.9)" font-size="9" font-weight="700" letter-spacing="1">SENTINEL-1</text>
+      <text x="230" y="50" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="7.5">ESA · Copernicus</text>
+      <text x="230" y="62" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">6-day revisit · 5m</text>
+
+      <!-- Open-Meteo -->
+      <rect x="310" y="12" width="130" height="58" rx="10" fill="rgba(100,180,255,.05)" stroke="rgba(100,180,255,.22)" stroke-width="1.2"/>
+      <text x="375" y="34" text-anchor="middle" fill="rgba(100,180,255,.9)" font-size="9" font-weight="700" letter-spacing="1">OPEN-METEO</text>
+      <text x="375" y="50" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="7.5">Weather API</text>
+      <text x="375" y="62" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">ET₀ · VPD · Rainfall</text>
+
+      <!-- Gemini AI -->
+      <rect x="455" y="12" width="130" height="58" rx="10" fill="rgba(180,130,255,.06)" stroke="rgba(180,130,255,.25)" stroke-width="1.2"/>
+      <text x="520" y="34" text-anchor="middle" fill="rgba(180,130,255,.9)" font-size="9" font-weight="700" letter-spacing="1">GEMINI AI</text>
+      <text x="520" y="50" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="7.5">google.genai v2</text>
+      <text x="520" y="62" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">Irrigation decisions</text>
+
+      <!-- GitHub Pages -->
+      <rect x="600" y="12" width="130" height="58" rx="10" fill="rgba(0,255,65,.05)" stroke="rgba(0,255,65,.2)" stroke-width="1.2"/>
+      <text x="665" y="34" text-anchor="middle" fill="rgba(0,255,65,.85)" font-size="9" font-weight="700" letter-spacing="1">GITHUB PAGES</text>
+      <text x="665" y="50" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="7.5">PWA Dashboard</text>
+      <text x="665" y="62" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">ndvi_status.json</text>
+
+      <!-- Google Drive -->
+      <rect x="745" y="12" width="130" height="58" rx="10" fill="rgba(255,180,50,.05)" stroke="rgba(255,180,50,.2)" stroke-width="1.2"/>
+      <text x="810" y="34" text-anchor="middle" fill="rgba(255,180,50,.85)" font-size="9" font-weight="700" letter-spacing="1">GOOGLE DRIVE</text>
+      <text x="810" y="50" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="7.5">NDVI Image Store</text>
+      <text x="810" y="62" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">JPEG per scene</text>
+
+      <!-- ──────────────────────────────
+           ROW 2: RASPBERRY PI (office)
+      ────────────────────────────── -->
+      <!-- Lines from row 1 down to RPi -->
+      <line x1="85" y1="70" x2="85" y2="130" class="wire-data" stroke="rgba(0,219,233,.4)" stroke-width="1.2" marker-end="url(#arr-cyan)"/>
+      <line x1="230" y1="70" x2="230" y2="130" class="wire-data" stroke="rgba(0,255,65,.4)" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="375" y1="70" x2="375" y2="130" class="wire-data" stroke="rgba(100,180,255,.35)" stroke-width="1.2" marker-end="url(#arr-cyan)"/>
+      <line x1="520" y1="70" x2="450" y2="130" class="wire-data" stroke="rgba(180,130,255,.4)" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="665" y1="70" x2="450" y2="130" class="wire-data" stroke="rgba(0,255,65,.3)" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="810" y1="70" x2="450" y2="130" class="wire-data" stroke="rgba(255,180,50,.3)" stroke-width="1.2" marker-end="url(#arr-gold)"/>
+
+      <!-- Raspberry Pi box -->
+      <rect x="160" y="130" width="400" height="72" rx="12" fill="rgba(255,100,200,.06)" stroke="rgba(255,100,200,.3)" stroke-width="1.5"/>
+      <rect x="160" y="130" width="400" height="72" rx="12" fill="none" stroke="rgba(255,100,200,.08)" stroke-width="8"/>
+      <text x="360" y="155" text-anchor="middle" fill="rgba(255,100,200,.95)" font-size="11" font-weight="800" letter-spacing="1.5">RASPBERRY PI 4 / 5</text>
+      <text x="360" y="172" text-anchor="middle" fill="rgba(185,204,178,.55)" font-size="8.5">Central Hub · Office Building · Always-On</text>
+      <text x="250" y="190" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">Runs: ndvi_harvester.py · dashboard · Python env</text>
+      <text x="470" y="190" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">USB Serial / WiFi → Central ESP32</text>
+
+      <!-- USB / WiFi connection label -->
+      <line x1="360" y1="202" x2="360" y2="240" stroke="rgba(255,100,200,.4)" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="372" y="224" fill="rgba(255,100,200,.55)" font-size="7.5" font-weight="700">USB SERIAL</text>
+
+      <!-- ──────────────────────────────
+           ROW 3: CENTRAL ESP32 + LoRa  (office)
+      ────────────────────────────── -->
+      <rect x="230" y="240" width="260" height="68" rx="12" fill="rgba(255,180,50,.07)" stroke="rgba(255,180,50,.3)" stroke-width="1.5"/>
+      <text x="360" y="262" text-anchor="middle" fill="rgba(255,180,50,.95)" font-size="10" font-weight="800" letter-spacing="1">CENTRAL ESP32</text>
+      <text x="360" y="278" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="8.5">+ LoRa Module · Office Gateway</text>
+      <text x="310" y="296" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">VCC→3.3V · GND→GND</text>
+      <text x="420" y="296" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">SPI: MOSI·MISO·SCK·SS</text>
+
+      <!-- Power supply badge -->
+      <rect x="520" y="248" width="90" height="40" rx="8" fill="rgba(255,80,80,.06)" stroke="rgba(255,80,80,.2)" stroke-width="1"/>
+      <text x="565" y="265" text-anchor="middle" fill="rgba(255,100,100,.8)" font-size="7.5" font-weight="700">5V POWER</text>
+      <text x="565" y="279" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">Wall adapter</text>
+      <line x1="520" y1="268" x2="490" y2="268" class="wire-pwr" stroke="rgba(255,100,100,.4)" stroke-width="1.2" marker-end="url(#arr)"/>
+
+      <!-- LoRa radio wave symbol -->
+      <text x="360" y="316" text-anchor="middle" fill="rgba(255,180,50,.5)" font-size="8" font-weight="700" letter-spacing="2">▼ LoRa 868 MHz WIRELESS ▼</text>
+
+      <!-- LoRa broadcast lines (fan out) -->
+      <line x1="290" y1="322" x2="160" y2="370" class="wire-lora" stroke="rgba(255,180,50,.5)" stroke-width="1.5" marker-end="url(#arr-gold)"/>
+      <line x1="360" y1="322" x2="360" y2="370" class="wire-lora" stroke="rgba(255,180,50,.5)" stroke-width="1.5" marker-end="url(#arr-gold)"/>
+      <line x1="430" y1="322" x2="560" y2="370" class="wire-lora" stroke="rgba(255,180,50,.5)" stroke-width="1.5" marker-end="url(#arr-gold)"/>
+
+      <!-- ──────────────────────────────
+           ROW 4: FIELD ESP32 UNITS
+      ────────────────────────────── -->
+      <!-- ESP32-A (Field A) -->
+      <rect x="30" y="370" width="260" height="72" rx="12" fill="rgba(0,255,65,.06)" stroke="rgba(0,255,65,.28)" stroke-width="1.5"/>
+      <text x="160" y="392" text-anchor="middle" fill="rgba(0,255,65,.9)" font-size="9.5" font-weight="800" letter-spacing="1">FIELD ESP32 — ZONE A</text>
+      <text x="160" y="408" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="8">Boys Hostel · North Field</text>
+      <text x="100" y="426" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">D5 → Relay IN</text>
+      <text x="220" y="426" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">VIN → 5V · GND → GND</text>
+      <text x="160" y="438" text-anchor="middle" fill="rgba(185,204,178,.35)" font-size="7">SPI: MOSI·MISO·SCK·SS (D11·D12·D13·D10)</text>
+
+      <!-- ESP32-B (Field B) -->
+      <rect x="320" y="370" width="260" height="72" rx="12" fill="rgba(0,219,233,.06)" stroke="rgba(0,219,233,.28)" stroke-width="1.5"/>
+      <text x="450" y="392" text-anchor="middle" fill="rgba(0,219,233,.9)" font-size="9.5" font-weight="800" letter-spacing="1">FIELD ESP32 — ZONE B</text>
+      <text x="450" y="408" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="8">Main College · East Field</text>
+      <text x="390" y="426" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">D5 → Relay IN</text>
+      <text x="510" y="426" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">VIN → 5V · GND → GND</text>
+      <text x="450" y="438" text-anchor="middle" fill="rgba(185,204,178,.35)" font-size="7">SPI: MOSI·MISO·SCK·SS (D11·D12·D13·D10)</text>
+
+      <!-- ESP32-C (Field C) -->
+      <rect x="610" y="370" width="260" height="72" rx="12" fill="rgba(255,180,50,.06)" stroke="rgba(255,180,50,.28)" stroke-width="1.5"/>
+      <text x="740" y="392" text-anchor="middle" fill="rgba(255,180,50,.9)" font-size="9.5" font-weight="800" letter-spacing="1">FIELD ESP32 — ZONE C</text>
+      <text x="740" y="408" text-anchor="middle" fill="rgba(185,204,178,.5)" font-size="8">Diploma College · South Field</text>
+      <text x="680" y="426" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">D5 → Relay IN</text>
+      <text x="800" y="426" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7.5">VIN → 5V · GND → GND</text>
+      <text x="740" y="438" text-anchor="middle" fill="rgba(185,204,178,.35)" font-size="7">SPI: MOSI·MISO·SCK·SS (D11·D12·D13·D10)</text>
+
+      <!-- Down arrows: ESP32 → Relay → Valve -->
+      <line x1="160" y1="442" x2="160" y2="480" stroke="rgba(0,255,65,.35)" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="450" y1="442" x2="450" y2="480" stroke="rgba(0,219,233,.35)" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+      <line x1="740" y1="442" x2="740" y2="480" stroke="rgba(255,180,50,.35)" stroke-width="1.5" marker-end="url(#arr-gold)"/>
+
+      <!-- ──────────────────────────────
+           ROW 5: RELAY + SOLENOID
+      ────────────────────────────── -->
+      <!-- Relay-A -->
+      <rect x="60" y="480" width="200" height="40" rx="8" fill="rgba(0,255,65,.04)" stroke="rgba(0,255,65,.2)" stroke-width="1"/>
+      <text x="160" y="497" text-anchor="middle" fill="rgba(0,255,65,.8)" font-size="8" font-weight="700">RELAY MODULE A</text>
+      <text x="160" y="512" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">IN→D5 · VCC→5V · COM→12V+</text>
+
+      <!-- Relay-B -->
+      <rect x="350" y="480" width="200" height="40" rx="8" fill="rgba(0,219,233,.04)" stroke="rgba(0,219,233,.2)" stroke-width="1"/>
+      <text x="450" y="497" text-anchor="middle" fill="rgba(0,219,233,.8)" font-size="8" font-weight="700">RELAY MODULE B</text>
+      <text x="450" y="512" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">IN→D5 · VCC→5V · COM→12V+</text>
+
+      <!-- Relay-C -->
+      <rect x="640" y="480" width="200" height="40" rx="8" fill="rgba(255,180,50,.04)" stroke="rgba(255,180,50,.2)" stroke-width="1"/>
+      <text x="740" y="497" text-anchor="middle" fill="rgba(255,180,50,.8)" font-size="8" font-weight="700">RELAY MODULE C</text>
+      <text x="740" y="512" text-anchor="middle" fill="rgba(185,204,178,.4)" font-size="7">IN→D5 · VCC→5V · COM→12V+</text>
+
+      <!-- Relay → Solenoid arrows -->
+      <line x1="160" y1="520" x2="160" y2="554" stroke="rgba(0,255,65,.3)" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="450" y1="520" x2="450" y2="554" stroke="rgba(0,219,233,.3)" stroke-width="1.2" marker-end="url(#arr-cyan)"/>
+      <line x1="740" y1="520" x2="740" y2="554" stroke="rgba(255,180,50,.3)" stroke-width="1.2" marker-end="url(#arr-gold)"/>
+
+      <!-- ──────────────────────────────
+           ROW 6: SOLENOID VALVES
+      ────────────────────────────── -->
+      <rect x="70" y="554" width="180" height="22" rx="6" fill="rgba(0,255,65,.08)" stroke="rgba(0,255,65,.25)" stroke-width="1"/>
+      <text x="160" y="569" text-anchor="middle" fill="rgba(0,255,65,.9)" font-size="8.5" font-weight="700">SOLENOID VALVE A — 12V DC</text>
+
+      <rect x="360" y="554" width="180" height="22" rx="6" fill="rgba(0,219,233,.08)" stroke="rgba(0,219,233,.25)" stroke-width="1"/>
+      <text x="450" y="569" text-anchor="middle" fill="rgba(0,219,233,.9)" font-size="8.5" font-weight="700">SOLENOID VALVE B — 12V DC</text>
+
+      <rect x="650" y="554" width="180" height="22" rx="6" fill="rgba(255,180,50,.08)" stroke="rgba(255,180,50,.25)" stroke-width="1"/>
+      <text x="740" y="569" text-anchor="middle" fill="rgba(255,180,50,.9)" font-size="8.5" font-weight="700">SOLENOID VALVE C — 12V DC</text>
+
+      <!-- ── LEGEND ── -->
+      <text x="10" y="548" fill="rgba(185,204,178,.35)" font-size="7" font-weight="700" letter-spacing="1">LEGEND</text>
+      <line x1="10" y1="557" x2="50" y2="557" stroke="rgba(0,255,65,.4)" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text x="54" y="561" fill="rgba(185,204,178,.4)" font-size="7">Data / WiFi</text>
+      <line x1="10" y1="570" x2="50" y2="570" stroke="rgba(255,180,50,.5)" stroke-width="1.5" stroke-dasharray="4 6"/>
+      <text x="54" y="574" fill="rgba(185,204,178,.4)" font-size="7">LoRa RF</text>
+      <line x1="10" y1="583" x2="50" y2="583" stroke="rgba(255,100,100,.4)" stroke-width="1.5" stroke-dasharray="3 5"/>
+    </svg>
+  </div>
+
+  <!-- WIRING PIN TABLE -->
+  <div class="grid2" style="margin-top:36px;gap:20px">
+    <div class="card">
+      <div class="card-label" style="color:rgba(255,180,50,.6)">CENTRAL ESP32 ← LoRa MODULE WIRING</div>
+      <div class="card-title" style="margin-bottom:16px">Office Gateway Pins</div>
+      <table class="rpt-table">
+        <thead>
+          <tr><th>ESP32 PIN</th><th>LoRa MODULE PIN</th><th>FUNCTION</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>3.3V</td><td>VCC</td><td>Power supply</td></tr>
+          <tr><td>GND</td><td>GND</td><td>Ground reference</td></tr>
+          <tr><td>D11 (MOSI)</td><td>MOSI</td><td>SPI data out</td></tr>
+          <tr><td>D12 (MISO)</td><td>MISO</td><td>SPI data in</td></tr>
+          <tr><td>D13 (SCK)</td><td>SCK</td><td>SPI clock</td></tr>
+          <tr><td>D10 (SS)</td><td>NSS / CS</td><td>SPI chip select</td></tr>
+          <tr><td>D2</td><td>DIO0</td><td>Interrupt (TxDone / RxDone)</td></tr>
+          <tr><td>D9</td><td>RESET</td><td>Hardware reset</td></tr>
+          <tr><td>USB (RX/TX)</td><td>—</td><td>Serial to Raspberry Pi</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-label" style="color:rgba(0,255,65,.6)">FIELD ESP32 → RELAY → SOLENOID WIRING</div>
+      <div class="card-title" style="margin-bottom:16px">Each Field Node (×3 identical)</div>
+      <table class="rpt-table">
+        <thead>
+          <tr><th>FROM</th><th>TO</th><th>FUNCTION</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ESP32 D5</td><td>Relay IN</td><td>Valve open/close signal (3.3V logic)</td></tr>
+          <tr><td>ESP32 VIN</td><td>Relay VCC</td><td>5V relay coil power</td></tr>
+          <tr><td>ESP32 GND</td><td>Relay GND</td><td>Common ground</td></tr>
+          <tr><td>12V adapter +</td><td>Relay COM</td><td>12V supply for solenoid</td></tr>
+          <tr><td>Relay NO</td><td>Solenoid +</td><td>Normally-open: power on valve OPEN</td></tr>
+          <tr><td>12V adapter −</td><td>Solenoid −</td><td>Solenoid return / negative</td></tr>
+          <tr><td>ESP32 D11-13, D10</td><td>LoRa SPI</td><td>Same as central (receive only)</td></tr>
+          <tr><td>ESP32 D2</td><td>LoRa DIO0</td><td>Packet-received interrupt</td></tr>
+          <tr><td>Solar / LiPo</td><td>ESP32 VIN</td><td>Optional solar power for field unit</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="callout callout-gold" style="margin-top:24px">
+    <div class="callout-title" style="color:var(--gold)">⚠ WIRING SAFETY NOTES</div>
+    <div class="callout-body">
+      <strong>1.</strong> Always use a flyback diode (1N4007) across the solenoid terminals to suppress voltage spikes when the valve closes. &nbsp;
+      <strong>2.</strong> LoRa antenna must be connected before powering the module — running without antenna can permanently damage the RF stage. &nbsp;
+      <strong>3.</strong> Keep 12V solenoid wiring physically separate from 3.3V/5V ESP32 wiring. Use different wire colors (red=12V, black=GND, yellow=signal). &nbsp;
+      <strong>4.</strong> Field units should be housed in IP65-rated junction boxes due to outdoor exposure.
+    </div>
+  </div>
+
+  <!-- Raspberry Pi → ESP32 Connection -->
+  <div class="card" style="margin-top:24px;card-cyan">
+    <div class="card-label" style="color:rgba(255,100,200,.6)">RASPBERRY PI → CENTRAL ESP32 CONNECTION</div>
+    <div class="card-title" style="margin-bottom:16px">Two connection options — choose one</div>
+    <div class="grid2">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--green);margin-bottom:10px">OPTION 1 · USB SERIAL (Recommended)</div>
+        <table class="rpt-table">
+          <tbody>
+            <tr><td>RPi USB-A port</td><td>ESP32 USB-C / Micro-USB</td></tr>
+            <tr><td>RPi detects</td><td>/dev/ttyUSB0 or /dev/ttyACM0</td></tr>
+            <tr><td>Baud rate</td><td>115200</td></tr>
+            <tr><td>Python lib</td><td>pyserial — serial.Serial('/dev/ttyUSB0', 115200)</td></tr>
+            <tr><td>Pro</td><td>Plug-and-play, no config needed, powers ESP32</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--cyan);margin-bottom:10px">OPTION 2 · LOCAL WiFi (Wireless)</div>
+        <table class="rpt-table">
+          <tbody>
+            <tr><td>RPi IP</td><td>192.168.1.x (same LAN)</td></tr>
+            <tr><td>ESP32 IP</td><td>Static, set via Arduino code</td></tr>
+            <tr><td>Protocol</td><td>WebSocket (ws://IP:81) or MQTT</td></tr>
+            <tr><td>Python lib</td><td>websocket-client or paho-mqtt</td></tr>
+            <tr><td>Pro</td><td>No cable needed, works remotely</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 3 — HOW IT WORKS
+══════════════════════════════════════════════════════════ -->
+<div class="section" id="s3">
+
+  <div class="sec-badge"><span class="sec-num">03</span> &nbsp; HOW THE SYSTEM WORKS</div>
+  <h2 class="sec-h2">End-to-End Operation Flow</h2>
+  <p class="sec-lead">The system operates in a continuous loop — satellite data is harvested every 2 days, AI computes irrigation requirements, and hardware executes the decision in the field.</p>
+
+  <div class="step-list">
+
+    <div class="step-item">
+      <div class="step-dot">01</div>
+      <div class="step-content">
+        <div class="step-title">Satellite Overpass → Image Download</div>
+        <div class="step-desc">EOS-04 SAR revisits the Dediapada area every 12 days; Sentinel-1 every 6 days. The NDVI Harvester (ndvi_harvester.py) runs on a launchd schedule every 2 days. It uses Selenium to automate the Bhoonidhi LandViewer portal — logging in, selecting the latest EOS-04 scene for 21.6277°N 73.5903°E, exporting a georeferenced NDVI false-color JPEG, and saving it as <code style="font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(255,255,255,.06);padding:2px 5px;border-radius:4px">NDVI_Dediapada_{YYYY-MM-DD}.jpeg</code>.</div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag tag-cyan">SELENIUM</span>
+          <span class="tag tag-white">LAUNCHD 2-DAY CRON</span>
+          <span class="tag tag-white">BHOONIDHI PORTAL</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-item">
+      <div class="step-dot">02</div>
+      <div class="step-content">
+        <div class="step-title">NDVI Processing → Zone Values</div>
+        <div class="step-desc">The harvester splits the JPEG into 3 crop zones (Field A / B / C), computes per-zone average NDVI pixel intensity, and maps it to a 0–1 normalized index. Low NDVI (0.05–0.18) = stressed / dry vegetation. High NDVI (0.4+) = healthy / well-watered. Results are written to <code style="font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(255,255,255,.06);padding:2px 5px;border-radius:4px">ndvi_status.json</code> which is auto-committed to GitHub.</div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag tag-green">NDVI 0–1 INDEX</span>
+          <span class="tag tag-white">3 ZONES</span>
+          <span class="tag tag-white">GITHUB AUTO-COMMIT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-item">
+      <div class="step-dot">03</div>
+      <div class="step-content">
+        <div class="step-title">Weather API Fetch → ET₀ Calculation</div>
+        <div class="step-desc">Open-Meteo API is called hourly for the farm coordinates. The dashboard extracts: <strong>ET₀</strong> (evapotranspiration, FAO-56 Penman-Monteith, in mm/day), <strong>3-day rainfall accumulation</strong>, <strong>VPD</strong> (vapor pressure deficit, kPa), temperature, humidity, and precipitation probability. These form the "water budget" inputs for the AI.</div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag tag-cyan">ET₀ mm/day</span>
+          <span class="tag tag-white">VPD kPa</span>
+          <span class="tag tag-white">RAIN 3-DAY SUM</span>
+          <span class="tag tag-white">NO API KEY</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-item">
+      <div class="step-dot">04</div>
+      <div class="step-content">
+        <div class="step-title">Gemini AI → Irrigation Decision</div>
+        <div class="step-desc">All inputs are assembled into a structured prompt for Google's Gemini AI (google.genai v2 SDK). The AI applies a soil water balance model: <br/><br/>
+          <code style="font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(180,130,255,.08);padding:6px 10px;border-radius:6px;display:block;color:rgba(180,130,255,.9)">VWC_estimate = f(NDVI, ET₀, rainfall_3d, VPD)<br/>if VWC_estimate &lt; threshold AND rain_guard = clear:<br/>    irrigate = True<br/>    duration_min = (target_VWC - VWC_est) × zone_area / flow_rate</code>
+          <br/>The AI returns per-zone decisions: irrigate/hold, recommended depth (mm), valve duration (minutes).</div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag tag-purple">GEMINI AI</span>
+          <span class="tag tag-white">WATER BALANCE MODEL</span>
+          <span class="tag tag-white">RAIN GUARD</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-item">
+      <div class="step-dot">05</div>
+      <div class="step-content">
+        <div class="step-title">Dashboard Display → Mode Selection</div>
+        <div class="step-desc">The GitHub Pages PWA reads <code style="font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(255,255,255,.06);padding:2px 5px;border-radius:4px">ndvi_status.json</code> from GitHub and displays real-time NDVI maps, zone health, irrigation schedule, and system telemetry. The operator selects:<br/><strong>AUTO MODE</strong> — AI decisions execute automatically on schedule.<br/><strong>MANUAL MODE</strong> — operator selects crop type, overrides duration, directly triggers a valve.</div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag tag-green">AUTO MODE</span>
+          <span class="tag tag-gold">MANUAL OVERRIDE</span>
+          <span class="tag tag-white">PWA OFFLINE-CAPABLE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-item">
+      <div class="step-dot">06</div>
+      <div class="step-content">
+        <div class="step-title">Command → Raspberry Pi → Central ESP32</div>
+        <div class="step-desc">The Raspberry Pi (always-on at office) receives the irrigation command — either from the scheduled AI run or from the dashboard. It sends a structured packet to the Central ESP32 via USB Serial (or WiFi WebSocket). The packet contains: <code style="font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(255,255,255,.06);padding:2px 5px;border-radius:4px">{"zone":1,"action":"OPEN","duration_sec":900}</code></div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag tag-white">USB SERIAL 115200</span>
+          <span class="tag tag-white">JSON PACKET</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-item">
+      <div class="step-dot" style="background:rgba(255,180,50,.08);border-color:rgba(255,180,50,.3);color:var(--gold)">07</div>
+      <div class="step-content">
+        <div class="step-title">LoRa Broadcast → Field ESP32 Receives</div>
+        <div class="step-desc">The Central ESP32 encodes the command into a LoRa packet and broadcasts on 868 MHz (or 433/915 MHz depending on module type). LoRa's long-range, low-power protocol can penetrate walls, trees, and open fields up to 2–10 km. Each Field ESP32 listens and checks if the packet's zone ID matches its own. Only the matching node acts.</div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag tag-gold">LoRa 868 MHz</span>
+          <span class="tag tag-white">2–10 km RANGE</span>
+          <span class="tag tag-white">LOW POWER</span>
+          <span class="tag tag-white">ZONE ID MATCH</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-item">
+      <div class="step-dot" style="background:rgba(0,255,65,.08);border-color:rgba(0,255,65,.3);color:var(--green)">08</div>
+      <div class="step-content">
+        <div class="step-title">Relay Switches → Solenoid Opens → Field Irrigated</div>
+        <div class="step-desc">The Field ESP32 pulls GPIO D5 HIGH, energizing the relay coil. The relay's normally-open (NO) contact closes, connecting 12V to the solenoid valve. Water flows through the drip irrigation line for the commanded duration. After the timer expires, GPIO D5 goes LOW, the relay opens, solenoid closes, irrigation stops. The ESP32 sends an ACK packet back via LoRa to confirm completion.</div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag tag-green">GPIO HIGH → RELAY ON</span>
+          <span class="tag tag-white">12V SOLENOID</span>
+          <span class="tag tag-white">DRIP LINE</span>
+          <span class="tag tag-white">LoRa ACK</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 4 — COMPONENT SPECS
+══════════════════════════════════════════════════════════ -->
+<div class="section" id="s4">
+
+  <div class="sec-badge"><span class="sec-num">04</span> &nbsp; COMPONENT SPECIFICATIONS</div>
+  <h2 class="sec-h2">Bill of Materials &amp; Specs</h2>
+  <p class="sec-lead">Complete hardware list with key specifications, quantities, and purpose for each component in the system.</p>
+
+  <div class="card">
+    <table class="rpt-table" style="margin-top:4px">
+      <thead>
+        <tr>
+          <th>COMPONENT</th>
+          <th>QTY</th>
+          <th>KEY SPECS</th>
+          <th>ROLE</th>
+          <th>EST. COST (INR)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Raspberry Pi 4 Model B (4GB)</td>
+          <td>1</td>
+          <td>Quad-core ARM · 4GB LPDDR4 · USB 3.0 · WiFi+BT · GbE</td>
+          <td>Central processing hub, runs Python scripts + dashboard</td>
+          <td style="color:var(--gold)">₹ 7,000</td>
+        </tr>
+        <tr>
+          <td>ESP32 Development Board</td>
+          <td>4</td>
+          <td>Dual-core 240 MHz · WiFi+BT · 34 GPIO · 3.3V logic · USB-C</td>
+          <td>1× Central gateway + 3× Field nodes</td>
+          <td style="color:var(--gold)">₹ 400 × 4 = ₹1,600</td>
+        </tr>
+        <tr>
+          <td>LoRa Module (SX1276/78)</td>
+          <td>4</td>
+          <td>868 MHz (EU) or 433 MHz (IN) · SPI interface · +20 dBm TX · -148 dBm sensitivity</td>
+          <td>Long-range wireless between office and fields</td>
+          <td style="color:var(--gold)">₹ 350 × 4 = ₹1,400</td>
+        </tr>
+        <tr>
+          <td>5V 2A Relay Module</td>
+          <td>3</td>
+          <td>5V coil · 10A 250VAC contact · NO/NC · Optocoupler isolated</td>
+          <td>Switch 12V solenoid from 3.3V ESP32 signal</td>
+          <td style="color:var(--gold)">₹ 80 × 3 = ₹240</td>
+        </tr>
+        <tr>
+          <td>Solenoid Valve (12V DC)</td>
+          <td>3</td>
+          <td>12V DC · Normally-closed · ½" NPT · 0.2–8 bar · Brass body</td>
+          <td>Open/close drip irrigation line per field zone</td>
+          <td style="color:var(--gold)">₹ 500 × 3 = ₹1,500</td>
+        </tr>
+        <tr>
+          <td>12V 2A DC Adapter (per field)</td>
+          <td>3</td>
+          <td>Input 230V AC · Output 12V 2A · Short-circuit protected</td>
+          <td>Power supply for solenoid valves</td>
+          <td style="color:var(--gold)">₹ 250 × 3 = ₹750</td>
+        </tr>
+        <tr>
+          <td>5V 3A Power Supply (RPi)</td>
+          <td>1</td>
+          <td>USB-C · 15W · Surge protected</td>
+          <td>Raspberry Pi power</td>
+          <td style="color:var(--gold)">₹ 600</td>
+        </tr>
+        <tr>
+          <td>MicroSD Card 32GB</td>
+          <td>1</td>
+          <td>Class 10 / U1 · Sandisk or Samsung</td>
+          <td>Raspberry Pi OS + project files</td>
+          <td style="color:var(--gold)">₹ 400</td>
+        </tr>
+        <tr>
+          <td>IP65 Junction Box</td>
+          <td>3</td>
+          <td>ABS plastic · 15×10×7 cm · Waterproof</td>
+          <td>House field ESP32 + relay outdoors</td>
+          <td style="color:var(--gold)">₹ 150 × 3 = ₹450</td>
+        </tr>
+        <tr>
+          <td>LoRa Antenna (868 MHz)</td>
+          <td>4</td>
+          <td>SMA connector · 3 dBi gain · 868 MHz tuned</td>
+          <td>RF antenna for each LoRa module</td>
+          <td style="color:var(--gold)">₹ 120 × 4 = ₹480</td>
+        </tr>
+        <tr>
+          <td>Flyback Diode 1N4007</td>
+          <td>3</td>
+          <td>1A · 1000V PIV · DO-41</td>
+          <td>Protect relay contacts from solenoid back-EMF</td>
+          <td style="color:var(--gold)">₹ 5 × 3 = ₹15</td>
+        </tr>
+        <tr>
+          <td>Wiring, terminals, cable ties</td>
+          <td>—</td>
+          <td>22 AWG hookup wire · JST connectors</td>
+          <td>Physical interconnections</td>
+          <td style="color:var(--gold)">₹ 300</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:16px;padding:12px 16px;background:rgba(0,255,65,.05);border-radius:10px;border:1px solid rgba(0,255,65,.15);font-family:'JetBrains Mono',monospace;font-size:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span style="color:var(--muted);letter-spacing:.1em">TOTAL ESTIMATED HARDWARE COST</span>
+      <span style="font-size:18px;font-weight:800;color:var(--green)">≈ ₹ 13,335</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">* Satellite data (EOS-04, Sentinel-1) is free. Open-Meteo weather API is free. Gemini AI uses free tier quota. GitHub Pages hosting is free. Total software cost = ₹0.</div>
+  </div>
+
+  <!-- Software stack -->
+  <div class="card" style="margin-top:20px">
+    <div class="card-label" style="color:rgba(0,219,233,.6)">SOFTWARE STACK</div>
+    <div class="card-title" style="margin-bottom:16px">All Open-Source / Free</div>
+    <div class="grid3">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:var(--green);margin-bottom:10px">HARVESTING</div>
+        <div class="feature-row" style="padding:8px 0">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">Python 3.11+</div><div class="feature-desc" style="font-size:11px">Core runtime</div></div>
+        </div>
+        <div class="feature-row" style="padding:8px 0">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">Selenium 4</div><div class="feature-desc" style="font-size:11px">Browser automation for Bhoonidhi</div></div>
+        </div>
+        <div class="feature-row" style="padding:8px 0">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">google-auth / drive-api</div><div class="feature-desc" style="font-size:11px">Upload NDVI images to Drive</div></div>
+        </div>
+        <div class="feature-row" style="padding:8px 0;border-bottom:none">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">launchd (macOS/Linux)</div><div class="feature-desc" style="font-size:11px">2-day schedule trigger</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:var(--purple);margin-bottom:10px">AI & PROCESSING</div>
+        <div class="feature-row" style="padding:8px 0">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">google.genai v2 SDK</div><div class="feature-desc" style="font-size:11px">Gemini AI irrigation engine</div></div>
+        </div>
+        <div class="feature-row" style="padding:8px 0">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">Open-Meteo API</div><div class="feature-desc" style="font-size:11px">Weather + ET₀ + VPD data</div></div>
+        </div>
+        <div class="feature-row" style="padding:8px 0">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">NumPy / Pillow</div><div class="feature-desc" style="font-size:11px">NDVI pixel analysis</div></div>
+        </div>
+        <div class="feature-row" style="padding:8px 0;border-bottom:none">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">PySerial / WebSocket</div><div class="feature-desc" style="font-size:11px">RPi → ESP32 communication</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:var(--cyan);margin-bottom:10px">DASHBOARD & FIRMWARE</div>
+        <div class="feature-row" style="padding:8px 0">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">HTML / Tailwind / Chart.js</div><div class="feature-desc" style="font-size:11px">PWA frontend, zero framework</div></div>
+        </div>
+        <div class="feature-row" style="padding:8px 0">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">Leaflet.js</div><div class="feature-desc" style="font-size:11px">Interactive satellite map</div></div>
+        </div>
+        <div class="feature-row" style="padding:8px 0">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">Arduino IDE + LoRa lib</div><div class="feature-desc" style="font-size:11px">ESP32 firmware (SandeepMistry)</div></div>
+        </div>
+        <div class="feature-row" style="padding:8px 0;border-bottom:none">
+          <div class="feature-body"><div class="feature-title" style="font-size:12px">GitHub Pages / Actions</div><div class="feature-desc" style="font-size:11px">Free hosting + CI/CD</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 5 — BENEFITS
+══════════════════════════════════════════════════════════ -->
+<div class="section" id="s5">
+
+  <div class="sec-badge"><span class="sec-num">05</span> &nbsp; BENEFITS & ACHIEVEMENTS</div>
+  <h2 class="sec-h2">Why This System Matters</h2>
+  <p class="sec-lead">TERRA-CORE addresses three critical problems faced by small and medium farms in India: water scarcity, high sensor cost, and lack of real-time field intelligence.</p>
+
+  <!-- Big 4 benefits -->
+  <div class="grid2" style="margin-bottom:24px">
+    <div class="card card-green">
+      <div class="benefit-num" style="color:var(--green)">40–60%</div>
+      <div class="card-label" style="color:rgba(0,255,65,.5);margin-top:4px">WATER SAVINGS</div>
+      <div class="card-body" style="margin-top:8px">Traditional flood irrigation wastes 60–70% of water through runoff and over-saturation. Satellite-guided drip irrigation applies precisely the right amount when the AI determines soil moisture is genuinely low — preventing both under- and over-watering.</div>
+    </div>
+    <div class="card card-cyan">
+      <div class="benefit-num" style="color:var(--cyan)">₹0</div>
+      <div class="card-label" style="color:rgba(0,219,233,.5);margin-top:4px">SENSOR COST</div>
+      <div class="card-body" style="margin-top:8px">Conventional IoT precision-agriculture systems cost ₹15,000–₹80,000 per hectare in buried soil sensors alone — and they require maintenance, recalibration, and eventual replacement. TERRA-CORE eliminates every sensor: soil data comes from free satellite imagery instead.</div>
+    </div>
+    <div class="card card-gold">
+      <div class="benefit-num" style="color:var(--gold)">24/7</div>
+      <div class="card-label" style="color:rgba(255,180,50,.5);margin-top:4px">AUTONOMOUS OPERATION</div>
+      <div class="card-body" style="margin-top:8px">Once configured, the system runs completely unattended. The farmer does not need to be present for daily irrigation decisions. The AI monitors satellite data, weather forecasts, and soil conditions continuously, triggering valves only when needed.</div>
+    </div>
+    <div class="card card-purple">
+      <div class="benefit-num" style="color:var(--purple)">3 km</div>
+      <div class="card-label" style="color:rgba(180,130,255,.5);margin-top:4px">WIRELESS COVERAGE</div>
+      <div class="card-body" style="margin-top:8px">LoRa radio achieves 2–10 km range in open terrain (3+ km even with trees/walls). A single gateway at the office can cover an entire farm cluster without running any cables between office and fields — dramatically reducing installation complexity and cost.</div>
+    </div>
+  </div>
+
+  <!-- More benefits as feature rows -->
+  <div class="card">
+    <div class="card-label" style="color:rgba(0,255,65,.55)">ADDITIONAL BENEFITS</div>
+    <div class="card-title" style="margin-bottom:16px">Technical & Operational Advantages</div>
+
+    <div class="feature-row">
+      <div class="feature-icon" style="background:rgba(0,255,65,.08);border:1px solid rgba(0,255,65,.15)">
+        <span class="material-symbols-outlined" style="color:var(--green);font-size:20px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">satellite_alt</span>
+      </div>
+      <div class="feature-body">
+        <div class="feature-title">Whole-Field Coverage vs. Point Sensors</div>
+        <div class="feature-desc">A buried soil sensor only measures conditions at one 5 cm radius spot. EOS-04 SAR covers the entire 0.15 ha farm in every pass — every plant row, every corner — at 3m resolution. A sensor network equivalent would need 50+ nodes.</div>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-icon" style="background:rgba(0,219,233,.08);border:1px solid rgba(0,219,233,.15)">
+        <span class="material-symbols-outlined" style="color:var(--cyan);font-size:20px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">cloud_done</span>
+      </div>
+      <div class="feature-body">
+        <div class="feature-title">Rain Guard Prevents Over-Irrigation</div>
+        <div class="feature-desc">The AI checks the 3-day rainfall accumulation and next-hour precipitation probability before any irrigation command. If significant rain is forecast, the system holds — avoiding the common mistake of irrigating just before rain, which wastes water and causes waterlogging.</div>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-icon" style="background:rgba(255,180,50,.08);border:1px solid rgba(255,180,50,.15)">
+        <span class="material-symbols-outlined" style="color:var(--gold);font-size:20px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">offline_bolt</span>
+      </div>
+      <div class="feature-body">
+        <div class="feature-title">Offline-Capable Progressive Web App</div>
+        <div class="feature-desc">The dashboard is a PWA installable on any phone, tablet, or desktop. A service worker caches the UI so the operator can view the last-known status and control valves even when internet connectivity is intermittent — common in rural Gujarat.</div>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-icon" style="background:rgba(180,130,255,.08);border:1px solid rgba(180,130,255,.15)">
+        <span class="material-symbols-outlined" style="color:var(--purple);font-size:20px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">psychology</span>
+      </div>
+      <div class="feature-body">
+        <div class="feature-title">Crop-Specific Irrigation Intelligence</div>
+        <div class="feature-desc">The manual mode crop database includes 80+ crop types with pre-calibrated Kc coefficients (crop coefficients). When an operator selects "Wheat" or "Sugarcane," the system automatically adjusts the recommended irrigation depth and duration for that crop's water requirement at its growth stage.</div>
+      </div>
+    </div>
+
+    <div class="feature-row" style="border-bottom:none">
+      <div class="feature-icon" style="background:rgba(0,255,65,.08);border:1px solid rgba(0,255,65,.15)">
+        <span class="material-symbols-outlined" style="color:var(--green);font-size:20px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">lock</span>
+      </div>
+      <div class="feature-body">
+        <div class="feature-title">Fully Private — No External Sensor Data Upload</div>
+        <div class="feature-desc">No field sensor data is ever sent to a third party. All measurements are derived from publicly available satellite imagery and open weather APIs. Google service account credentials are stored locally only. The only outbound data is ndvi_status.json pushed to the farm's own GitHub repository.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparison table -->
+  <div class="card" style="margin-top:20px">
+    <div class="card-label" style="color:rgba(0,219,233,.55)">COMPARISON</div>
+    <div class="card-title" style="margin-bottom:16px">TERRA-CORE vs Traditional Approaches</div>
+    <table class="rpt-table">
+      <thead>
+        <tr><th>METRIC</th><th>FLOOD IRRIGATION</th><th>IoT SENSOR GRID</th><th style="color:var(--green)">TERRA-CORE AgriSat</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Setup cost (per hectare)</td><td>₹2,000</td><td>₹40,000–₹80,000</td><td style="color:var(--green)">₹13,335 (entire farm)</td></tr>
+        <tr><td>Water efficiency</td><td>30–40%</td><td>70–80%</td><td style="color:var(--green)">75–90%</td></tr>
+        <tr><td>Coverage</td><td>Whole field (uncontrolled)</td><td>Sampled points only</td><td style="color:var(--green)">100% field (satellite)</td></tr>
+        <tr><td>Maintenance needed</td><td>Daily manual labour</td><td>Sensor calibration, battery</td><td style="color:var(--green)">Minimal — 2-day script</td></tr>
+        <tr><td>Works without internet</td><td>Yes</td><td>Partial</td><td style="color:var(--green)">Yes (PWA + cached data)</td></tr>
+        <tr><td>Scales to more fields</td><td>Yes (manual)</td><td>Expensive (more sensors)</td><td style="color:var(--green)">Yes — add ESP32 node</td></tr>
+        <tr><td>Weather integration</td><td>None</td><td>Separate subscription</td><td style="color:var(--green)">Built-in (Open-Meteo, free)</td></tr>
+        <tr><td>AI decision making</td><td>None</td><td>Rule-based thresholds</td><td style="color:var(--green)">Gemini AI — contextual</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 6 — FUTURE ROADMAP
+══════════════════════════════════════════════════════════ -->
+<div class="section" id="s6">
+
+  <div class="sec-badge"><span class="sec-num">06</span> &nbsp; FUTURE ROADMAP</div>
+  <h2 class="sec-h2">What's Next for TERRA-CORE</h2>
+  <p class="sec-lead">The current system is version 2.4 — sensor-free, AI-driven, and fully automated. The roadmap expands coverage, intelligence, and scale across 3 development phases.</p>
+
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-dot">
+        <span class="material-symbols-outlined">build</span>
+      </div>
+      <div>
+        <div class="tl-phase">PHASE 1 · Q3 2026 · 3 MONTHS</div>
+        <div class="tl-title">Hardware Deployment & Field Verification</div>
+        <div class="tl-desc">Physically install the Central ESP32+LoRa gateway at the office building. Deploy three Field ESP32 nodes in waterproof IP65 boxes at Fields A, B, C. Wire solenoid valves to each drip line. Run first LoRa range test and confirm ACK packets from all three zones. Validate that AI-commanded valve durations produce correct soil moisture recovery (cross-check with manual trowel test at 5 points).</div>
+        <div class="tl-tags">
+          <span class="tag tag-gold">HARDWARE INSTALL</span>
+          <span class="tag tag-white">LORA RANGE TEST</span>
+          <span class="tag tag-white">VALVE CALIBRATION</span>
+          <span class="tag tag-white">ACK CONFIRMATION</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">
+        <span class="material-symbols-outlined">solar_power</span>
+      </div>
+      <div>
+        <div class="tl-phase">PHASE 2 · Q4 2026 · 4 MONTHS</div>
+        <div class="tl-title">Solar Power + Multi-Season AI Training</div>
+        <div class="tl-desc">Replace wall-adapter power for field ESP32 units with 10W solar panels + 3.7V LiPo battery + TP4056 charge controller. This makes field nodes fully wireless and grid-independent — important for remote field corners. Simultaneously, accumulate a full growing season of NDVI + weather + irrigation outcome data to fine-tune the Gemini prompt with local crop Kc values for Gujarat's Kharif and Rabi seasons.</div>
+        <div class="tl-tags">
+          <span class="tag tag-green">SOLAR + LIPO</span>
+          <span class="tag tag-white">FULLY WIRELESS</span>
+          <span class="tag tag-white">SEASON DATA COLLECTION</span>
+          <span class="tag tag-purple">AI FINE-TUNING</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">
+        <span class="material-symbols-outlined">sensors</span>
+      </div>
+      <div>
+        <div class="tl-phase">PHASE 3 · Q1 2027 · 3 MONTHS</div>
+        <div class="tl-title">Optional Soil Sensor Fusion (Hybrid Mode)</div>
+        <div class="tl-desc">Add 1–2 low-cost capacitive soil moisture sensors (e.g. SEN0193, ₹150 each) per zone — not for primary decision-making, but as ground-truth calibration for the satellite NDVI-to-VWC model. The sensor readings feed back into the Gemini AI prompt to correct for local soil texture (the Dediapada region has variable clay/loam ratios). This creates a hybrid sensor-satellite fusion that is more accurate than either alone.</div>
+        <div class="tl-tags">
+          <span class="tag tag-cyan">CAPACITIVE SENSORS</span>
+          <span class="tag tag-white">HYBRID FUSION</span>
+          <span class="tag tag-white">CALIBRATION ONLY</span>
+          <span class="tag tag-white">₹150/SENSOR</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">
+        <span class="material-symbols-outlined">water_drop</span>
+      </div>
+      <div>
+        <div class="tl-phase">PHASE 4 · Q2 2027 · ONGOING</div>
+        <div class="tl-title">Flow Meter Integration + Actual Water Accounting</div>
+        <div class="tl-desc">Install a YF-S201 hall-effect flow meter on each drip line main supply. The Field ESP32 counts pulses to measure actual litres delivered per irrigation event. This data feeds a water-use dashboard panel and annual water-saving report. With precise delivery data, the system can detect pipe leaks (unexpected high flow) and clogged emitters (flow lower than expected for the valve-open duration).</div>
+        <div class="tl-tags">
+          <span class="tag tag-cyan">YF-S201 FLOW METER</span>
+          <span class="tag tag-white">LITRE ACCOUNTING</span>
+          <span class="tag tag-white">LEAK DETECTION</span>
+          <span class="tag tag-white">CLOG ALERT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">
+        <span class="material-symbols-outlined">hub</span>
+      </div>
+      <div>
+        <div class="tl-phase">PHASE 5 · Q3–Q4 2027 · SCALE-OUT</div>
+        <div class="tl-title">Multi-Farm LoRa Network — Village-Scale Deployment</div>
+        <div class="tl-desc">A single LoRa gateway can serve 50–200 field nodes over 3–10 km. The system is designed to scale: adding a new field only requires one more ESP32+LoRa node (≈₹750), one solenoid valve, and one additional zone entry in the dashboard JSON. A village cooperative could share one Raspberry Pi gateway to cover 20–30 farms at low individual cost. The NDVI analysis can be extended to cover the entire village catchment area using the same EOS-04 imagery.</div>
+        <div class="tl-tags">
+          <span class="tag tag-gold">200 NODES / GATEWAY</span>
+          <span class="tag tag-white">VILLAGE COOPERATIVE</span>
+          <span class="tag tag-white">₹750/NEW FIELD</span>
+          <span class="tag tag-green">SATELLITE SCALE-OUT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot" style="background:rgba(180,130,255,.08);border-color:rgba(180,130,255,.3)">
+        <span class="material-symbols-outlined" style="color:var(--purple)">model_training</span>
+      </div>
+      <div>
+        <div class="tl-phase">PHASE 6 · 2028 · ADVANCED AI</div>
+        <div class="tl-title">Crop Yield Prediction + Disease Early Warning</div>
+        <div class="tl-desc">With 18+ months of NDVI time-series data per field, a second AI model can be trained to forecast crop yield 6–8 weeks before harvest based on NDVI trajectory. Additionally, sudden NDVI drops in a localized zone (not weather-correlated) are a strong indicator of fungal disease or pest attack. The AI can raise an early alert before visible damage appears — enabling targeted intervention rather than blanket pesticide spraying.</div>
+        <div class="tl-tags">
+          <span class="tag tag-purple">YIELD PREDICTION</span>
+          <span class="tag tag-white">DISEASE EARLY WARNING</span>
+          <span class="tag tag-white">NDVI TIME-SERIES</span>
+          <span class="tag tag-white">18-MONTH TRAINING DATA</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout callout-cyan" style="margin-top:32px">
+    <div class="callout-title" style="color:var(--cyan)">🌍 BROADER VISION</div>
+    <div class="callout-body">TERRA-CORE is designed as a replicable blueprint for small Indian farms (0.1–5 ha) that cannot afford commercial precision agriculture. With a total hardware cost under ₹15,000, free satellite data, free AI inference, and free hosting, the system is within reach of any farmer cooperative with a basic internet connection. The entire codebase is open-source and deployable without vendor lock-in. ISRO's EOS series satellites will continue providing free NDVI data for India through at least 2035, making this a long-term sustainable platform.</div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="report-footer">
+  <div>
+    <div class="report-footer-brand">TERRA-CORE AGRISAT · DEDIAPADA · GUJARAT · INDIA</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;color:rgba(185,204,178,.2);margin-top:4px;letter-spacing:.06em">21.6277°N 73.5903°E · REPORT v2.4 · JUNE 2026 · RUDRAKSH PATEL</div>
+  </div>
+  <div class="report-footer-links">
+    <a href="index.html">DASHBOARD</a>
+    <a href="flowchart.html">FLOWCHART</a>
+    <a href="https://rudraksh91.github.io/SatelliteSoilMonitoring/" target="_blank">LIVE SITE</a>
+  </div>
+</div>
+
+</body>
+</html>
