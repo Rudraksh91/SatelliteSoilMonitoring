@@ -578,7 +578,106 @@ header{
   <!-- Title -->
   <p style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:900;letter-spacing:3px;color:#00ff41;text-align:center;line-height:1.2">TERRA-CORE</p>
   <p style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:6px;color:rgba(0,238,252,.6);text-align:center;margin-top:4px;margin-bottom:8px">AGRISAT DEDIAPADA</p>
-  <div style="width:48px;height:1px;background:rgba(0,255,65,.25);margin-bottom:28px"></div>
+  <div style="width:48px;height:1px;background:rgba(0,255,65,.25);margin-bottom:24px"></div>
+
+  <!-- ROBOT SVG -->
+  <div style="margin-bottom:24px;filter:drop-shadow(0 0 18px rgba(0,255,65,.30))">
+    <svg width="120" height="148" viewBox="0 0 120 148" xmlns="http://www.w3.org/2000/svg" style="display:block">
+      <defs>
+        <filter id="rb-glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="rb-soft"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <linearGradient id="rb-body-g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(0,255,65,.18)"/>
+          <stop offset="100%" stop-color="rgba(0,180,50,.08)"/>
+        </linearGradient>
+        <linearGradient id="rb-head-g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(0,219,233,.18)"/>
+          <stop offset="100%" stop-color="rgba(0,160,180,.08)"/>
+        </linearGradient>
+        <style>
+          .rb-blink{animation:rbBlink 3.2s ease-in-out infinite}
+          @keyframes rbBlink{0%,90%,100%{opacity:1}93%,97%{opacity:0}}
+          .rb-scan{animation:rbScan 2s ease-in-out infinite}
+          @keyframes rbScan{0%,100%{opacity:.7;transform:scaleX(.4)}50%{opacity:1;transform:scaleX(1)}}
+          .rb-pulse{animation:rbPulse 2.4s ease-in-out infinite}
+          @keyframes rbPulse{0%,100%{opacity:.4}50%{opacity:1}}
+          .rb-ant{animation:rbAnt 1.8s ease-in-out infinite}
+          @keyframes rbAnt{0%,100%{opacity:.5}50%{opacity:1}}
+          .rb-float{animation:rbFloat 3s ease-in-out infinite}
+          @keyframes rbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+        </style>
+      </defs>
+
+      <g class="rb-float">
+        <!-- ── ANTENNA ── -->
+        <line x1="60" y1="8" x2="60" y2="22" stroke="rgba(0,219,233,.6)" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="60" cy="6" r="3.5" fill="none" stroke="rgba(0,219,233,.7)" stroke-width="1.2" class="rb-ant"/>
+        <circle cx="60" cy="6" r="1.8" fill="#00dbe9" class="rb-ant" filter="url(#rb-soft)"/>
+
+        <!-- ── HEAD ── -->
+        <rect x="22" y="22" width="76" height="54" rx="14" fill="url(#rb-head-g)" stroke="rgba(0,219,233,.5)" stroke-width="1.4"/>
+        <!-- head shine -->
+        <rect x="26" y="25" width="68" height="12" rx="6" fill="rgba(255,255,255,.06)"/>
+
+        <!-- LEFT EYE -->
+        <g class="rb-blink">
+          <rect x="32" y="36" width="22" height="16" rx="6" fill="rgba(0,255,65,.1)" stroke="rgba(0,255,65,.55)" stroke-width="1.2" filter="url(#rb-soft)"/>
+          <circle cx="43" cy="44" r="5" fill="#00ff41" opacity=".9" filter="url(#rb-glow)"/>
+          <circle cx="43" cy="44" r="2.5" fill="rgba(0,0,0,.6)"/>
+          <circle cx="45" cy="42" r="1" fill="rgba(255,255,255,.7)"/>
+        </g>
+
+        <!-- RIGHT EYE -->
+        <g class="rb-blink" style="animation-delay:.15s">
+          <rect x="66" y="36" width="22" height="16" rx="6" fill="rgba(0,255,65,.1)" stroke="rgba(0,255,65,.55)" stroke-width="1.2" filter="url(#rb-soft)"/>
+          <circle cx="77" cy="44" r="5" fill="#00ff41" opacity=".9" filter="url(#rb-glow)"/>
+          <circle cx="77" cy="44" r="2.5" fill="rgba(0,0,0,.6)"/>
+          <circle cx="79" cy="42" r="1" fill="rgba(255,255,255,.7)"/>
+        </g>
+
+        <!-- MOUTH / SCAN BAR -->
+        <rect x="34" y="60" width="52" height="9" rx="4.5" fill="rgba(0,0,0,.25)" stroke="rgba(0,255,65,.25)" stroke-width="1"/>
+        <rect x="36" y="62" width="20" height="5" rx="2.5" fill="rgba(0,255,65,.55)" class="rb-scan" style="transform-origin:36px 64px" filter="url(#rb-soft)"/>
+
+        <!-- ── NECK ── -->
+        <rect x="50" y="76" width="20" height="10" rx="4" fill="rgba(0,255,65,.1)" stroke="rgba(0,255,65,.28)" stroke-width="1.2"/>
+        <line x1="55" y1="80" x2="65" y2="80" stroke="rgba(0,255,65,.35)" stroke-width="1" stroke-linecap="round"/>
+
+        <!-- ── BODY ── -->
+        <rect x="14" y="86" width="92" height="52" rx="14" fill="url(#rb-body-g)" stroke="rgba(0,255,65,.4)" stroke-width="1.4"/>
+        <!-- body shine -->
+        <rect x="18" y="89" width="84" height="10" rx="5" fill="rgba(255,255,255,.05)"/>
+
+        <!-- CHEST PANEL: 3 indicator dots -->
+        <circle cx="42" cy="106" r="4.5" fill="rgba(0,255,65,.15)" stroke="rgba(0,255,65,.5)" stroke-width="1" class="rb-pulse"/>
+        <circle cx="42" cy="106" r="2.5" fill="#00ff41" class="rb-pulse" filter="url(#rb-soft)"/>
+        <circle cx="60" cy="106" r="4.5" fill="rgba(0,219,233,.15)" stroke="rgba(0,219,233,.45)" stroke-width="1" class="rb-pulse" style="animation-delay:.4s"/>
+        <circle cx="60" cy="106" r="2.5" fill="#00dbe9" class="rb-pulse" style="animation-delay:.4s" filter="url(#rb-soft)"/>
+        <circle cx="78" cy="106" r="4.5" fill="rgba(255,180,50,.12)" stroke="rgba(255,180,50,.45)" stroke-width="1" class="rb-pulse" style="animation-delay:.8s"/>
+        <circle cx="78" cy="106" r="2.5" fill="#ffb432" class="rb-pulse" style="animation-delay:.8s" filter="url(#rb-soft)"/>
+
+        <!-- CHEST signal bar (zone indicator) -->
+        <rect x="28" y="118" width="64" height="5" rx="2.5" fill="rgba(0,0,0,.2)" stroke="rgba(0,255,65,.15)" stroke-width="1"/>
+        <rect x="30" y="119.5" width="38" height="2" rx="1" fill="rgba(0,255,65,.6)" class="rb-pulse"/>
+
+        <!-- ── LEFT ARM ── -->
+        <rect x="0" y="90" width="14" height="38" rx="7" fill="rgba(0,255,65,.07)" stroke="rgba(0,255,65,.3)" stroke-width="1.2"/>
+        <!-- arm joint -->
+        <circle cx="7" cy="130" r="5" fill="rgba(0,255,65,.12)" stroke="rgba(0,255,65,.35)" stroke-width="1"/>
+        <!-- hand (claw) -->
+        <line x1="3" y1="135" x2="5" y2="143" stroke="rgba(0,255,65,.45)" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="7" y1="136" x2="7" y2="145" stroke="rgba(0,255,65,.45)" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="11" y1="135" x2="9" y2="143" stroke="rgba(0,255,65,.45)" stroke-width="1.8" stroke-linecap="round"/>
+
+        <!-- ── RIGHT ARM ── -->
+        <rect x="106" y="90" width="14" height="38" rx="7" fill="rgba(0,219,233,.07)" stroke="rgba(0,219,233,.3)" stroke-width="1.2"/>
+        <circle cx="113" cy="130" r="5" fill="rgba(0,219,233,.12)" stroke="rgba(0,219,233,.35)" stroke-width="1"/>
+        <line x1="109" y1="135" x2="111" y2="143" stroke="rgba(0,219,233,.45)" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="113" y1="136" x2="113" y2="145" stroke="rgba(0,219,233,.45)" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="117" y1="135" x2="115" y2="143" stroke="rgba(0,219,233,.45)" stroke-width="1.8" stroke-linecap="round"/>
+      </g>
+    </svg>
+  </div>
 
   <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(185,204,178,.5);text-align:center;letter-spacing:.06em;margin-bottom:28px;max-width:280px">Enter your ESP32 IP address to connect the dashboard to your field hardware</p>
 
