@@ -580,110 +580,118 @@ header{
   <p style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:6px;color:rgba(0,238,252,.6);text-align:center;margin-top:4px;margin-bottom:8px">AGRISAT DEDIAPADA</p>
   <div style="width:48px;height:1px;background:rgba(0,255,65,.25);margin-bottom:24px"></div>
 
-  <!-- TERRA-CORE LOGO — animated -->
-  <div style="margin-bottom:20px">
-    <svg width="200" height="200" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="display:block">
+  <!-- RRM LOGO — animated -->
+  <div style="margin-bottom:20px;filter:drop-shadow(0 0 16px rgba(26,80,40,.45))">
+    <svg width="220" height="220" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="display:block">
       <defs>
-        <radialGradient id="tc-bg" cx="50%" cy="45%" r="60%">
-          <stop offset="0%" stop-color="#0d1f15"/>
-          <stop offset="100%" stop-color="#040908"/>
-        </radialGradient>
-        <radialGradient id="tc-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#00ff41" stop-opacity="0.22"/>
-          <stop offset="100%" stop-color="#00ff41" stop-opacity="0"/>
-        </radialGradient>
-        <filter id="tc-blur"><feGaussianBlur stdDeviation="6"/></filter>
-        <filter id="tc-sat-glow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="5" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
         <style>
-          #tc-sat{animation:tcFloat 3s ease-in-out infinite;transform-origin:256px 206px}
-          @keyframes tcFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-          #tc-orbit{animation:tcOrbitSpin 12s linear infinite;transform-origin:256px 210px}
-          @keyframes tcOrbitSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-          .tc-beam{animation:tcBeamPulse 2s ease-in-out infinite}
-          @keyframes tcBeamPulse{0%,100%{opacity:.45}50%{opacity:.9}}
-          .tc-beam:nth-child(2){animation-delay:.3s}
-          .tc-beam:nth-child(3){animation-delay:.6s}
-          .tc-drop{animation:tcDropFall 2.4s ease-in-out infinite}
-          @keyframes tcDropFall{0%,100%{opacity:.75;transform:translateY(0)}50%{opacity:1;transform:translateY(6px)}}
-          #tc-drop2{animation-delay:.5s}
-          #tc-drop3{animation-delay:1s}
-          #tc-center-dot{animation:tcDotPulse 1.6s ease-in-out infinite}
-          @keyframes tcDotPulse{0%,100%{opacity:.8;r:5}50%{opacity:1;r:8}}
+          #rrm-sat-g{animation:rrmFloat 3s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 50%}
+          @keyframes rrmFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+          .rrm-sig{animation:rrmSig 1.8s ease-in-out infinite}
+          .rrm-sig2{animation:rrmSig 1.8s ease-in-out infinite;animation-delay:.3s}
+          .rrm-sig3{animation:rrmSig 1.8s ease-in-out infinite;animation-delay:.6s}
+          @keyframes rrmSig{0%,100%{opacity:.15}50%{opacity:.95}}
+          #rrm-plant-g{animation:rrmSway 3s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+          #rrm-wheat-g{animation:rrmSway 3.5s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+          #rrm-leaf-g{animation:rrmSway 2.7s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+          @keyframes rrmSway{0%,100%{transform:rotate(-1.8deg)}50%{transform:rotate(1.8deg)}}
         </style>
       </defs>
 
-      <!-- Background rounded rect -->
-      <rect width="512" height="512" rx="96" fill="url(#tc-bg)"/>
+      <!-- Blue orbit arc — from lower-left, over top, to lower-right (~270°) -->
+      <path d="M 110,396 A 208,208 0 1,1 402,396" fill="none" stroke="#1a3a8a" stroke-width="11" stroke-linecap="round"/>
 
-      <!-- Grid -->
-      <line x1="0" y1="128" x2="512" y2="128" stroke="#00ff41" stroke-width="0.6" opacity="0.07"/>
-      <line x1="0" y1="256" x2="512" y2="256" stroke="#00ff41" stroke-width="0.6" opacity="0.07"/>
-      <line x1="0" y1="384" x2="512" y2="384" stroke="#00ff41" stroke-width="0.6" opacity="0.07"/>
-      <line x1="128" y1="0" x2="128" y2="512" stroke="#00ff41" stroke-width="0.6" opacity="0.07"/>
-      <line x1="256" y1="0" x2="256" y2="512" stroke="#00ff41" stroke-width="0.6" opacity="0.07"/>
-      <line x1="384" y1="0" x2="384" y2="512" stroke="#00ff41" stroke-width="0.6" opacity="0.07"/>
+      <!-- Farm terrain bands -->
+      <path d="M 122,186 Q 189,162 256,164 Q 324,162 390,186 Q 324,178 256,180 Q 189,178 122,186 Z" fill="#3a8a36"/>
+      <path d="M 94,206 Q 175,182 256,184 Q 337,182 418,206 Q 337,198 256,200 Q 175,198 94,206 Z" fill="#2a6a28"/>
+      <path d="M 76,225 Q 165,202 256,204 Q 347,202 436,225 Q 347,218 256,220 Q 165,218 76,225 Z" fill="#1a4e1a"/>
+      <!-- Terrain grid lines -->
+      <line x1="158" y1="167" x2="105" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
+      <line x1="196" y1="164" x2="157" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
+      <line x1="227" y1="163" x2="208" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
+      <line x1="256" y1="163" x2="256" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
+      <line x1="286" y1="163" x2="305" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
+      <line x1="317" y1="164" x2="357" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
+      <line x1="356" y1="167" x2="409" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
+      <path d="M 93,195 Q 174,180 256,182 Q 338,180 420,195" fill="none" stroke="#0a280a" stroke-width="1.2" opacity=".45"/>
+      <path d="M 78,213 Q 165,200 256,202 Q 347,200 435,213" fill="none" stroke="#0a280a" stroke-width="1.2" opacity=".45"/>
 
-      <!-- Glow center -->
-      <ellipse cx="256" cy="230" rx="160" ry="120" fill="url(#tc-glow)"/>
-
-      <!-- Spinning orbit ring -->
-      <g id="tc-orbit">
-        <ellipse cx="256" cy="210" rx="140" ry="52" fill="none" stroke="#00ff41" stroke-width="1.5" opacity="0.22" stroke-dasharray="10 7"/>
-        <!-- orbit marker dot -->
-        <circle cx="396" cy="210" r="5" fill="#00ff41" opacity="0.7" filter="url(#tc-sat-glow)"/>
+      <!-- Satellite (floating group) -->
+      <g id="rrm-sat-g">
+        <g transform="translate(130,88) rotate(-32)">
+          <!-- Left solar panel -->
+          <rect x="-80" y="-14" width="56" height="28" rx="3" fill="#1a3a8a"/>
+          <line x1="-63" y1="-14" x2="-63" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
+          <line x1="-46" y1="-14" x2="-46" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
+          <line x1="-29" y1="-14" x2="-29" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
+          <line x1="-80" y1="-5" x2="-24" y2="-5" stroke="#3a5aaa" stroke-width="1"/>
+          <line x1="-80" y1="5" x2="-24" y2="5" stroke="#3a5aaa" stroke-width="1"/>
+          <rect x="-24" y="-5" width="14" height="10" rx="2" fill="#0e2068"/>
+          <!-- Right solar panel -->
+          <rect x="24" y="-14" width="56" height="28" rx="3" fill="#1a3a8a"/>
+          <line x1="41" y1="-14" x2="41" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
+          <line x1="58" y1="-14" x2="58" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
+          <line x1="75" y1="-14" x2="75" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
+          <line x1="24" y1="-5" x2="80" y2="-5" stroke="#3a5aaa" stroke-width="1"/>
+          <line x1="24" y1="5" x2="80" y2="5" stroke="#3a5aaa" stroke-width="1"/>
+          <rect x="10" y="-5" width="14" height="10" rx="2" fill="#0e2068"/>
+          <!-- Body -->
+          <rect x="-22" y="-30" width="44" height="62" rx="5" fill="#1a3a8a"/>
+          <rect x="-15" y="-24" width="30" height="14" rx="3" fill="#2a4aaa" opacity=".7"/>
+          <circle cx="0" cy="12" r="9" fill="#0e2068"/>
+          <circle cx="0" cy="12" r="5" fill="#081848"/>
+          <!-- Dish arm + bowl -->
+          <line x1="-2" y1="32" x2="6" y2="52" stroke="#1a3a8a" stroke-width="3.5"/>
+          <path d="M -12,52 Q 5,44 22,52" fill="none" stroke="#1a3a8a" stroke-width="5" stroke-linecap="round"/>
+        </g>
+        <!-- Signal waves from dish tip (~163,140) -->
+        <g transform="translate(163,142)">
+          <path class="rrm-sig" d="M -3,-3 A 10,10 0 0,1 10,6" fill="none" stroke="#2d8a3a" stroke-width="2.8" stroke-linecap="round"/>
+          <path class="rrm-sig2" d="M -7,-7 A 18,18 0 0,1 18,12" fill="none" stroke="#2d8a3a" stroke-width="2.2" stroke-linecap="round"/>
+          <path class="rrm-sig3" d="M -12,-12 A 28,28 0 0,1 27,18" fill="none" stroke="#2d8a3a" stroke-width="1.6" stroke-linecap="round"/>
+        </g>
       </g>
 
-      <!-- Floating satellite group -->
-      <g id="tc-sat" filter="url(#tc-sat-glow)">
-        <!-- Solar panel LEFT -->
-        <rect x="90" y="188" width="110" height="36" rx="5" fill="#001a0d" stroke="#00dbe9" stroke-width="2" opacity="0.85"/>
-        <line x1="107" y1="188" x2="107" y2="224" stroke="#00dbe9" stroke-width="1" opacity="0.5"/>
-        <line x1="125" y1="188" x2="125" y2="224" stroke="#00dbe9" stroke-width="1" opacity="0.5"/>
-        <line x1="143" y1="188" x2="143" y2="224" stroke="#00dbe9" stroke-width="1" opacity="0.5"/>
-        <line x1="161" y1="188" x2="161" y2="224" stroke="#00dbe9" stroke-width="1" opacity="0.5"/>
-        <rect x="200" y="202" width="24" height="8" rx="2" fill="#00ff41" opacity="0.8"/>
+      <!-- RRM Text — R1 dark green, R2 bright green, M dark green -->
+      <text x="50" y="372" font-family="'Arial Black','Franklin Gothic Heavy',Impact,sans-serif"
+            font-size="200" font-weight="900" font-style="italic" fill="#0d4820">R</text>
+      <text x="185" y="372" font-family="'Arial Black','Franklin Gothic Heavy',Impact,sans-serif"
+            font-size="200" font-weight="900" font-style="italic" fill="#52b840">R</text>
+      <text x="310" y="372" font-family="'Arial Black','Franklin Gothic Heavy',Impact,sans-serif"
+            font-size="200" font-weight="900" font-style="italic" fill="#0d4820">M</text>
 
-        <!-- Satellite body -->
-        <rect x="218" y="176" width="76" height="60" rx="8" fill="#0d2218" stroke="#00ff41" stroke-width="3"/>
-        <rect x="228" y="186" width="56" height="12" rx="3" fill="#00ff41" opacity="0.15"/>
-        <circle id="tc-center-dot" cx="256" cy="215" r="5" fill="#00ff41"/>
-        <circle cx="256" cy="215" r="14" fill="none" stroke="#00ff41" stroke-width="1.5" opacity="0.3"/>
+      <!-- Lower green arc -->
+      <path d="M 90,402 Q 256,466 422,402" fill="none" stroke="#2a6a28" stroke-width="7" stroke-linecap="round"/>
 
-        <!-- Connector R -->
-        <rect x="288" y="202" width="24" height="8" rx="2" fill="#00ff41" opacity="0.8"/>
-
-        <!-- Solar panel RIGHT -->
-        <rect x="312" y="188" width="110" height="36" rx="5" fill="#001a0d" stroke="#00dbe9" stroke-width="2" opacity="0.85"/>
-        <line x1="329" y1="188" x2="329" y2="224" stroke="#00dbe9" stroke-width="1" opacity="0.5"/>
-        <line x1="347" y1="188" x2="347" y2="224" stroke="#00dbe9" stroke-width="1" opacity="0.5"/>
-        <line x1="365" y1="188" x2="365" y2="224" stroke="#00dbe9" stroke-width="1" opacity="0.5"/>
-        <line x1="383" y1="188" x2="383" y2="224" stroke="#00dbe9" stroke-width="1" opacity="0.5"/>
-
-        <!-- SAR antenna array -->
-        <rect x="208" y="238" width="96" height="10" rx="3" fill="#00ff41" opacity="0.5"/>
+      <!-- Wheat stalk (right side) -->
+      <g id="rrm-wheat-g" transform="translate(388,270)">
+        <path d="M 0,120 C -2,75 -2,30 0,0" stroke="#2a6a28" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <ellipse cx="-9" cy="12" rx="7" ry="13" fill="#3a8a36" transform="rotate(-22,-9,12)"/>
+        <ellipse cx="9" cy="12" rx="7" ry="13" fill="#2a6a28" transform="rotate(22,9,12)"/>
+        <ellipse cx="-8" cy="32" rx="6" ry="12" fill="#3a8a36" transform="rotate(-18,-8,32)"/>
+        <ellipse cx="8" cy="32" rx="6" ry="12" fill="#2a6a28" transform="rotate(18,8,32)"/>
+        <ellipse cx="-7" cy="50" rx="6" ry="11" fill="#4a9840" transform="rotate(-15,-7,50)"/>
+        <ellipse cx="7" cy="50" rx="6" ry="11" fill="#3a8a36" transform="rotate(15,7,50)"/>
+        <ellipse cx="-6" cy="67" rx="5" ry="10" fill="#4a9840" transform="rotate(-12,-6,67)"/>
+        <ellipse cx="6" cy="67" rx="5" ry="10" fill="#3a8a36" transform="rotate(12,6,67)"/>
+        <ellipse cx="0" cy="-5" rx="5" ry="8" fill="#3a8a36"/>
       </g>
 
-      <!-- SAR radar beams (pulsing, outside float group so they point at fixed ground) -->
-      <line class="tc-beam" x1="220" y1="248" x2="180" y2="335" stroke="#00ff41" stroke-width="2" stroke-dasharray="6 5"/>
-      <line class="tc-beam" x1="256" y1="248" x2="256" y2="335" stroke="#00ff41" stroke-width="2.5" stroke-dasharray="6 5"/>
-      <line class="tc-beam" x1="292" y1="248" x2="332" y2="335" stroke="#00ff41" stroke-width="2" stroke-dasharray="6 5"/>
+      <!-- Seedling (bottom center) -->
+      <g id="rrm-plant-g" transform="translate(256,382)">
+        <path d="M 0,60 C 1,38 0,14 0,0" stroke="#2a6a28" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M 0,28 C -38,14 -46,-8 -24,-22 C -16,-8 -6,10 0,28 Z" fill="#4aa840"/>
+        <path d="M 0,28 C 38,14 46,-8 24,-22 C 16,-8 6,10 0,28 Z" fill="#3a9830"/>
+        <path d="M 0,6 C -10,-2 -12,-14 -5,-22 C -1,-16 0,-5 0,6 Z" fill="#52b840"/>
+        <path d="M 0,6 C 10,-2 12,-14 5,-22 C 1,-16 0,-5 0,6 Z" fill="#42a830"/>
+      </g>
 
-      <!-- Ground / soil layer -->
-      <ellipse cx="256" cy="350" rx="110" ry="18" fill="#00ff41" opacity="0.06"/>
-      <path d="M146 345 Q190 330 256 345 Q322 330 366 345" fill="none" stroke="#00ff41" stroke-width="2.5" opacity="0.55" stroke-linecap="round"/>
-      <path d="M160 358 Q210 345 256 356 Q302 345 352 358" fill="none" stroke="#00ff41" stroke-width="1.5" opacity="0.28" stroke-linecap="round"/>
-
-      <!-- Moisture droplets -->
-      <circle id="tc-drop1" class="tc-drop" cx="210" cy="372" r="5" fill="#00dbe9" opacity="0.75"/>
-      <circle id="tc-drop2" class="tc-drop" cx="256" cy="378" r="6" fill="#00dbe9" opacity="0.75"/>
-      <circle id="tc-drop3" class="tc-drop" cx="302" cy="372" r="5" fill="#00dbe9" opacity="0.75"/>
-
-      <!-- TERRA-CORE text -->
-      <text x="256" y="430" text-anchor="middle" font-family="'Courier New',Courier,monospace" font-size="36" font-weight="900" letter-spacing="4" fill="#00ff41" opacity="0.95">TERRA</text>
-      <text x="256" y="460" text-anchor="middle" font-family="'Courier New',Courier,monospace" font-size="18" font-weight="700" letter-spacing="12" fill="#00dbe9" opacity="0.65">CORE</text>
+      <!-- Grass blades (bottom left) -->
+      <g id="rrm-leaf-g" transform="translate(155,392)">
+        <path d="M 0,45 C -36,18 -50,-8 -28,-32 C -22,-8 -10,14 0,45 Z" fill="#3a9830"/>
+        <path d="M 0,45 C -4,12 -2,-16 0,-38 C 2,-16 4,12 0,45 Z" fill="#4aa840"/>
+        <path d="M 0,45 C 34,16 46,-12 22,-32 C 16,-8 6,14 0,45 Z" fill="#2a7828"/>
+      </g>
     </svg>
   </div>
 
