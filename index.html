@@ -580,101 +580,198 @@ header{
   <p style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:6px;color:rgba(0,238,252,.6);text-align:center;margin-top:4px;margin-bottom:8px">AGRISAT DEDIAPADA</p>
   <div style="width:48px;height:1px;background:rgba(0,255,65,.25);margin-bottom:24px"></div>
 
-  <!-- ROBOT SVG -->
-  <div style="margin-bottom:24px;filter:drop-shadow(0 0 18px rgba(0,255,65,.30))">
-    <svg width="120" height="148" viewBox="0 0 120 148" xmlns="http://www.w3.org/2000/svg" style="display:block">
+  <!-- ROBOT SVG — cute orange 3D-style waving robot -->
+  <div style="margin-bottom:20px">
+    <svg width="160" height="200" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">
       <defs>
-        <filter id="rb-glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <filter id="rb-soft"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        <linearGradient id="rb-body-g" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="rgba(0,255,65,.18)"/>
-          <stop offset="100%" stop-color="rgba(0,180,50,.08)"/>
-        </linearGradient>
-        <linearGradient id="rb-head-g" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="rgba(0,219,233,.18)"/>
-          <stop offset="100%" stop-color="rgba(0,160,180,.08)"/>
-        </linearGradient>
+        <!-- Orange body gradients -->
+        <radialGradient id="rg-head" cx="38%" cy="30%" r="62%">
+          <stop offset="0%" stop-color="#FFD066"/>
+          <stop offset="55%" stop-color="#F5A020"/>
+          <stop offset="100%" stop-color="#C97200"/>
+        </radialGradient>
+        <radialGradient id="rg-body" cx="35%" cy="28%" r="65%">
+          <stop offset="0%" stop-color="#FFBB44"/>
+          <stop offset="55%" stop-color="#E8900A"/>
+          <stop offset="100%" stop-color="#B86500"/>
+        </radialGradient>
+        <radialGradient id="rg-limb" cx="30%" cy="25%" r="70%">
+          <stop offset="0%" stop-color="#FFC040"/>
+          <stop offset="60%" stop-color="#E08800"/>
+          <stop offset="100%" stop-color="#A05800"/>
+        </radialGradient>
+        <radialGradient id="rg-eye-outer" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#6A6A80"/>
+          <stop offset="100%" stop-color="#2A2A38"/>
+        </radialGradient>
+        <radialGradient id="rg-pupil" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" stop-color="#555570"/>
+          <stop offset="100%" stop-color="#111120"/>
+        </radialGradient>
+        <radialGradient id="rg-chest" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" stop-color="#55DDEE"/>
+          <stop offset="100%" stop-color="#0099BB"/>
+        </radialGradient>
+        <filter id="rg-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,.35)"/>
+        </filter>
+        <filter id="rg-glow-o" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="rgba(255,160,0,.5)"/>
+        </filter>
         <style>
-          .rb-blink{animation:rbBlink 3.2s ease-in-out infinite}
-          @keyframes rbBlink{0%,90%,100%{opacity:1}93%,97%{opacity:0}}
-          .rb-scan{animation:rbScan 2s ease-in-out infinite}
-          @keyframes rbScan{0%,100%{opacity:.7;transform:scaleX(.4)}50%{opacity:1;transform:scaleX(1)}}
-          .rb-pulse{animation:rbPulse 2.4s ease-in-out infinite}
-          @keyframes rbPulse{0%,100%{opacity:.4}50%{opacity:1}}
-          .rb-ant{animation:rbAnt 1.8s ease-in-out infinite}
-          @keyframes rbAnt{0%,100%{opacity:.5}50%{opacity:1}}
-          .rb-float{animation:rbFloat 3s ease-in-out infinite}
-          @keyframes rbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+          /* Body float */
+          #rb2-body-grp{animation:rb2Float 2.8s ease-in-out infinite;transform-origin:80px 120px}
+          @keyframes rb2Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+          /* Waving right arm */
+          #rb2-arm-r{animation:rb2Wave 1.4s ease-in-out infinite;transform-origin:118px 105px}
+          @keyframes rb2Wave{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(28deg)}}
+          /* Left arm slight swing */
+          #rb2-arm-l{animation:rb2SwingL 2.8s ease-in-out infinite;transform-origin:42px 108px}
+          @keyframes rb2SwingL{0%,100%{transform:rotate(8deg)}50%{transform:rotate(-5deg)}}
+          /* Blink */
+          #rb2-leye-lid,#rb2-reye-lid{animation:rb2Blink 3.5s ease-in-out infinite}
+          @keyframes rb2Blink{0%,88%,100%{transform:scaleY(1)}91%,95%{transform:scaleY(0.08)}}
+          #rb2-leye-lid{transform-origin:50px 82px}
+          #rb2-reye-lid{transform-origin:95px 82px}
+          /* Shadow pulse under feet */
+          #rb2-shadow{animation:rb2ShadowPulse 2.8s ease-in-out infinite;transform-origin:80px 192px}
+          @keyframes rb2ShadowPulse{0%,100%{transform:scaleX(1);opacity:.35}50%{transform:scaleX(.72);opacity:.18}}
         </style>
       </defs>
 
-      <g class="rb-float">
-        <!-- ── ANTENNA ── -->
-        <line x1="60" y1="8" x2="60" y2="22" stroke="rgba(0,219,233,.6)" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="60" cy="6" r="3.5" fill="none" stroke="rgba(0,219,233,.7)" stroke-width="1.2" class="rb-ant"/>
-        <circle cx="60" cy="6" r="1.8" fill="#00dbe9" class="rb-ant" filter="url(#rb-soft)"/>
+      <!-- Ground shadow -->
+      <ellipse id="rb2-shadow" cx="80" cy="192" rx="42" ry="7" fill="rgba(0,0,0,.4)"/>
 
-        <!-- ── HEAD ── -->
-        <rect x="22" y="22" width="76" height="54" rx="14" fill="url(#rb-head-g)" stroke="rgba(0,219,233,.5)" stroke-width="1.4"/>
-        <!-- head shine -->
-        <rect x="26" y="25" width="68" height="12" rx="6" fill="rgba(255,255,255,.06)"/>
+      <g id="rb2-body-grp">
 
-        <!-- LEFT EYE -->
-        <g class="rb-blink">
-          <rect x="32" y="36" width="22" height="16" rx="6" fill="rgba(0,255,65,.1)" stroke="rgba(0,255,65,.55)" stroke-width="1.2" filter="url(#rb-soft)"/>
-          <circle cx="43" cy="44" r="5" fill="#00ff41" opacity=".9" filter="url(#rb-glow)"/>
-          <circle cx="43" cy="44" r="2.5" fill="rgba(0,0,0,.6)"/>
-          <circle cx="45" cy="42" r="1" fill="rgba(255,255,255,.7)"/>
+        <!-- ══ LEFT ARM (down, slight forward angle) ══ -->
+        <g id="rb2-arm-l">
+          <!-- shoulder cap -->
+          <circle cx="42" cy="108" r="9" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <circle cx="39" cy="105" r="3.5" fill="rgba(255,255,255,.18)"/>
+          <!-- upper arm -->
+          <rect x="34" y="108" width="16" height="28" rx="8" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <!-- elbow joint -->
+          <circle cx="42" cy="138" r="7" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <!-- forearm -->
+          <rect x="35" y="137" width="14" height="22" rx="7" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <!-- hand -->
+          <ellipse cx="42" cy="162" rx="9" ry="8" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <!-- fingers -->
+          <rect x="35" y="157" width="6" height="11" rx="3" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(-10,38,162)"/>
+          <rect x="38" y="156" width="6" height="13" rx="3" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <rect x="43" y="156" width="6" height="13" rx="3" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <rect x="47" y="157" width="5" height="11" rx="2.5" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(10,50,162)"/>
+          <!-- thumb -->
+          <rect x="29" y="158" width="5" height="9" rx="2.5" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(-25,31,162)"/>
+          <!-- shine -->
+          <ellipse cx="40" cy="160" rx="3" ry="2" fill="rgba(255,255,255,.22)"/>
         </g>
 
-        <!-- RIGHT EYE -->
-        <g class="rb-blink" style="animation-delay:.15s">
-          <rect x="66" y="36" width="22" height="16" rx="6" fill="rgba(0,255,65,.1)" stroke="rgba(0,255,65,.55)" stroke-width="1.2" filter="url(#rb-soft)"/>
-          <circle cx="77" cy="44" r="5" fill="#00ff41" opacity=".9" filter="url(#rb-glow)"/>
-          <circle cx="77" cy="44" r="2.5" fill="rgba(0,0,0,.6)"/>
-          <circle cx="79" cy="42" r="1" fill="rgba(255,255,255,.7)"/>
+        <!-- ══ RIGHT ARM (raised, waving) ══ -->
+        <g id="rb2-arm-r">
+          <!-- shoulder cap -->
+          <circle cx="118" cy="105" r="9" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <circle cx="115" cy="102" r="3.5" fill="rgba(255,255,255,.18)"/>
+          <!-- upper arm (angled up) -->
+          <rect x="112" y="85" width="14" height="26" rx="7" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(-30,119,98)"/>
+          <!-- elbow -->
+          <circle cx="128" cy="78" r="7" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <!-- forearm (angled further up) -->
+          <rect x="122" y="54" width="14" height="26" rx="7" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(15,129,67)"/>
+          <!-- hand / palm -->
+          <ellipse cx="132" cy="52" rx="9" ry="8" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+          <!-- waving fingers (spread open) -->
+          <rect x="125" y="38" width="5.5" height="13" rx="2.8" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(-18,128,44)"/>
+          <rect x="130" y="36" width="5.5" height="15" rx="2.8" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(-6,133,43)"/>
+          <rect x="135" y="36" width="5.5" height="15" rx="2.8" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(5,138,43)"/>
+          <rect x="140" y="38" width="5" height="13" rx="2.5" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(16,143,44)"/>
+          <!-- thumb -->
+          <rect x="119" y="46" width="5" height="10" rx="2.5" fill="url(#rg-limb)" filter="url(#rg-shadow)" transform="rotate(-40,122,51)"/>
+          <!-- palm shine -->
+          <ellipse cx="130" cy="50" rx="3" ry="2.2" fill="rgba(255,255,255,.22)"/>
         </g>
 
-        <!-- MOUTH / SCAN BAR -->
-        <rect x="34" y="60" width="52" height="9" rx="4.5" fill="rgba(0,0,0,.25)" stroke="rgba(0,255,65,.25)" stroke-width="1"/>
-        <rect x="36" y="62" width="20" height="5" rx="2.5" fill="rgba(0,255,65,.55)" class="rb-scan" style="transform-origin:36px 64px" filter="url(#rb-soft)"/>
+        <!-- ══ BODY (torso) ══ -->
+        <rect x="44" y="106" width="72" height="62" rx="20" fill="url(#rg-body)" filter="url(#rg-shadow)"/>
+        <!-- body top shine -->
+        <ellipse cx="72" cy="114" rx="22" ry="7" fill="rgba(255,255,255,.20)"/>
+        <!-- side panels -->
+        <rect x="46" y="120" width="10" height="30" rx="5" fill="rgba(0,0,0,.12)"/>
+        <rect x="104" y="120" width="10" height="30" rx="5" fill="rgba(0,0,0,.12)"/>
+        <!-- chest circle (blue) -->
+        <circle cx="80" cy="135" r="13" fill="url(#rg-chest)" filter="url(#rg-shadow)"/>
+        <circle cx="80" cy="135" r="9" fill="rgba(0,180,220,.7)"/>
+        <circle cx="76" cy="131" r="3.5" fill="rgba(255,255,255,.45)"/>
+        <!-- chest inner ring -->
+        <circle cx="80" cy="135" r="13" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
 
-        <!-- ── NECK ── -->
-        <rect x="50" y="76" width="20" height="10" rx="4" fill="rgba(0,255,65,.1)" stroke="rgba(0,255,65,.28)" stroke-width="1.2"/>
-        <line x1="55" y1="80" x2="65" y2="80" stroke="rgba(0,255,65,.35)" stroke-width="1" stroke-linecap="round"/>
+        <!-- ══ NECK ══ -->
+        <rect x="68" y="95" width="24" height="14" rx="7" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+        <!-- neck rings -->
+        <rect x="68" y="99" width="24" height="3" rx="1.5" fill="rgba(0,0,0,.15)"/>
+        <rect x="68" y="104" width="24" height="3" rx="1.5" fill="rgba(0,0,0,.15)"/>
 
-        <!-- ── BODY ── -->
-        <rect x="14" y="86" width="92" height="52" rx="14" fill="url(#rb-body-g)" stroke="rgba(0,255,65,.4)" stroke-width="1.4"/>
-        <!-- body shine -->
-        <rect x="18" y="89" width="84" height="10" rx="5" fill="rgba(255,255,255,.05)"/>
+        <!-- ══ HEAD ══ -->
+        <!-- ear pieces (silver headphone style) -->
+        <ellipse cx="27" cy="72" rx="8" ry="10" fill="#7A7A8E" filter="url(#rg-shadow)"/>
+        <ellipse cx="27" cy="72" rx="5" ry="6.5" fill="#5A5A6E"/>
+        <ellipse cx="27" cy="72" rx="3" ry="4" fill="#3A3A4E"/>
+        <ellipse cx="133" cy="72" rx="8" ry="10" fill="#7A7A8E" filter="url(#rg-shadow)"/>
+        <ellipse cx="133" cy="72" rx="5" ry="6.5" fill="#5A5A6E"/>
+        <ellipse cx="133" cy="72" rx="3" ry="4" fill="#3A3A4E"/>
+        <!-- head band connecting ears -->
+        <rect x="27" y="62" width="106" height="6" rx="3" fill="#7A7A8E"/>
 
-        <!-- CHEST PANEL: 3 indicator dots -->
-        <circle cx="42" cy="106" r="4.5" fill="rgba(0,255,65,.15)" stroke="rgba(0,255,65,.5)" stroke-width="1" class="rb-pulse"/>
-        <circle cx="42" cy="106" r="2.5" fill="#00ff41" class="rb-pulse" filter="url(#rb-soft)"/>
-        <circle cx="60" cy="106" r="4.5" fill="rgba(0,219,233,.15)" stroke="rgba(0,219,233,.45)" stroke-width="1" class="rb-pulse" style="animation-delay:.4s"/>
-        <circle cx="60" cy="106" r="2.5" fill="#00dbe9" class="rb-pulse" style="animation-delay:.4s" filter="url(#rb-soft)"/>
-        <circle cx="78" cy="106" r="4.5" fill="rgba(255,180,50,.12)" stroke="rgba(255,180,50,.45)" stroke-width="1" class="rb-pulse" style="animation-delay:.8s"/>
-        <circle cx="78" cy="106" r="2.5" fill="#ffb432" class="rb-pulse" style="animation-delay:.8s" filter="url(#rb-soft)"/>
+        <!-- head round shape -->
+        <ellipse cx="80" cy="72" rx="48" ry="45" fill="url(#rg-head)" filter="url(#rg-shadow)"/>
+        <!-- head top shine -->
+        <ellipse cx="66" cy="50" rx="22" ry="12" fill="rgba(255,255,255,.30)" transform="rotate(-15,66,50)"/>
 
-        <!-- CHEST signal bar (zone indicator) -->
-        <rect x="28" y="118" width="64" height="5" rx="2.5" fill="rgba(0,0,0,.2)" stroke="rgba(0,255,65,.15)" stroke-width="1"/>
-        <rect x="30" y="119.5" width="38" height="2" rx="1" fill="rgba(0,255,65,.6)" class="rb-pulse"/>
+        <!-- ══ EYES ══ -->
+        <!-- Left eye socket -->
+        <ellipse cx="57" cy="75" rx="16" ry="16" fill="#1A1A28"/>
+        <ellipse cx="57" cy="75" rx="16" ry="16" fill="none" stroke="#6A6A80" stroke-width="3"/>
+        <!-- Left eye ring shine -->
+        <ellipse cx="57" cy="75" rx="16" ry="16" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1.5"/>
+        <!-- Left pupil -->
+        <circle cx="57" cy="75" r="10" fill="url(#rg-pupil)"/>
+        <circle cx="57" cy="75" r="6" fill="#0A0A18"/>
+        <circle cx="52" cy="70" r="3" fill="rgba(255,255,255,.55)"/>
+        <circle cx="61" cy="79" r="1.5" fill="rgba(255,255,255,.25)"/>
+        <!-- Left blink lid -->
+        <ellipse id="rb2-leye-lid" cx="57" cy="75" rx="16" ry="16" fill="#F5A020"/>
 
-        <!-- ── LEFT ARM ── -->
-        <rect x="0" y="90" width="14" height="38" rx="7" fill="rgba(0,255,65,.07)" stroke="rgba(0,255,65,.3)" stroke-width="1.2"/>
-        <!-- arm joint -->
-        <circle cx="7" cy="130" r="5" fill="rgba(0,255,65,.12)" stroke="rgba(0,255,65,.35)" stroke-width="1"/>
-        <!-- hand (claw) -->
-        <line x1="3" y1="135" x2="5" y2="143" stroke="rgba(0,255,65,.45)" stroke-width="1.8" stroke-linecap="round"/>
-        <line x1="7" y1="136" x2="7" y2="145" stroke="rgba(0,255,65,.45)" stroke-width="1.8" stroke-linecap="round"/>
-        <line x1="11" y1="135" x2="9" y2="143" stroke="rgba(0,255,65,.45)" stroke-width="1.8" stroke-linecap="round"/>
+        <!-- Right eye socket -->
+        <ellipse cx="103" cy="75" rx="16" ry="16" fill="#1A1A28"/>
+        <ellipse cx="103" cy="75" rx="16" ry="16" fill="none" stroke="#6A6A80" stroke-width="3"/>
+        <ellipse cx="103" cy="75" rx="16" ry="16" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1.5"/>
+        <!-- Right pupil -->
+        <circle cx="103" cy="75" r="10" fill="url(#rg-pupil)"/>
+        <circle cx="103" cy="75" r="6" fill="#0A0A18"/>
+        <circle cx="98" cy="70" r="3" fill="rgba(255,255,255,.55)"/>
+        <circle cx="107" cy="79" r="1.5" fill="rgba(255,255,255,.25)"/>
+        <!-- Right blink lid -->
+        <ellipse id="rb2-reye-lid" cx="103" cy="75" rx="16" ry="16" fill="#F5A020"/>
 
-        <!-- ── RIGHT ARM ── -->
-        <rect x="106" y="90" width="14" height="38" rx="7" fill="rgba(0,219,233,.07)" stroke="rgba(0,219,233,.3)" stroke-width="1.2"/>
-        <circle cx="113" cy="130" r="5" fill="rgba(0,219,233,.12)" stroke="rgba(0,219,233,.35)" stroke-width="1"/>
-        <line x1="109" y1="135" x2="111" y2="143" stroke="rgba(0,219,233,.45)" stroke-width="1.8" stroke-linecap="round"/>
-        <line x1="113" y1="136" x2="113" y2="145" stroke="rgba(0,219,233,.45)" stroke-width="1.8" stroke-linecap="round"/>
-        <line x1="117" y1="135" x2="115" y2="143" stroke="rgba(0,219,233,.45)" stroke-width="1.8" stroke-linecap="round"/>
+        <!-- ══ MOUTH (smile) ══ -->
+        <path d="M 64 92 Q 80 104 96 92" stroke="#5A2800" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- smile teeth hint -->
+        <path d="M 67 93 Q 80 103 93 93" stroke="rgba(255,255,255,.25)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+        <!-- ══ LEGS ══ -->
+        <!-- Left leg -->
+        <rect x="52" y="162" width="22" height="24" rx="10" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+        <!-- Left foot -->
+        <ellipse cx="63" cy="188" rx="16" ry="8" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+        <ellipse cx="60" cy="186" rx="6" ry="3" fill="rgba(255,255,255,.20)"/>
+
+        <!-- Right leg -->
+        <rect x="86" y="162" width="22" height="24" rx="10" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+        <!-- Right foot -->
+        <ellipse cx="97" cy="188" rx="16" ry="8" fill="url(#rg-limb)" filter="url(#rg-shadow)"/>
+        <ellipse cx="94" cy="186" rx="6" ry="3" fill="rgba(255,255,255,.20)"/>
+
       </g>
     </svg>
   </div>
