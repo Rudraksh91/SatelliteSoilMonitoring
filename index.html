@@ -1042,19 +1042,19 @@ header{
       </div>
       <div class="space-y-md mt-sm">
         <div class="flex flex-col gap-xs">
-          <div class="flex justify-between items-center"><span class="font-data-sm">DRIP_CONTROL_A</span><div class="w-8 h-4 bg-primary-container rounded-full relative cursor-pointer"><div class="absolute right-1 top-1 w-2 h-2 bg-on-primary rounded-full"></div></div></div>
+          <div class="flex justify-between items-center"><span class="font-data-sm">DRIP_CONTROL_A</span><div id="opt-toggle-dripA" onclick="toggleAutoOpt('dripControlA')" class="w-8 h-4 bg-primary-container rounded-full relative cursor-pointer transition-colors"><div class="absolute right-1 top-1 w-2 h-2 bg-on-primary rounded-full transition-all"></div></div></div>
           <div class="flex gap-[2px]"><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
         </div>
         <div class="flex flex-col gap-xs">
-          <div class="flex justify-between items-center"><span class="font-data-sm">ET0_COMPENSATION</span><div class="w-8 h-4 bg-surface-variant rounded-full relative cursor-pointer"><div class="absolute left-1 top-1 w-2 h-2 bg-on-surface-variant rounded-full"></div></div></div>
+          <div class="flex justify-between items-center"><span class="font-data-sm">ET0_COMPENSATION</span><div id="opt-toggle-et0" onclick="toggleAutoOpt('et0Comp')" class="w-8 h-4 bg-surface-variant rounded-full relative cursor-pointer transition-colors"><div class="absolute left-1 top-1 w-2 h-2 bg-on-surface-variant rounded-full transition-all"></div></div></div>
           <div class="flex gap-[2px]"><div class="step ss"></div><div class="step ss"></div><div class="step ss"></div><div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
         </div>
         <div class="flex flex-col gap-xs">
-          <div class="flex justify-between items-center"><span class="font-data-sm">RAIN_GUARD_MODE</span><div class="w-8 h-4 bg-primary-container rounded-full relative cursor-pointer"><div class="absolute right-1 top-1 w-2 h-2 bg-on-primary rounded-full"></div></div></div>
+          <div class="flex justify-between items-center"><span class="font-data-sm">RAIN_GUARD_MODE</span><div id="opt-toggle-rainguard" onclick="toggleAutoOpt('rainGuardMode')" class="w-8 h-4 bg-primary-container rounded-full relative cursor-pointer transition-colors"><div class="absolute right-1 top-1 w-2 h-2 bg-on-primary rounded-full transition-all"></div></div></div>
           <div class="flex gap-[2px]"><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step sp"></div><div class="step"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
         </div>
       </div>
-      <button class="mt-md w-full bg-primary-container text-on-primary py-sm font-label-caps text-sm font-bold active:scale-95 transition-all">DEPLOY_CHANGES</button>
+      <button id="opt-deploy-btn" onclick="deployAutoOpt()" class="mt-md w-full bg-primary-container text-on-primary py-sm font-label-caps text-sm font-bold active:scale-95 transition-all">DEPLOY_CHANGES</button>
     </div>
     <div class="gp flex-1 p-sm rounded-lg flex flex-col gap-sm overflow-hidden">
       <div class="font-label-caps text-on-surface-variant">LOG_STREAM · LIVE</div>
@@ -1950,7 +1950,69 @@ function renderTimelineHeader(now){
 const RAIN_FORECAST_24H_MM=10;   // meaningful rain expected in the next 24h
 const RAIN_HOLD_HOURS=48;        // hold irrigation this long after significant rain
 
+// ══════════════════════════════════════════════════
+// AUTO_OPT — DRIP_CONTROL_A / ET0_COMPENSATION / RAIN_GUARD_MODE toggles.
+// Stage-then-deploy: clicking a toggle only updates AUTO_OPT_PENDING (and
+// its own visual state) — nothing changes in the actual automation logic
+// until DEPLOY_CHANGES copies pending → live. Live settings persist across
+// reloads via localStorage.
+// ══════════════════════════════════════════════════
+const AUTO_OPT_DEFAULTS={dripControlA:true, et0Comp:false, rainGuardMode:true};
+const AUTO_OPT_KEY='agrisat_auto_opt_v1';
+function loadAutoOpt(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(AUTO_OPT_KEY));
+    if(saved) return {...AUTO_OPT_DEFAULTS,...saved};
+  }catch(e){}
+  return {...AUTO_OPT_DEFAULTS};
+}
+const AUTO_OPT_LIVE=loadAutoOpt();
+let AUTO_OPT_PENDING={...AUTO_OPT_LIVE};
+
+const OPT_TOGGLE_IDS={dripControlA:'opt-toggle-dripA', et0Comp:'opt-toggle-et0', rainGuardMode:'opt-toggle-rainguard'};
+
+function renderAutoOptUI(){
+  Object.entries(OPT_TOGGLE_IDS).forEach(([key,id])=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const on=AUTO_OPT_PENDING[key];
+    el.classList.toggle('bg-primary-container',on);
+    el.classList.toggle('bg-surface-variant',!on);
+    const dot=el.firstElementChild;
+    if(dot){
+      dot.classList.toggle('right-1',on);
+      dot.classList.toggle('left-1',!on);
+      dot.classList.toggle('bg-on-primary',on);
+      dot.classList.toggle('bg-on-surface-variant',!on);
+    }
+  });
+  const dirty=JSON.stringify(AUTO_OPT_PENDING)!==JSON.stringify(AUTO_OPT_LIVE);
+  const btn=document.getElementById('opt-deploy-btn');
+  if(btn){
+    btn.textContent=dirty?'DEPLOY_CHANGES *':'DEPLOY_CHANGES';
+    btn.classList.toggle('opacity-60',!dirty);
+  }
+}
+
+function toggleAutoOpt(key){
+  AUTO_OPT_PENDING[key]=!AUTO_OPT_PENDING[key];
+  renderAutoOptUI();
+}
+
+function deployAutoOpt(){
+  const changed=Object.keys(AUTO_OPT_DEFAULTS).filter(k=>AUTO_OPT_LIVE[k]!==AUTO_OPT_PENDING[k]);
+  Object.assign(AUTO_OPT_LIVE,AUTO_OPT_PENDING);
+  localStorage.setItem(AUTO_OPT_KEY,JSON.stringify(AUTO_OPT_LIVE));
+  renderAutoOptUI();
+  if(typeof renderTimeline==='function')renderTimeline();
+  if(changed.length && typeof logSystemEvent==='function'){
+    const summary=changed.map(k=>`${k}=${AUTO_OPT_LIVE[k]?'ON':'OFF'}`).join(', ');
+    logSystemEvent(`AUTO_OPT DEPLOYED — ${summary}`);
+  }
+}
+
 function rainGuardActive(){
+  if(!AUTO_OPT_LIVE.rainGuardMode) return false;
   return S.rain_mm>0
       || S.precip_prob>60
       || S.rain_next24h_mm>=RAIN_FORECAST_24H_MM
@@ -1969,11 +2031,13 @@ function rainGuardReason(){
   return 'CLEAR';
 }
 
-function evaluateFieldAction(vwc){
+function evaluateFieldAction(vwc,fieldKey){
+  if(fieldKey==='vA' && !AUTO_OPT_LIVE.dripControlA)
+    return {label:'MANUAL_OVERRIDE · AUTO_DISABLED',cls:'bg-white/5 border-white/10 text-on-surface-variant/40',spanCols:2.4};
   if(rainGuardActive())
     return {label:'RAIN_GUARD_HOLD',cls:'bg-secondary-container/10 border-secondary-container/30 text-secondary-container',spanCols:4};
   if(vwc<20)
-    return {label:'DRIP_CYCLE_ACTIVE · '+vwc.toFixed(1)+'%',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38};
+    return {label:'DRIP_CYCLE_ACTIVE · '+vwc.toFixed(1)+'%',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38 && AUTO_OPT_LIVE.et0Comp};
   if(vwc<23)
     return {label:'DRIP_SCHEDULED · '+vwc.toFixed(1)+'%',cls:'bg-secondary/20 border-secondary/40 text-secondary',spanCols:2.2};
   return {label:'MONITORING · '+vwc.toFixed(1)+'%',cls:'bg-white/5 border-white/10 text-on-surface-variant/60',spanCols:1.8};
@@ -1984,7 +2048,7 @@ function renderTimelineRows(nowOffset){
     const row=document.getElementById(f.row);
     if(!row)return;
     const vwc=S[f.vwcKey];
-    const action=evaluateFieldAction(vwc);
+    const action=evaluateFieldAction(vwc,f.vwcKey);
     const widthPx=Math.round(action.spanCols*TL_COLW);
     let html=`<div class="absolute h-8 rounded flex items-center px-sm font-data-sm text-data-sm cursor-pointer ${action.cls}" style="left:${nowOffset}px;width:${widthPx}px">${action.label}</div>`;
     if(action.boost){
@@ -2180,11 +2244,13 @@ function checkFieldTransitions(){
   }
   TL_FIELDS.forEach(f=>{
     const vwc=S[f.vwcKey];
-    const action=evaluateFieldAction(vwc);
+    const action=evaluateFieldAction(vwc,f.vwcKey);
     const prev=_prevAction[f.vwcKey];
     if(prev!==action.label.split(' · ')[0]){
       const fl=FIELD_LABELS[f.vwcKey];
-      if(action.label.startsWith('DRIP_CYCLE_ACTIVE'))
+      if(action.label.startsWith('MANUAL_OVERRIDE'))
+        logSystemEvent(`${fl}: AUTO_OPT DRIP_CONTROL_A DISABLED — auto irrigation suspended by manual override`);
+      else if(action.label.startsWith('DRIP_CYCLE_ACTIVE'))
         logSystemEvent(`${fl}: DRIP_VALVE OPEN — VWC ${vwc.toFixed(1)}% &lt; 20% THRESHOLD`);
       else if(prev&&prev.startsWith('DRIP_CYCLE_ACTIVE'))
         logSystemEvent(`${fl}: DRIP_VALVE CLOSED — VWC RECOVERED TO ${vwc.toFixed(1)}%`);
@@ -2716,7 +2782,7 @@ setInterval(()=>{
 
 fetchWeather();
 setInterval(fetchWeather, 10*60*1000); // refresh every 10 min
-setTimeout(()=>{updateVWC();renderTimeline();pushLog();},500);
+setTimeout(()=>{updateVWC();renderTimeline();pushLog();renderAutoOptUI();},500);
 setInterval(tickVWC,5000);
 setInterval(animateBars,1000);
 setInterval(pushLog,6000);
