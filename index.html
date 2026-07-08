@@ -1949,6 +1949,7 @@ function renderTimelineHeader(now){
 
 const RAIN_FORECAST_24H_MM=10;   // meaningful rain expected in the next 24h
 const RAIN_HOLD_HOURS=48;        // hold irrigation this long after significant rain
+const RAIN_ACTIVE_MIN_MM=1;      // below this is trace/mist noise, not "actively raining"
 
 // ══════════════════════════════════════════════════
 // AUTO_OPT — DRIP_CONTROL_A / ET0_COMPENSATION / RAIN_GUARD_MODE toggles.
@@ -2013,7 +2014,7 @@ function deployAutoOpt(){
 
 function rainGuardActive(){
   if(!AUTO_OPT_LIVE.rainGuardMode) return false;
-  return S.rain_mm>0
+  return S.rain_mm>=RAIN_ACTIVE_MIN_MM
       || S.precip_prob>60
       || S.rain_next24h_mm>=RAIN_FORECAST_24H_MM
       || S.hours_since_rain<RAIN_HOLD_HOURS;
@@ -2023,7 +2024,7 @@ function rainGuardReason(){
   // Ordered most-informative-first: a trace 0.1mm/hr reading is a weak
   // explanation next to "29h since a 13mm downpour" — surface whichever
   // condition actually explains the hold, not just whichever is checked first.
-  if(S.rain_mm>=1) return `ACTIVE RAINFALL ${S.rain_mm.toFixed(1)}mm/hr`;
+  if(S.rain_mm>=RAIN_ACTIVE_MIN_MM) return `ACTIVE RAINFALL ${S.rain_mm.toFixed(1)}mm/hr`;
   if(S.hours_since_rain<RAIN_HOLD_HOURS) return `${S.hours_since_rain}H SINCE LAST SIGNIFICANT RAIN (&lt; ${RAIN_HOLD_HOURS}H HOLD)`;
   if(S.rain_next24h_mm>=RAIN_FORECAST_24H_MM) return `${S.rain_next24h_mm.toFixed(1)}mm RAIN FORECAST IN NEXT 24H`;
   if(S.precip_prob>60) return `PRECIP_PROB ${S.precip_prob.toFixed(0)}% &gt; 60%`;
