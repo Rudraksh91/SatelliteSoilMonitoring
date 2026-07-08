@@ -1177,36 +1177,23 @@ header{
       <div class="flex-1 overflow-x-auto relative tl-grid">
         <div class="sticky top-0 z-10 flex border-b border-white/10 bg-surface/90 backdrop-blur-md">
           <div class="w-48 shrink-0 p-xs border-r border-white/10 font-label-caps text-label-caps text-on-surface-variant/60">FIELD_ID</div>
-          <div class="flex flex-1">
-            <div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">06:00</div><div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">07:00</div>
-            <div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">08:00</div><div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm text-primary-container">09:00</div>
-            <div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">10:00</div><div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">11:00</div>
-            <div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">12:00</div><div class="w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm">13:00</div>
-          </div>
+          <div class="flex flex-1" id="tl-hours"></div>
         </div>
         <div class="divide-y divide-white/5">
           <div class="flex group hover:bg-white/5 transition-colors">
             <div class="w-48 shrink-0 p-sm border-r border-white/10 flex flex-col"><span class="font-data-lg text-data-lg text-primary-container">FIELD-A</span><span class="font-label-caps text-[9px] text-on-surface-variant/60">NORTH · 21.629°N · DRIP</span></div>
-            <div class="flex-1 relative h-16 flex items-center">
-              <div class="absolute left-20 w-40 h-8 bg-primary/20 border border-primary/40 rounded flex items-center px-sm font-data-sm text-data-sm text-primary aglow cursor-pointer">DRIP_CYCLE_V1</div>
-              <div class="absolute left-[340px] w-28 h-8 bg-secondary/20 border border-secondary/40 rounded flex items-center px-sm font-data-sm text-data-sm text-secondary cursor-pointer">ET0_ADJUST</div>
-            </div>
+            <div class="flex-1 relative h-16 flex items-center" id="tl-row-A"></div>
           </div>
           <div class="flex group hover:bg-white/5 transition-colors">
             <div class="w-48 shrink-0 p-sm border-r border-white/10 flex flex-col"><span class="font-data-lg text-data-lg text-secondary-fixed-dim">FIELD-B</span><span class="font-label-caps text-[9px] text-on-surface-variant/60">EAST · 21.628°N · SCHED</span></div>
-            <div class="flex-1 relative h-16 flex items-center">
-              <div class="absolute left-0 w-48 h-8 bg-primary-fixed-dim/20 border border-primary-fixed-dim/40 rounded flex items-center px-sm font-data-sm text-data-sm text-primary-fixed-dim cursor-pointer">DRIP_IRRIGATION_B</div>
-              <div class="absolute left-[440px] w-24 h-8 bg-error/20 border border-error/40 rounded flex items-center px-sm font-data-sm text-data-sm text-error cursor-pointer">VWC_CHECK</div>
-            </div>
+            <div class="flex-1 relative h-16 flex items-center" id="tl-row-B"></div>
           </div>
           <div class="flex group hover:bg-white/5 transition-colors">
             <div class="w-48 shrink-0 p-sm border-r border-white/10 flex flex-col"><span class="font-data-lg text-data-lg text-tertiary-fixed-dim">FIELD-C</span><span class="font-label-caps text-[9px] text-on-surface-variant/60">SOUTH · 21.627°N · WATCH</span></div>
-            <div class="flex-1 relative h-16 flex items-center">
-              <div class="absolute left-60 w-64 h-8 bg-secondary-container/10 border border-secondary-container/30 rounded flex items-center px-sm font-data-sm text-data-sm text-secondary-container cursor-pointer">RAIN_GUARD_HOLD</div>
-            </div>
+            <div class="flex-1 relative h-16 flex items-center" id="tl-row-C"></div>
           </div>
         </div>
-        <div class="absolute left-[288px] top-0 bottom-0 w-px bg-primary-container z-20 shadow-[0_0_8px_rgba(0,255,65,1)]"></div>
+        <div class="absolute top-0 bottom-0 w-px bg-primary-container z-20 shadow-[0_0_8px_rgba(0,255,65,1)]" id="tl-now-line"></div>
       </div>
     </section>
     <div class="flex-1 grid grid-cols-12 gap-sm overflow-hidden">
@@ -1848,6 +1835,71 @@ function tickVWC(){
   S.vB=clamp(S.vB+rng(-.2,.25),14,32);
   S.vC=clamp(S.vC+rng(-.25,.3),14,32);
   updateVWC();
+  renderTimeline();
+}
+
+// ══════════════════════════════════════════════════
+// IRRIGATION CYCLE TIMELINE — driven by live state (S.vA/vB/vC soil VWC,
+// S.precip_prob/S.tmp from the live Open-Meteo fetch), evaluated against
+// the same thresholds shown in the Smart Logic Rulebook below it
+// (VWC<20% → drip, PRECIP_PROB>60% → suspend, TEMP>38°C → ET0 boost).
+// ══════════════════════════════════════════════════
+const TL_COLW=80, TL_HOURS_SHOWN=8, TL_NOW_COL=3;
+const TL_FIELDS=[
+  {row:'tl-row-A',vwcKey:'vA'},
+  {row:'tl-row-B',vwcKey:'vB'},
+  {row:'tl-row-C',vwcKey:'vC'},
+];
+
+function tlHourLabel(h){return String(((h%24)+24)%24).padStart(2,'0')+':00'}
+
+function renderTimelineHeader(now){
+  // Uses UTC to match the "UTC hh:mm:ss" clock shown in this same panel header.
+  const startHour=now.getUTCHours()-TL_NOW_COL;
+  const wrap=document.getElementById('tl-hours');
+  if(wrap){
+    wrap.innerHTML='';
+    for(let i=0;i<TL_HOURS_SHOWN;i++){
+      const div=document.createElement('div');
+      div.className='w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm'+(i===TL_NOW_COL?' text-primary-container':'');
+      div.textContent=tlHourLabel(startHour+i);
+      wrap.appendChild(div);
+    }
+  }
+  const nowOffset=TL_NOW_COL*TL_COLW+(now.getUTCMinutes()/60)*TL_COLW;
+  const nowLine=document.getElementById('tl-now-line');
+  if(nowLine)nowLine.style.left=(192+nowOffset)+'px';
+  return nowOffset;
+}
+
+function evaluateFieldAction(vwc){
+  if(S.precip_prob>60)
+    return {label:'RAIN_GUARD_HOLD',cls:'bg-secondary-container/10 border-secondary-container/30 text-secondary-container',spanCols:4};
+  if(vwc<20)
+    return {label:'DRIP_CYCLE_ACTIVE · '+vwc.toFixed(1)+'%',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38};
+  if(vwc<23)
+    return {label:'DRIP_SCHEDULED · '+vwc.toFixed(1)+'%',cls:'bg-secondary/20 border-secondary/40 text-secondary',spanCols:2.2};
+  return {label:'MONITORING · '+vwc.toFixed(1)+'%',cls:'bg-white/5 border-white/10 text-on-surface-variant/60',spanCols:1.8};
+}
+
+function renderTimelineRows(nowOffset){
+  TL_FIELDS.forEach(f=>{
+    const row=document.getElementById(f.row);
+    if(!row)return;
+    const vwc=S[f.vwcKey];
+    const action=evaluateFieldAction(vwc);
+    const widthPx=Math.round(action.spanCols*TL_COLW);
+    let html=`<div class="absolute h-8 rounded flex items-center px-sm font-data-sm text-data-sm cursor-pointer ${action.cls}" style="left:${nowOffset}px;width:${widthPx}px">${action.label}</div>`;
+    if(action.boost){
+      html+=`<div class="absolute h-8 bg-secondary/20 border border-secondary/40 rounded flex items-center px-sm font-data-sm text-data-sm text-secondary cursor-pointer" style="left:${nowOffset+widthPx+8}px;width:110px">ET0_ADJUST</div>`;
+    }
+    row.innerHTML=html;
+  });
+}
+
+function renderTimeline(){
+  const nowOffset=renderTimelineHeader(new Date());
+  renderTimelineRows(nowOffset);
 }
 
 // ══════════════════════════════════════════════════
@@ -2523,7 +2575,7 @@ setInterval(()=>{
 
 fetchWeather();
 setInterval(fetchWeather, 10*60*1000); // refresh every 10 min
-setTimeout(()=>{updateVWC();pushLog();pushTerm();},500);
+setTimeout(()=>{updateVWC();renderTimeline();pushLog();pushTerm();},500);
 setInterval(tickVWC,5000);
 setInterval(animateBars,1000);
 setInterval(pushLog,6000);
