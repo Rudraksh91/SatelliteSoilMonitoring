@@ -465,6 +465,30 @@ body.theme-light code{font-family:'JetBrains Mono',monospace !important}
 }
 
 /* ─────────────────────────────────────────────────────────────
+   DESKTOP ≥ 1024px — whole-page scroll fallback.
+   Mobile (≤767px) and tablet (768–1023px) both already override the base
+   `overflow-hidden` fixed-height page shell with page-level scrolling, but
+   no equivalent existed for desktop widths — content taller than the
+   viewport (e.g. the 4-rule Smart Logic Rulebook + System Log on the AUTO
+   tab) was clipped with no way to reach it. `min-height` (not a fixed
+   `height`) lets sections grow past a full screen so `body` can scroll,
+   while still filling the viewport when content is short.
+   ───────────────────────────────────────────────────────────── */
+@media(min-width:1024px){
+  body{overflow-y:auto!important;overflow-x:hidden!important}
+  main.page{height:auto!important;min-height:calc(100vh - 64px - 32px);overflow-y:visible!important}
+
+  /* #page-ndvi is the only page built on native CSS grid (grid grid-cols-12
+     in its base class) — the global `.page.active{display:flex!important}`
+     rule (mobile/tablet-first) clobbers that, so its col-span-3/6/3 children
+     silently stop being grid items and collapse to flex default sizing
+     (only ~370px wide, rest of the row empty). Tablet already patches this
+     by deliberately forcing a flex column stack; desktop needs the opposite
+     — restore the intended grid so the 3-column layout actually applies. */
+  #page-ndvi.active{display:grid!important}
+}
+
+/* ─────────────────────────────────────────────────────────────
    LARGE DESKTOP  ≥ 1280 px  — minor polish
    ───────────────────────────────────────────────────────────── */
 @media(min-width:1280px){
@@ -1174,7 +1198,7 @@ header{
         <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">schedule</span><h2 class="font-headline-md text-headline-md text-primary">Irrigation Cycle Timeline — Dediapada</h2></div>
         <div class="flex items-center gap-md font-data-sm text-data-sm"><span class="text-secondary">SCANNING FIELDS...</span><span class="text-on-surface-variant" id="auto-utc">UTC —</span></div>
       </div>
-      <div class="flex-1 overflow-x-auto relative tl-grid">
+      <div class="flex-1 overflow-x-auto relative tl-grid" id="tl-scroll">
         <div class="sticky top-0 z-10 flex border-b border-white/10 bg-surface/90 backdrop-blur-md">
           <div class="w-48 shrink-0 p-xs border-r border-white/10 font-label-caps text-label-caps text-on-surface-variant/60">FIELD_ID</div>
           <div class="flex flex-1" id="tl-hours"></div>
@@ -1214,7 +1238,7 @@ header{
           <div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center gap-md">
             <div class="bg-secondary/10 border border-secondary/20 w-12 h-12 flex items-center justify-center rounded shrink-0"><span class="material-symbols-outlined mso text-secondary">cloud</span></div>
             <div class="flex-1 grid grid-cols-3 gap-md">
-              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">PRECIP_PROB &gt; 60%</span></div>
+              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">RAIN (NOW / NEXT_24H≥10mm / LAST_48H) OR PROB&gt;60%</span></div>
               <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary">SUSPEND_IRRIGATION</span></div>
               <div class="flex items-center justify-end gap-sm"><span class="font-data-sm text-data-sm text-primary-container">ENABLED</span><span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer">edit</span></div>
             </div>
@@ -1621,7 +1645,11 @@ header{
 // ══════════════════════════════════════════════════
 // LIVE STATE (seeds from API, random jitter between)
 // ══════════════════════════════════════════════════
-const S={vA:22.4,vB:27.1,vC:25.3,tmp:34.2,hum:67,et0:4.8,vpd:1.3,wind:12,press:1008,precip_prob:5,apt:36.0,dew:22.0};
+// vA/vB/vC kept as 3 properties (rather than one shared field) so existing
+// per-field UI hookups don't need touching, but they are always kept in
+// sync in tickVWC() below — there is no real per-field soil sensor, so soil
+// VWC is treated as one farm-wide reading, same as weather.
+const S={vA:22.4,vB:22.4,vC:22.4,tmp:34.2,hum:67,et0:4.8,vpd:1.3,wind:12,press:1008,precip_prob:5,rain_mm:0,rain_next24h_mm:0,hours_since_rain:Infinity,apt:36.0,dew:22.0};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rng=(a,b)=>+(a+Math.random()*(b-a)).toFixed(2);
 function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
@@ -1636,8 +1664,10 @@ const API_URL='https://api.open-meteo.com/v1/forecast?latitude=21.6277&longitude
   +',vapour_pressure_deficit,evapotranspiration'
   +',cloud_cover_high,cloud_cover_low,cloud_cover_mid,cloud_cover'
   +',surface_pressure,soil_temperature_0cm,soil_temperature_6cm,soil_temperature_18cm'
-  +'&current=relative_humidity_2m,temperature_2m,is_day,wind_speed_10m'
-  +'&timezone=GMT&forecast_days=7';
+  +'&current=relative_humidity_2m,temperature_2m,is_day,wind_speed_10m,precipitation,rain,showers'
+  // past_days=2 pulls real historical hourly rain so the 48h post-rain
+  // irrigation hold (below) has actual data to check, not just forecast.
+  +'&timezone=GMT&forecast_days=7&past_days=2';
 
 let weatherData=null;
 const charts={};
@@ -1689,6 +1719,29 @@ function applyCurrentData(d){
   S.et0=Math.abs(h.evapotranspiration[idx]??4.8);
   S.press=h.surface_pressure[idx]??1008;
   S.precip_prob=h.precipitation_probability[idx]??0;
+  // Actual observed precipitation right now (mm) — prefer the 15-min
+  // `current` nowcast block over the hourly array, since rounding to the
+  // nearest hour bucket can miss rain that started mid-hour. Forecast
+  // probability alone can lag behind reality, so real-time irrigation
+  // suspension should key off whether it's actually raining right now.
+  S.rain_mm=(c.precipitation ?? c.rain ?? h.precipitation[idx]) ?? 0;
+
+  // ── Rain lockout window ────────────────────────────────────────────────
+  // Instantaneous rain checks alone miss two real cases: rain that's about
+  // to start (irrigating right before a downpour is wasteful) and rain that
+  // already happened (soil is still saturated afterwards). RAIN_SIG_MM is
+  // the per-hour amount that counts as "real" rain, not drizzle.
+  const RAIN_SIG_MM=4;
+  let next24=0;
+  for(let i=idx;i<Math.min(idx+24,h.precipitation.length);i++) next24+=(h.precipitation[i]||0);
+  S.rain_next24h_mm=next24;
+
+  let hoursSince=Infinity;
+  for(let i=idx;i>=Math.max(0,idx-48);i--){
+    if((h.precipitation[i]||0)>=RAIN_SIG_MM){hoursSince=idx-i;break;}
+  }
+  S.hours_since_rain=hoursSince;
+
   const isDay=c.is_day===1?'DAY ☀':'NIGHT 🌙';
   // Map page
   set('map-tmp',S.tmp.toFixed(1)+'°C');
@@ -1696,7 +1749,7 @@ function applyCurrentData(d){
   set('map-wind',S.wind.toFixed(1)+' km/h');
   set('map-day',isDay);
   set('precip-alert',S.precip_prob.toFixed(0)+'%');
-  set('rain-alert',S.precip_prob>60?'WARN':S.precip_prob>30?'MONITOR':'CLEAR');
+  set('rain-alert',S.rain_mm>0?'RAINING':S.precip_prob>60?'WARN':S.precip_prob>30?'MONITOR':'CLEAR');
   set('et0-alert',S.et0>6?'HIGH':S.et0>4?'MODERATE':'LOW');
   // Climate page
   set('cl-tmp',S.tmp.toFixed(1));
@@ -1833,49 +1886,91 @@ function updateVWC(){
 }
 
 function tickVWC(){
-  S.vA=clamp(S.vA+rng(-.3,.1),14,32);
-  S.vB=clamp(S.vB+rng(-.2,.25),14,32);
-  S.vC=clamp(S.vC+rng(-.25,.3),14,32);
+  // One shared farm-wide VWC drift — no real per-field soil sensor exists,
+  // so all 3 fields track the same value (matches how weather is shared).
+  const shared=clamp(S.vA+rng(-.3,.1),14,32);
+  S.vA=S.vB=S.vC=shared;
   updateVWC();
   renderTimeline();
 }
 
 // ══════════════════════════════════════════════════
-// IRRIGATION CYCLE TIMELINE — driven by live state (S.vA/vB/vC soil VWC,
+// IRRIGATION CYCLE TIMELINE — driven by live state (S.vA/vB/vC soil VWC —
+// one shared farm-wide value, no real per-field sensor exists — kept as 3
+// synced properties so per-field UI hookups didn't need touching, plus
 // S.precip_prob/S.tmp from the live Open-Meteo fetch), evaluated against
 // the same thresholds shown in the Smart Logic Rulebook below it
 // (VWC<20% → drip, PRECIP_PROB>60% → suspend, TEMP>38°C → ET0 boost).
 // ══════════════════════════════════════════════════
-const TL_COLW=80, TL_HOURS_SHOWN=8, TL_NOW_COL=3;
+// Full 24h day (00:00–23:00 UTC), horizontally scrollable — "now" sits at
+// whatever column matches the real current hour rather than a fixed slot.
+const TL_COLW=80, TL_HOURS_SHOWN=24;
 const TL_FIELDS=[
   {row:'tl-row-A',vwcKey:'vA'},
   {row:'tl-row-B',vwcKey:'vB'},
   {row:'tl-row-C',vwcKey:'vC'},
 ];
+let _tlAutoScrolled=false;
 
 function tlHourLabel(h){return String(((h%24)+24)%24).padStart(2,'0')+':00'}
 
 function renderTimelineHeader(now){
   // Uses UTC to match the "UTC hh:mm:ss" clock shown in this same panel header.
-  const startHour=now.getUTCHours()-TL_NOW_COL;
+  const curHour=now.getUTCHours();
   const wrap=document.getElementById('tl-hours');
   if(wrap){
     wrap.innerHTML='';
     for(let i=0;i<TL_HOURS_SHOWN;i++){
       const div=document.createElement('div');
-      div.className='w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm'+(i===TL_NOW_COL?' text-primary-container':'');
-      div.textContent=tlHourLabel(startHour+i);
+      div.className='w-20 shrink-0 text-center p-xs border-r border-white/5 font-data-sm text-data-sm'+(i===curHour?' text-primary-container':'');
+      div.textContent=tlHourLabel(i);
       wrap.appendChild(div);
     }
   }
-  const nowOffset=TL_NOW_COL*TL_COLW+(now.getUTCMinutes()/60)*TL_COLW;
+  const nowOffset=curHour*TL_COLW+(now.getUTCMinutes()/60)*TL_COLW;
   const nowLine=document.getElementById('tl-now-line');
   if(nowLine)nowLine.style.left=(192+nowOffset)+'px';
+  // Scroll the "now" marker into view once the AUTO tab is actually visible
+  // (not on every live re-render, so it doesn't yank the view back if the
+  // user has scrolled elsewhere in the day to look at other hours). Renders
+  // fire from page load regardless of which tab is active, so a render
+  // while this tab is still hidden must not consume the one-shot flag —
+  // clientWidth would read 0 and the scroll math would be meaningless.
+  if(!_tlAutoScrolled){
+    const scrollEl=document.getElementById('tl-scroll');
+    const pageEl=document.getElementById('page-auto');
+    if(scrollEl && pageEl && pageEl.classList.contains('active') && scrollEl.clientWidth>0){
+      scrollEl.scrollLeft=Math.max(0,nowOffset-scrollEl.clientWidth/2+192);
+      _tlAutoScrolled=true;
+    }
+  }
   return nowOffset;
 }
 
+const RAIN_FORECAST_24H_MM=10;   // meaningful rain expected in the next 24h
+const RAIN_HOLD_HOURS=48;        // hold irrigation this long after significant rain
+
+function rainGuardActive(){
+  return S.rain_mm>0
+      || S.precip_prob>60
+      || S.rain_next24h_mm>=RAIN_FORECAST_24H_MM
+      || S.hours_since_rain<RAIN_HOLD_HOURS;
+}
+
+function rainGuardReason(){
+  // Ordered most-informative-first: a trace 0.1mm/hr reading is a weak
+  // explanation next to "29h since a 13mm downpour" — surface whichever
+  // condition actually explains the hold, not just whichever is checked first.
+  if(S.rain_mm>=1) return `ACTIVE RAINFALL ${S.rain_mm.toFixed(1)}mm/hr`;
+  if(S.hours_since_rain<RAIN_HOLD_HOURS) return `${S.hours_since_rain}H SINCE LAST SIGNIFICANT RAIN (&lt; ${RAIN_HOLD_HOURS}H HOLD)`;
+  if(S.rain_next24h_mm>=RAIN_FORECAST_24H_MM) return `${S.rain_next24h_mm.toFixed(1)}mm RAIN FORECAST IN NEXT 24H`;
+  if(S.precip_prob>60) return `PRECIP_PROB ${S.precip_prob.toFixed(0)}% &gt; 60%`;
+  if(S.rain_mm>0) return `LIGHT RAIN ${S.rain_mm.toFixed(1)}mm/hr`;
+  return 'CLEAR';
+}
+
 function evaluateFieldAction(vwc){
-  if(S.precip_prob>60)
+  if(rainGuardActive())
     return {label:'RAIN_GUARD_HOLD',cls:'bg-secondary-container/10 border-secondary-container/30 text-secondary-container',spanCols:4};
   if(vwc<20)
     return {label:'DRIP_CYCLE_ACTIVE · '+vwc.toFixed(1)+'%',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38};
@@ -2030,6 +2125,8 @@ function nav(id){
   window.scrollTo({top:0,behavior:'smooth'});
   // Resize charts when entering climate tab
   if(id==='climate')setTimeout(()=>Object.values(charts).forEach(c=>c.resize()),100);
+  // Timeline auto-scroll to "now" needs the tab actually visible/measurable
+  if(id==='auto')setTimeout(()=>{if(typeof renderTimeline==='function')renderTimeline();},50);
 }
 
 // ══════════════════════════════════════════════════
@@ -2045,10 +2142,10 @@ function animateBars(){
 
 // ══════════════════════════════════════════════════
 // LOG STREAM + SYSTEM_LOG // LIVE — driven by real state, not a script.
-// Weather (S.tmp/S.precip_prob/S.et0) is ONE shared Open-Meteo reading for
-// the whole farm (fields are ~150m apart), so weather-driven events are
-// logged once as farm-wide, never attributed to a single field. Soil VWC
-// is per-field (S.vA/vB/vC) and drives per-field valve transition lines,
+// Weather (S.tmp/S.precip_prob/S.et0) and soil VWC are both ONE shared
+// reading for the whole farm (fields are ~150m apart, no per-field sensor
+// exists), so both weather- and VWC-driven events are logged as farm-wide.
+// Still keyed per-field (S.vA/vB/vC) since those 3 properties stay synced,
 // reusing the same evaluateFieldAction() rules as the timeline above so
 // the log can never disagree with what the timeline is showing.
 // ══════════════════════════════════════════════════
@@ -2074,11 +2171,11 @@ let _heartbeatIdx=0;
 // Real transition-based events: only fires when a field's actual computed
 // action (from the same rule engine driving the timeline) changes state.
 function checkFieldTransitions(){
-  const rainNow=S.precip_prob>60;
+  const rainNow=rainGuardActive();
   if(rainNow!==_prevRainGuard){
     logSystemEvent(rainNow
-      ? `RAIN_GUARD ENGAGED (ALL_FIELDS) — PRECIP_PROB ${S.precip_prob.toFixed(0)}% &gt; 60% → IRRIGATION SUSPENDED`
-      : `RAIN_GUARD CLEARED (ALL_FIELDS) — PRECIP_PROB ${S.precip_prob.toFixed(0)}%`);
+      ? `RAIN_GUARD ENGAGED (ALL_FIELDS) — ${rainGuardReason()} → IRRIGATION SUSPENDED`
+      : `RAIN_GUARD CLEARED (ALL_FIELDS) — no rain, none forecast in 24h, none in last ${RAIN_HOLD_HOURS}h`);
     _prevRainGuard=rainNow;
   }
   TL_FIELDS.forEach(f=>{
