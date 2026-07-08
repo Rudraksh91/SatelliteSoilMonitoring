@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-08T22:10:43.316546",
+  "updated": "2026-07-08T22:19:16.360236",
   "scene_date": "2026-05-26",
   "jpeg_name": "NDVI_Dediapada_2026-07-08.jpeg",
   "folder_id": "1pmU6XqLXVVwtcFFgJMTPE7LMjbn0Tvwe",
@@ -8,21 +8,21 @@
   "zones": [
     {
       "zone": "Zone 1 – Boys Hostel",
-      "ndvi": 0.0853,
+      "ndvi": 0.115,
       "pixels": 25,
       "status": "HOLD",
       "action": "Rain forecast 45.8 mm — skip irrigation"
     },
     {
       "zone": "Zone 2 – Main College",
-      "ndvi": 0.1446,
+      "ndvi": 0.2058,
       "pixels": 72,
       "status": "HOLD",
       "action": "Rain forecast 45.8 mm — skip irrigation"
     },
     {
       "zone": "Zone 3 – Diploma College",
-      "ndvi": 0.1253,
+      "ndvi": 0.1601,
       "pixels": 40,
       "status": "HOLD",
       "action": "Rain forecast 45.8 mm — skip irrigation"
