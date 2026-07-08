@@ -1667,6 +1667,8 @@ async function fetchWeather(){
     const bar=document.getElementById('api-sync-bar');
     if(bar){bar.style.width='0%';setTimeout(()=>bar.style.width='100%',50)}
     set('geo-elev','ELEV: '+(d.elevation||'—')+' m');
+    if(typeof logSystemEvent==='function')
+      logSystemEvent(`OPEN_METEO_SYNC COMPLETE — TEMP ${S.tmp.toFixed(1)}°C · PRECIP_PROB ${S.precip_prob.toFixed(0)}% (FARM-WIDE)`);
   }catch(e){
     set('api-status','API: ERROR — '+e.message);
     set('health-api','ERROR');
@@ -1995,6 +1997,11 @@ function renderTimeline(){
           }
         });
       }
+      // ── Log only on real change, so this doesn't spam every 15-min poll ────
+      if(typeof logSystemEvent==='function' && data.jpeg_id && data.jpeg_id!==window._lastNdviJpegId){
+        window._lastNdviJpegId=data.jpeg_id;
+        logSystemEvent(`DRIVE_SYNC COMPLETE — NEW NDVI SCENE ${data.scene_date||'—'} PULLED FROM GOOGLE DRIVE`);
+      }
     })
     .catch(err=>console.warn('NDVI status unavailable:',err));
   }
@@ -2037,34 +2044,71 @@ function animateBars(){
 }
 
 // ══════════════════════════════════════════════════
-// LOG STREAM
+// LOG STREAM + SYSTEM_LOG // LIVE — driven by real state, not a script.
+// Weather (S.tmp/S.precip_prob/S.et0) is ONE shared Open-Meteo reading for
+// the whole farm (fields are ~150m apart), so weather-driven events are
+// logged once as farm-wide, never attributed to a single field. Soil VWC
+// is per-field (S.vA/vB/vC) and drives per-field valve transition lines,
+// reusing the same evaluateFieldAction() rules as the timeline above so
+// the log can never disagree with what the timeline is showing.
 // ══════════════════════════════════════════════════
-const logMsgs=['SENSOR_SCAN_COMPLETE (FIELD_A)','NDVI_MAP UPDATED_V4','IRRIG_VLV_FIELD_A OPEN','ET0_CALCULATED: {et0}mm/d','VWC_READ: FIELD_A={vA}%','AUTOSYNCING_GOOGLE_DRIVE...','NODE_774_STABLE','GEMINI_AI INFERENCE_OK','OPEN_METEO_SYNC COMPLETE','VWC_READ: FIELD_B={vB}%'];
-let li=0;
 const logEl=document.getElementById('log-stream');
-function pushLog(){
-  if(!logEl)return;
-  const msg=logMsgs[li%logMsgs.length].replace('{et0}',S.et0.toFixed(2)).replace('{vA}',S.vA.toFixed(1)).replace('{vB}',S.vB.toFixed(1));
+const termEl=document.getElementById('auto-terminal');
+
+function writeLine(el,msg,cls){
+  if(!el)return;
   const t2=new Date().toLocaleTimeString('en-GB',{hour12:false});
-  const d=document.createElement('div');d.innerHTML=`<span class="text-on-surface-variant/50">[${t2}]</span> ${msg}`;
-  logEl.prepend(d);if(logEl.children.length>12)logEl.lastElementChild.remove();li++;
+  const d=document.createElement('div');
+  d.className=cls||'';
+  d.innerHTML=`<span class="text-on-surface-variant/50">[${t2}]</span> <span class="text-primary/80">${msg}</span>`;
+  if(el===logEl){el.prepend(d);if(el.children.length>12)el.lastElementChild.remove();}
+  else{el.appendChild(d);el.scrollTop=el.scrollHeight;if(el.children.length>20)el.firstElementChild.remove();}
+}
+function logSystemEvent(msg){writeLine(logEl,msg);writeLine(termEl,msg,'text-on-surface-variant/60 mb-1');}
+
+const FIELD_LABELS={vA:'FIELD_A',vB:'FIELD_B',vC:'FIELD_C'};
+let _prevAction={vA:null,vB:null,vC:null};
+let _prevRainGuard=false;
+let _heartbeatIdx=0;
+
+// Real transition-based events: only fires when a field's actual computed
+// action (from the same rule engine driving the timeline) changes state.
+function checkFieldTransitions(){
+  const rainNow=S.precip_prob>60;
+  if(rainNow!==_prevRainGuard){
+    logSystemEvent(rainNow
+      ? `RAIN_GUARD ENGAGED (ALL_FIELDS) — PRECIP_PROB ${S.precip_prob.toFixed(0)}% &gt; 60% → IRRIGATION SUSPENDED`
+      : `RAIN_GUARD CLEARED (ALL_FIELDS) — PRECIP_PROB ${S.precip_prob.toFixed(0)}%`);
+    _prevRainGuard=rainNow;
+  }
+  TL_FIELDS.forEach(f=>{
+    const vwc=S[f.vwcKey];
+    const action=evaluateFieldAction(vwc);
+    const prev=_prevAction[f.vwcKey];
+    if(prev!==action.label.split(' · ')[0]){
+      const fl=FIELD_LABELS[f.vwcKey];
+      if(action.label.startsWith('DRIP_CYCLE_ACTIVE'))
+        logSystemEvent(`${fl}: DRIP_VALVE OPEN — VWC ${vwc.toFixed(1)}% &lt; 20% THRESHOLD`);
+      else if(prev&&prev.startsWith('DRIP_CYCLE_ACTIVE'))
+        logSystemEvent(`${fl}: DRIP_VALVE CLOSED — VWC RECOVERED TO ${vwc.toFixed(1)}%`);
+      else if(action.label.startsWith('DRIP_SCHEDULED'))
+        logSystemEvent(`${fl}: DRIP_SCHEDULED — VWC ${vwc.toFixed(1)}% APPROACHING THRESHOLD`);
+      if(action.boost)
+        logSystemEvent(`${fl}: ET0_COMPENSATION ACTIVE — AMBIENT ${S.tmp.toFixed(1)}°C &gt; 38°C`);
+      _prevAction[f.vwcKey]=action.label.split(' · ')[0];
+    }
+  });
 }
 
-// ══════════════════════════════════════════════════
-// TERMINAL
-// ══════════════════════════════════════════════════
-const termMsgs=['DRIP_VALVE_FIELD_A OPEN','SENSOR_READ: VWC={vA}%','ET0_COMPENSATION ACTIVE','HANDSHAKE_SUCCESS :: NODE_774','DRIVE_SYNC_COMPLETE :: SHEETS','GEMINI_INFERENCE: IRRIGATE_A','OPEN_METEO_API REFRESHED','TEMP_AMBIENT: {tmp}°C','RAIN_GUARD: PRECIP_PROB={pp}%','FLOW_RATE: 3MM/HR'];
-let ti=0;
-const termEl=document.getElementById('auto-terminal');
-function pushTerm(){
-  if(!termEl)return;
-  const msg=termMsgs[ti%termMsgs.length].replace('{vA}',S.vA.toFixed(1)).replace('{tmp}',S.tmp.toFixed(1)).replace('{pp}',S.precip_prob.toFixed(0));
-  const t2=new Date().toLocaleTimeString('en-GB',{hour12:false});
-  const d=document.createElement('div');d.className='text-on-surface-variant/60 mb-1';
-  d.innerHTML=`[${t2}] <span class="text-primary/80">${msg}</span>`;
-  termEl.appendChild(d);termEl.scrollTop=termEl.scrollHeight;
-  if(termEl.children.length>20)termEl.firstElementChild.remove();ti++;
+// Heartbeat: real current sensor reading, rotated fairly across all 3
+// fields (not just Field A) so the log doesn't go quiet between transitions.
+function pushHeartbeat(){
+  const keys=['vA','vB','vC'];
+  const key=keys[_heartbeatIdx%keys.length];_heartbeatIdx++;
+  logSystemEvent(`SENSOR_READ [${FIELD_LABELS[key]}]: VWC=${S[key].toFixed(1)}% · ET0=${S.et0.toFixed(2)}mm/d (FARM-WIDE)`);
 }
+
+function pushLog(){checkFieldTransitions();pushHeartbeat();}
 
 // ══════════════════════════════════════════════════
 // CLOCK
@@ -2575,11 +2619,10 @@ setInterval(()=>{
 
 fetchWeather();
 setInterval(fetchWeather, 10*60*1000); // refresh every 10 min
-setTimeout(()=>{updateVWC();renderTimeline();pushLog();pushTerm();},500);
+setTimeout(()=>{updateVWC();renderTimeline();pushLog();},500);
 setInterval(tickVWC,5000);
 setInterval(animateBars,1000);
 setInterval(pushLog,6000);
-setInterval(pushTerm,7000);
 setInterval(updateClock,1000);
 updateClock();
 </script>
