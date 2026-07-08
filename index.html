@@ -1906,6 +1906,8 @@ function tickVWC(){
 (function fetchNdviStatus(){
   const URL='https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main/ndvi_status.json';
   const STATUS_COLOR={STRESSED:'#ffb432',MODERATE:'#00dbe9',HEALTHY:'#00ff41',THRIVING:'#7fff7f',HOLD:'#8888ff'};
+  const REFRESH_MS=15*60*1000; // re-check every 15 min so an open tab picks up new harvest cycles without a manual reload
+  function poll(){
   fetch(URL+'?_='+Date.now())
     .then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})
     .then(data=>{
@@ -1943,6 +1945,10 @@ function tickVWC(){
       }
     })
     .catch(err=>console.warn('NDVI status unavailable:',err));
+  }
+  poll();
+  setInterval(poll,REFRESH_MS);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();});
 })();
 
 // ══════════════════════════════════════════════════
