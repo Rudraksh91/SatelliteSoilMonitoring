@@ -1842,22 +1842,39 @@ const PIPE_NODES = {
   pages: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'GitHub Pages site', desc:"This is the public index.html site itself — the TERRA-CORE / AgriSat dashboard you're looking at right now, showing live weather and irrigation state served straight from GitHub Pages."},
   dom: {tag:'PLANNED, NOT WIRED', bg:'rgba(255,180,171,.12)', color:'#ffb4ab', border:'rgba(255,180,171,.4)', title:'DOM live hook', desc:"A planned feature to have index.html pull live NDVI and SAR data directly into the page through a satellite.py bridge, instead of today's static Drive images. Not wired yet."}
 };
+function pipeSwap(hideEl,showEl,fill){
+  hideEl.style.transition='opacity .16s ease, transform .16s ease';
+  hideEl.style.opacity='0';
+  hideEl.style.transform='translateY(-6px)';
+  setTimeout(()=>{
+    hideEl.style.display='none';
+    if(fill)fill();
+    showEl.style.display='block';
+    showEl.style.transition='none';
+    showEl.style.opacity='0';
+    showEl.style.transform='translateY(10px)';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      showEl.style.transition='opacity .22s ease, transform .22s ease';
+      showEl.style.opacity='1';
+      showEl.style.transform='translateY(0)';
+    }));
+  },160);
+}
 function pipeShowDetail(id){
   const n=PIPE_NODES[id];
   if(!n)return;
-  const tag=document.getElementById('pipe-tag');
-  tag.textContent=n.tag;
-  tag.style.background=n.bg;
-  tag.style.color=n.color;
-  tag.style.borderColor=n.border;
-  document.getElementById('pipe-title').textContent=n.title;
-  document.getElementById('pipe-desc').textContent=n.desc;
-  document.getElementById('pipe-tree').style.display='none';
-  document.getElementById('pipe-detail').style.display='block';
+  pipeSwap(document.getElementById('pipe-tree'),document.getElementById('pipe-detail'),()=>{
+    const tag=document.getElementById('pipe-tag');
+    tag.textContent=n.tag;
+    tag.style.background=n.bg;
+    tag.style.color=n.color;
+    tag.style.borderColor=n.border;
+    document.getElementById('pipe-title').textContent=n.title;
+    document.getElementById('pipe-desc').textContent=n.desc;
+  });
 }
 function pipeShowTree(){
-  document.getElementById('pipe-detail').style.display='none';
-  document.getElementById('pipe-tree').style.display='block';
+  pipeSwap(document.getElementById('pipe-detail'),document.getElementById('pipe-tree'));
 }
 </script>
 
