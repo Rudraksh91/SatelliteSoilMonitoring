@@ -1,7 +1,7 @@
 """
 AgriSat Dediapada — Professional Satellite Irrigation Dashboard
 """
-import base64, io, json, math, os, time
+import base64, io, json, math, os
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
@@ -11,8 +11,6 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")   # non-interactive backend — renders to PNG, no JS needed
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.patches import Arc, FancyArrowPatch
 import requests
 import streamlit as st
 from google.oauth2.service_account import Credentials
@@ -29,6 +27,9 @@ DRIP_RATE_MM_HR, DRIP_EFF = 3.0, 0.90
 SHEET_ID      = "1kfaroip8-YbA9t4kcCynXvq73Eqk6mx7GT7q5SdZXqc"
 SA_KEY        = os.path.join(os.path.dirname(__file__), "agrisat_service_account.json")
 TELEMETRY_CSV = os.path.join(os.path.dirname(__file__), "telemetry_log.csv")
+NDVI_JSON     = os.path.join(os.path.dirname(__file__), "ndvi_status.json")
+NDVI_STRESS_MAX = 0.18   # below this = stressed / dry vegetation (per NDVI harvester doc)
+NDVI_HEALTHY_MIN = 0.35  # at/above this = healthy / well-watered
 
 CROPS = {
     "Paddy (Kharif)":    {"Kc": 1.10, "root_m": 0.40},
@@ -532,20 +533,57 @@ def fetch_weather():
     except: return None
 
 
+# ─── Satellite NDVI (per-field ground truth) ──────────────────────────────────
+@st.cache_data(ttl=900)
+def fetch_ndvi_status():
+    """Load the latest NDVI harvester output and map its zones onto FIELD_NAMES
+    (Zone 1→Field A, Zone 2→Field B, Zone 3→Field C — see report.html field layer)."""
+    try:
+        data = json.load(open(NDVI_JSON))
+        zones = data.get("zones", [])
+        if len(zones) != len(FIELD_NAMES): return None
+        data["zone_by_field"] = dict(zip(FIELD_NAMES, zones))
+        scene_date = datetime.strptime(data["scene_date"], "%Y-%m-%d")
+        data["scene_age_days"] = (datetime.now() - scene_date).days
+        return data
+    except Exception:
+        return None
+
+
+def ndvi_tier(ndvi: float) -> Tuple[str, str]:
+    """Classify an NDVI reading into (label, color) per harvester thresholds."""
+    if ndvi < NDVI_STRESS_MAX: return "STRESSED", "#f87171"
+    if ndvi < NDVI_HEALTHY_MIN: return "MODERATE", "#fbbf24"
+    return "HEALTHY", "#4ade80"
+
+
 # ─── Irrigation decision ──────────────────────────────────────────────────────
-def decide(vwc,weather,crop_name,area_ha):
+def decide(vwc,weather,crop_name,area_ha,ndvi_zone=None):
     c=CROPS.get(crop_name,{"Kc":1.0,"root_m":0.5}); ETc=weather["et0"]*c["Kc"]
     rain_equiv=min(TAW,weather.get("rain",0)/(c["root_m"]*10))
     deficit=max(0.0,FC-vwc-rain_equiv); depth=deficit/100*c["root_m"]*1000
-    dur=round((depth/DRIP_RATE_MM_HR)/DRIP_EFF,2)
-    vol=int(area_ha*10_000*(depth/1000)*1000/DRIP_EFF)
     rain_guard=weather.get("rain",0)>=2.0 or weather.get("rain_3d",0)>=20
     should=(vwc<REFILL_PT) and not rain_guard
     if rain_guard: reason=f"HOLD — Rain guard ({weather.get('rain',0)}mm now)"
     elif vwc<REFILL_PT: reason=f"IRRIGATE — VWC {vwc:.1f}% below refill point {REFILL_PT:.1f}%"
     else: reason=f"HOLD — Soil at {(vwc-WP)/TAW*100:.0f}% capacity"
+
+    # Satellite ground-truth override: if the weather model says "hold" but the
+    # latest NDVI pass shows real vegetation stress, trust the satellite and
+    # irrigate with a light pulse rather than the full model-computed depth.
+    sat_override = False
+    if (not should and not rain_guard and ndvi_zone
+            and ndvi_zone.get("ndvi") is not None
+            and ndvi_zone["ndvi"] < NDVI_STRESS_MAX):
+        should, sat_override = True, True
+        depth = max(depth, 3.0)  # minimum light pulse, mm
+        reason = f"IRRIGATE — Satellite NDVI {ndvi_zone['ndvi']:.2f} shows stress (ground-truth override)"
+
+    dur=round((depth/DRIP_RATE_MM_HR)/DRIP_EFF,2)
+    vol=int(area_ha*10_000*(depth/1000)*1000/DRIP_EFF)
     return {"should":should,"deficit":round(deficit,1),"ETc":round(ETc,2),
-            "depth":round(depth,1),"dur":dur,"vol":vol,"reason":reason}
+            "depth":round(depth,1),"dur":dur,"vol":vol,"reason":reason,
+            "sat_override":sat_override}
 
 
 # ─── Session state ────────────────────────────────────────────────────────────
@@ -591,6 +629,8 @@ if not drive.connected:
 
 # ─── Live data ────────────────────────────────────────────────────────────────
 weather=fetch_weather()
+ndvi_data = fetch_ndvi_status()
+zone_by_field = ndvi_data["zone_by_field"] if ndvi_data else {}
 src="⚠️ Estimated"
 vwc=round(max(10.0,min(40.0,0.18*weather["hum"]+np.random.uniform(-.5,.5))),1) if weather else None
 
@@ -602,7 +642,7 @@ field_states: dict = {}   # keyed by field name
 for fname in FIELD_NAMES:
     vk = f"valve_close_{fname}"
     v_open = datetime.now() < st.session_state[vk]
-    irr_f  = decide(vwc, weather, field_crop, field_area) if (weather and vwc) else None
+    irr_f  = decide(vwc, weather, field_crop, field_area, zone_by_field.get(fname)) if (weather and vwc) else None
 
     if irr_f and irr_f["should"] and not v_open:
         st.session_state[vk] = datetime.now() + timedelta(hours=irr_f["dur"])
@@ -829,6 +869,21 @@ with tab1:
                 reason_short = (fi["reason"][:50]+"…" if fi and len(fi["reason"])>50 else (fi["reason"] if fi else "No data"))
                 timer_html = f'<div style="margin-top:8px;font-size:.67rem;color:#475569;line-height:1.45">{reason_short}</div>'
 
+            zone = zone_by_field.get(fname)
+            if zone and zone.get("ndvi") is not None:
+                tier_label, tier_clr = ndvi_tier(zone["ndvi"])
+                age = ndvi_data["scene_age_days"]
+                age_note = f'{age}d old' if age < 10 else f'⚠️ {age}d old'
+                ndvi_html = f"""
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;
+  padding:5px 8px;background:rgba(167,139,250,.05);border-radius:8px;border:1px solid rgba(167,139,250,.12)">
+  <div style="font-size:.63rem;color:#a78bfa">🛰️ NDVI {zone['ndvi']:.2f}
+    <span style="color:{tier_clr};font-weight:700">· {tier_label}</span></div>
+  <div style="font-size:.55rem;color:#475569">{age_note}</div>
+</div>"""
+            else:
+                ndvi_html = '<div style="margin-top:8px;font-size:.6rem;color:#334155">🛰️ No satellite pass on file</div>'
+
             st.markdown(f"""
 <div class="{card_cls}">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -859,6 +914,7 @@ with tab1:
     <div style="font-size:.56rem;color:{clr}">{pct}% cap</div>
     <div style="font-size:.56rem;color:#334155">FC {FC}%</div>
   </div>
+  {ndvi_html}
   {timer_html}
 </div>""", unsafe_allow_html=True)
 
@@ -893,9 +949,7 @@ with tab1:
             clr = FIELDS[fname]["color"]
             vwc_str = f"{vwc:.1f}" if vwc else "?"
             # Active valves pulse fast (1.4s), standby pulses slow (2.8s)
-            p_dur  = "1.4s" if fv else "2.8s"
-            p_dur2 = "1.4s" if fv else "2.8s"
-            status = "ACTIVE" if fv else "STANDBY"
+            p_dur = "1.4s" if fv else "2.8s"
             tip = f"{fname} · VWC {vwc_str}% · {'💧 Irrigating' if fv else '⏸ Standby'}"
 
             # Icon geometry:  total div 72×94px, ring circle centred at (36,36)
@@ -910,7 +964,7 @@ with tab1:
   <div style="position:absolute;top:36px;left:36px;
     width:64px;height:64px;margin-top:-32px;margin-left:-32px;
     border-radius:50%;border:1px solid {clr};
-    animation:mping {p_dur2} ease-out 0.7s infinite;opacity:0.4"></div>
+    animation:mping {p_dur} ease-out 0.7s infinite;opacity:0.4"></div>
   <!-- Static outer ring -->
   <div style="position:absolute;top:36px;left:36px;
     width:36px;height:36px;margin-top:-18px;margin-left:-18px;
@@ -1022,6 +1076,32 @@ with tab1:
             plt.tight_layout(pad=0.3)
             st.pyplot(fig, width='stretch')
             plt.close(fig)
+
+        # Latest satellite NDVI pass
+        if ndvi_data:
+            age = ndvi_data["scene_age_days"]
+            age_badge = (f'<span style="color:#4ade80">🟢 {age}d old</span>' if age < 5
+                         else f'<span style="color:#fbbf24">🟡 {age}d old</span>' if age < 10
+                         else f'<span style="color:#f87171">🔴 {age}d old — stale</span>')
+            st.markdown(f'<div class="panel-title" style="margin-top:12px">🛰️ Latest Satellite Pass '
+                        f'<span style="text-transform:none;letter-spacing:0;font-weight:500">'
+                        f'· {ndvi_data["scene_date"]} · {age_badge}</span></div>',
+                        unsafe_allow_html=True)
+            _ndvi_cols = st.columns([1, 1.4])
+            with _ndvi_cols[0]:
+                if ndvi_data.get("jpeg_url"):
+                    st.image(ndvi_data["jpeg_url"], width='stretch')
+            with _ndvi_cols[1]:
+                for fname, z in zone_by_field.items():
+                    tier_label, tier_clr = ndvi_tier(z["ndvi"])
+                    clr = FIELDS[fname]["color"]
+                    st.markdown(f"""
+<div style="display:flex;justify-content:space-between;align-items:center;
+  padding:5px 8px;margin-bottom:4px;background:rgba(6,14,32,.6);border-radius:8px">
+  <span style="font-size:.72rem;color:{clr};font-weight:700">{fname}</span>
+  <span style="font-size:.68rem;color:#94a3b8">NDVI {z['ndvi']:.2f}</span>
+  <span style="font-size:.63rem;color:{tier_clr};font-weight:700">{tier_label}</span>
+</div>""", unsafe_allow_html=True)
 
     # ── RIGHT: Live conditions + radar ───────────────────────────────────────
     with col_stats:
