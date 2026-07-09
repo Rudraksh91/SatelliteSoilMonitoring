@@ -2138,8 +2138,15 @@ function switchWeatherTab(name,btn){
   const panel=document.getElementById('tab-'+name);
   if(panel)panel.classList.add('active');
   if(btn)btn.classList.add('on');
-  // Resize chart after display
-  setTimeout(()=>{if(charts['chart-'+name])charts['chart-'+name].resize()},50);
+  // Resize then replay the entrance animation so switching tabs feels alive
+  // instead of the chart just popping into view fully drawn.
+  setTimeout(()=>{
+    const c=charts['chart-'+name];
+    if(!c)return;
+    c.resize();
+    c.reset();
+    c.update();
+  },50);
 }
 
 // ══════════════════════════════════════════════════
