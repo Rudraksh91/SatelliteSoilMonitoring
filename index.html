@@ -556,7 +556,7 @@ header{
   padding-bottom:max(0px, env(safe-area-inset-bottom));
   height:calc(56px + env(safe-area-inset-bottom))!important;
 }
-#page-map,#page-ndvi,#page-climate,#page-auto,#page-health{
+#page-map,#page-ndvi,#page-climate,#page-auto,#page-health,#page-pipeline{
   padding-left:max(0px, env(safe-area-inset-left));
   padding-right:max(0px, env(safe-area-inset-right));
 }
@@ -792,6 +792,10 @@ header{
     <button onclick="nav('health')" data-page="health" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
       <span class="material-symbols-outlined mso min-w-[48px] text-center">monitor_heart</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">System Health</span>
+    </button>
+    <button onclick="nav('pipeline')" data-page="pipeline" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
+      <span class="material-symbols-outlined mso min-w-[48px] text-center">account_tree</span>
+      <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Data Pipeline</span>
     </button>
   </nav>
   <div class="mt-auto py-md border-t border-white/5 shrink-0">
@@ -1628,6 +1632,191 @@ header{
   </div>
 </main>
 
+<!-- ═══════════════════════════════════════════ -->
+<!-- SATELLITE DATA PIPELINE PAGE                -->
+<!-- ═══════════════════════════════════════════ -->
+<main id="page-pipeline" class="page ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] p-md overflow-y-auto">
+  <div class="gp p-sm border-t-2 mb-gutter shrink-0">
+    <div class="flex justify-between items-center">
+      <div><p class="font-label-caps text-on-surface-variant mb-xs">AGRISAT · DEDIAPADA FARM · 21.6277°N 73.5903°E</p><p class="font-data-lg text-data-lg text-primary-container">SATELLITE DATA PIPELINE</p></div>
+      <div class="text-right"><p class="font-label-caps text-on-surface-variant">STAGES</p><p class="font-display-lg text-[32px] font-bold text-primary-container kpi-glow-green">05</p></div>
+    </div>
+  </div>
+  <div class="gp overflow-hidden relative">
+    <div class="scanline absolute inset-0 pointer-events-none opacity-40"></div>
+    <div class="p-sm border-b border-white/10 flex justify-between items-center relative z-10">
+      <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">account_tree</span><h2 class="font-headline-md text-headline-md text-primary">Satellite Data Pipeline</h2></div>
+      <span class="font-label-caps text-label-caps text-on-surface-variant/50">CLICK A NODE TO EXPAND</span>
+    </div>
+    <div class="p-sm relative z-10">
+      <div id="pipe-tree" style="max-width:820px;margin:0 auto">
+          <svg width="100%" viewBox="0 0 680 968" xmlns="http://www.w3.org/2000/svg">
+            <defs><marker id="pipe-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="rgba(185,204,178,.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+            <rect x="94" y="40" width="492" height="118" rx="12" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="0.5" stroke-dasharray="4 3"/>
+            <text x="110" y="62" font-family="JetBrains Mono" font-size="12" fill="rgba(185,204,178,.6)">01 · physical satellites</text>
+            <g style="cursor:pointer" onclick="pipeShowDetail('s1')">
+              <rect x="110" y="86" width="220" height="56" rx="8" fill="rgba(0,255,65,.12)" stroke="rgba(0,255,65,.45)" stroke-width="0.5"/>
+              <text x="220" y="104" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Sentinel-2A / 2B</text>
+              <text x="220" y="122" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">MSI · 10m optical</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('eos04')">
+              <rect x="350" y="86" width="220" height="56" rx="8" fill="rgba(255,180,171,.08)" stroke="rgba(255,180,171,.5)" stroke-width="1" stroke-dasharray="4 3"/>
+              <text x="460" y="104" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4ab">EOS-04 / RISAT-1A</text>
+              <text x="460" y="122" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,171,.65)">SAR · not wired</text>
+            </g>
+
+            <line x1="340" y1="158" x2="340" y2="208" stroke="rgba(185,204,178,.5)" stroke-width="1" marker-end="url(#pipe-arrow)"/>
+
+            <rect x="54" y="208" width="572" height="190" rx="12" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="0.5" stroke-dasharray="4 3"/>
+            <text x="70" y="230" font-family="JetBrains Mono" font-size="12" fill="rgba(185,204,178,.6)">02 · acquisition APIs</text>
+            <g style="cursor:pointer" onclick="pipeShowDetail('gee')">
+              <rect x="70" y="254" width="260" height="56" rx="8" fill="rgba(0,255,65,.12)" stroke="rgba(0,255,65,.45)" stroke-width="0.5"/>
+              <text x="200" y="272" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Google Earth Engine</text>
+              <text x="200" y="290" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">Sentinel-2 imagery</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('pc')">
+              <rect x="350" y="254" width="260" height="56" rx="8" fill="rgba(0,255,65,.12)" stroke="rgba(0,255,65,.45)" stroke-width="0.5"/>
+              <text x="480" y="272" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Planetary Computer</text>
+              <text x="480" y="290" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">Microsoft STAC API</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('om')">
+              <rect x="70" y="326" width="260" height="56" rx="8" fill="rgba(0,255,65,.12)" stroke="rgba(0,255,65,.45)" stroke-width="0.5"/>
+              <text x="200" y="344" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Open-Meteo</text>
+              <text x="200" y="362" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">Live weather feed</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('bhoonidhi')">
+              <rect x="350" y="326" width="260" height="56" rx="8" fill="rgba(255,180,171,.08)" stroke="rgba(255,180,171,.5)" stroke-width="1" stroke-dasharray="4 3"/>
+              <text x="480" y="344" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4ab">Bhoonidhi VEDAS API</text>
+              <text x="480" y="362" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,171,.65)">Not integrated yet</text>
+            </g>
+
+            <line x1="340" y1="398" x2="340" y2="448" stroke="rgba(185,204,178,.5)" stroke-width="1" marker-end="url(#pipe-arrow)"/>
+
+            <rect x="40" y="448" width="600" height="118" rx="12" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="0.5" stroke-dasharray="4 3"/>
+            <text x="56" y="470" font-family="JetBrains Mono" font-size="12" fill="rgba(185,204,178,.6)">03 · processing — ndvi_harvester.py</text>
+            <text x="56" y="484" font-family="JetBrains Mono" font-size="10" fill="rgba(185,204,178,.45)">launchd daemon · 3-day loop</text>
+            <g style="cursor:pointer" onclick="pipeShowDetail('dl')">
+              <rect x="56" y="494" width="130" height="56" rx="8" fill="rgba(0,219,233,.12)" stroke="rgba(0,219,233,.45)" stroke-width="0.5"/>
+              <text x="121" y="512" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#7df4ff">Download</text>
+              <text x="121" y="530" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="rgba(125,244,255,.65)">EE/GEE imagery</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('cm')">
+              <rect x="202" y="494" width="130" height="56" rx="8" fill="rgba(0,219,233,.12)" stroke="rgba(0,219,233,.45)" stroke-width="0.5"/>
+              <text x="267" y="512" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#7df4ff">Cloud mask</text>
+              <text x="267" y="530" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="rgba(125,244,255,.65)">SCL filter</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('ndvi')">
+              <rect x="348" y="494" width="130" height="56" rx="8" fill="rgba(0,219,233,.12)" stroke="rgba(0,219,233,.45)" stroke-width="0.5"/>
+              <text x="413" y="512" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#7df4ff">NDVI compute</text>
+              <text x="413" y="530" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="rgba(125,244,255,.65)">index calc</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('zone')">
+              <rect x="494" y="494" width="130" height="56" rx="8" fill="rgba(0,219,233,.12)" stroke="rgba(0,219,233,.45)" stroke-width="0.5"/>
+              <text x="559" y="512" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#7df4ff">Zone analysis</text>
+              <text x="559" y="530" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="rgba(125,244,255,.65)">field zones</text>
+            </g>
+
+            <line x1="340" y1="566" x2="340" y2="616" stroke="rgba(185,204,178,.5)" stroke-width="1" marker-end="url(#pipe-arrow)"/>
+
+            <rect x="46" y="616" width="589" height="118" rx="12" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="0.5" stroke-dasharray="4 3"/>
+            <text x="62" y="638" font-family="JetBrains Mono" font-size="12" fill="rgba(185,204,178,.6)">04 · distribution</text>
+            <g style="cursor:pointer" onclick="pipeShowDetail('sel')">
+              <rect x="62" y="662" width="175" height="56" rx="8" fill="rgba(255,180,162,.12)" stroke="rgba(255,180,162,.45)" stroke-width="0.5"/>
+              <text x="149.5" y="680" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4a2">Selenium sync</text>
+              <text x="149.5" y="698" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,162,.65)">incognito Chrome</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('drive')">
+              <rect x="253" y="662" width="175" height="56" rx="8" fill="rgba(255,180,162,.12)" stroke="rgba(255,180,162,.45)" stroke-width="0.5"/>
+              <text x="340.5" y="680" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4a2">Drive folder</text>
+              <text x="340.5" y="698" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,162,.65)">Google Drive</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('gh')">
+              <rect x="444" y="662" width="175" height="56" rx="8" fill="rgba(255,180,162,.12)" stroke="rgba(255,180,162,.45)" stroke-width="0.5"/>
+              <text x="531.5" y="680" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4a2">GitHub push</text>
+              <text x="531.5" y="698" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,162,.65)">REST API commit</text>
+            </g>
+
+            <line x1="340" y1="734" x2="340" y2="784" stroke="rgba(185,204,178,.5)" stroke-width="1" marker-end="url(#pipe-arrow)"/>
+
+            <rect x="41" y="784" width="598" height="118" rx="12" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="0.5" stroke-dasharray="4 3"/>
+            <text x="57" y="806" font-family="JetBrains Mono" font-size="12" fill="rgba(185,204,178,.6)">05 · consumption</text>
+            <g style="cursor:pointer" onclick="pipeShowDetail('streamlit')">
+              <rect x="57" y="830" width="178" height="56" rx="8" fill="rgba(0,255,65,.12)" stroke="rgba(0,255,65,.45)" stroke-width="0.5"/>
+              <text x="146" y="848" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Streamlit app.py</text>
+              <text x="146" y="866" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">ops dashboard</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('pages')">
+              <rect x="251" y="830" width="178" height="56" rx="8" fill="rgba(0,255,65,.12)" stroke="rgba(0,255,65,.45)" stroke-width="0.5"/>
+              <text x="340" y="848" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">GitHub Pages site</text>
+              <text x="340" y="866" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">public index.html</text>
+            </g>
+            <g style="cursor:pointer" onclick="pipeShowDetail('dom')">
+              <rect x="445" y="830" width="178" height="56" rx="8" fill="rgba(255,180,171,.08)" stroke="rgba(255,180,171,.5)" stroke-width="1" stroke-dasharray="4 3"/>
+              <text x="534" y="848" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4ab">DOM live hook</text>
+              <text x="534" y="866" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,171,.65)">planned, not wired</text>
+            </g>
+
+            <rect x="40" y="936" width="12" height="12" fill="#00ff41"/>
+            <text x="58" y="946" font-family="JetBrains Mono" font-size="10" fill="rgba(185,204,178,.6)">Live &amp; wired</text>
+            <rect x="162" y="936" width="12" height="12" fill="#00dbe9"/>
+            <text x="180" y="946" font-family="JetBrains Mono" font-size="10" fill="rgba(185,204,178,.6)">Compute step</text>
+            <rect x="284" y="936" width="12" height="12" fill="#ffb4a2"/>
+            <text x="302" y="946" font-family="JetBrains Mono" font-size="10" fill="rgba(185,204,178,.6)">Distribution target</text>
+            <rect x="455" y="936" width="12" height="12" fill="none" stroke="#ffb4ab" stroke-width="1.5" stroke-dasharray="3 2"/>
+            <text x="473" y="946" font-family="JetBrains Mono" font-size="10" fill="rgba(185,204,178,.6)">Planned, not wired</text>
+          </svg>
+        </div>
+        <div id="pipe-detail" style="display:none">
+          <button onclick="pipeShowTree()" class="border border-white/20 text-on-surface-variant font-label-caps text-label-caps px-md py-xs rounded hover:bg-white/5 active:scale-95 transition-all">← BACK TO PIPELINE</button>
+          <div class="mt-md">
+            <span id="pipe-tag" class="font-label-caps text-label-caps px-2 py-1 rounded border inline-block"></span>
+            <p id="pipe-title" class="font-data-lg text-data-lg text-primary mt-sm"></p>
+            <p id="pipe-desc" class="font-body-md text-body-md text-on-surface-variant/80 mt-xs" style="max-width:560px"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+</main>
+
+<script>
+const PIPE_NODES = {
+  s1: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Sentinel-2A / 2B', desc:"ESA/Copernicus optical satellites carrying the MultiSpectral Instrument (MSI) at 10m resolution for key bands, with a combined 5-day revisit. This is the imagery source pulled through Google Earth Engine and Planetary Computer, then cloud-masked before NDVI is computed."},
+  eos04: {tag:'PLANNED, NOT WIRED', bg:'rgba(255,180,171,.12)', color:'#ffb4ab', border:'rgba(255,180,171,.4)', title:'EOS-04 / RISAT-1A', desc:"ISRO's C-band SAR satellite, distributed through the Bhoonidhi portal. Unlike Sentinel-2 it images through cloud cover and at night, which would make it valuable during monsoon gaps in optical coverage. It isn't integrated into this pipeline yet — that depends on the Bhoonidhi VEDAS API below."},
+  gee: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Google Earth Engine', desc:"Cloud platform hosting petabytes of satellite imagery, including the full Sentinel-2 archive. ndvi_harvester.py queries it through the Python API to pull the latest cloud-free scene clipped to the Dediapada farm boundary."},
+  pc: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Planetary Computer', desc:"Microsoft's STAC-based catalog of open geospatial data. It's used alongside Earth Engine as a secondary Sentinel-2 source, giving the harvester a fallback if one catalog is missing a recent scene."},
+  om: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Open-Meteo', desc:"A free, key-free weather API called live from the dashboard for temperature, humidity, wind, precipitation probability, and rainfall history. Its output directly feeds the rain-guard hold and ET0 irrigation logic."},
+  bhoonidhi: {tag:'PLANNED, NOT WIRED', bg:'rgba(255,180,171,.12)', color:'#ffb4ab', border:'rgba(255,180,171,.4)', title:'Bhoonidhi VEDAS API', desc:"ISRO's data portal for EOS-04 SAR products. There's no programmatic integration yet, so any SAR data today would have to be downloaded from the portal by hand rather than pulled automatically like the optical sources."},
+  dl: {tag:'COMPUTE STEP', bg:'rgba(0,219,233,.12)', color:'#7df4ff', border:'rgba(0,219,233,.4)', title:'Download imagery', desc:"The first step of ndvi_harvester.py, a launchd daemon (com.agrisat.ndvi.harvester) that runs every 3 days. It fetches the latest Earth Engine or Planetary Computer scene clipped to the farm boundary."},
+  cm: {tag:'COMPUTE STEP', bg:'rgba(0,219,233,.12)', color:'#7df4ff', border:'rgba(0,219,233,.4)', title:'Cloud mask', desc:"Filters pixels using the Sentinel-2 Scene Classification Layer (SCL) so cloud, cloud-shadow, and snow pixels don't corrupt the NDVI signal before it's computed."},
+  ndvi: {tag:'COMPUTE STEP', bg:'rgba(0,219,233,.12)', color:'#7df4ff', border:'rgba(0,219,233,.4)', title:'NDVI compute', desc:"Calculates (NIR − Red) / (NIR + Red) per pixel from the cloud-masked bands, producing a vegetation-health raster across the farm."},
+  zone: {tag:'COMPUTE STEP', bg:'rgba(0,219,233,.12)', color:'#7df4ff', border:'rgba(0,219,233,.4)', title:'Zone analysis', desc:"Aggregates the NDVI raster into per-field zone statistics, which is what ultimately drives the soil VWC and field health indicators shown on the dashboard."},
+  sel: {tag:'DISTRIBUTION TARGET', bg:'rgba(255,180,162,.12)', color:'#ffb4a2', border:'rgba(255,180,162,.4)', title:'Selenium sync', desc:"A headless, incognito Chrome session automates uploading the finished NDVI image to Google Drive, since the harvester has no direct server-side Drive write access."},
+  drive: {tag:'DISTRIBUTION TARGET', bg:'rgba(255,180,162,.12)', color:'#ffb4a2', border:'rgba(255,180,162,.4)', title:'Drive folder', desc:"The shared Google Drive folder where Selenium drops each dated NDVI image — filenames always carry a YYYY-MM-DD date so the dashboard can find the latest one."},
+  gh: {tag:'DISTRIBUTION TARGET', bg:'rgba(255,180,162,.12)', color:'#ffb4a2', border:'rgba(255,180,162,.4)', title:'GitHub push', desc:"Uses the GitHub REST API to commit updated NDVI outputs and config back to this repo, which is what triggers a GitHub Pages rebuild of the public site."},
+  streamlit: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Streamlit app.py', desc:"An internal operational dashboard built with Streamlit, used for deeper diagnostics and debugging beyond what's published on the public GitHub Pages site."},
+  pages: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'GitHub Pages site', desc:"This is the public index.html site itself — the TERRA-CORE / AgriSat dashboard you're looking at right now, showing live weather and irrigation state served straight from GitHub Pages."},
+  dom: {tag:'PLANNED, NOT WIRED', bg:'rgba(255,180,171,.12)', color:'#ffb4ab', border:'rgba(255,180,171,.4)', title:'DOM live hook', desc:"A planned feature to have index.html pull live NDVI and SAR data directly into the page through a satellite.py bridge, instead of today's static Drive images. Not wired yet."}
+};
+function pipeShowDetail(id){
+  const n=PIPE_NODES[id];
+  if(!n)return;
+  const tag=document.getElementById('pipe-tag');
+  tag.textContent=n.tag;
+  tag.style.background=n.bg;
+  tag.style.color=n.color;
+  tag.style.borderColor=n.border;
+  document.getElementById('pipe-title').textContent=n.title;
+  document.getElementById('pipe-desc').textContent=n.desc;
+  document.getElementById('pipe-tree').style.display='none';
+  document.getElementById('pipe-detail').style.display='block';
+}
+function pipeShowTree(){
+  document.getElementById('pipe-detail').style.display='none';
+  document.getElementById('pipe-tree').style.display='block';
+}
+</script>
+
 <!-- FOOTER -->
 <footer class="fixed bottom-0 right-0 left-20 z-40 hidden md:flex justify-between items-center px-sm h-8 border-t" style="background:rgba(255,255,255,.035);backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);border-color:rgba(255,255,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 -1px 0 rgba(0,255,65,.05),0 -8px 32px rgba(0,0,0,.3)">
   <div class="flex items-center gap-xs">
@@ -2178,7 +2367,7 @@ function renderTimeline(){
 // ══════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════
-const pageMap={map:'COMMAND CENTER',ndvi:'ASSET ANALYTICS & NDVI',climate:'CLIMATE & WEATHER ANALYTICS',auto:'AUTOMATION & LOGIC HUB',health:'SYSTEM HEALTH'};
+const pageMap={map:'COMMAND CENTER',ndvi:'ASSET ANALYTICS & NDVI',climate:'CLIMATE & WEATHER ANALYTICS',auto:'AUTOMATION & LOGIC HUB',health:'SYSTEM HEALTH',pipeline:'SATELLITE DATA PIPELINE'};
 function nav(id){
   document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none'});
   document.querySelectorAll('.nav-btn').forEach(b=>{b.classList.remove('text-primary','border-r-2','border-primary-container','bg-primary/10');b.classList.add('text-on-surface-variant/60')});
@@ -2823,6 +3012,10 @@ updateClock();
   <button class="mob-btn" data-page="health" onclick="nav('health')">
     <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">monitor_heart</span>
     <span class="mob-btn-lbl">Health</span>
+  </button>
+  <button class="mob-btn" data-page="pipeline" onclick="nav('pipeline')">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">account_tree</span>
+    <span class="mob-btn-lbl">Pipeline</span>
   </button>
 </nav>
 
