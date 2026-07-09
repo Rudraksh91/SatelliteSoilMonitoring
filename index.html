@@ -2034,9 +2034,28 @@ function applyCurrentData(d){
 const C_DEFAULTS={
   color:'#dfe4e0',
   borderColor:'rgba(255,255,255,.08)',
-  plugins:{legend:{labels:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:10},boxWidth:12}},tooltip:{backgroundColor:'rgba(15,20,18,.95)',titleColor:'#00ff41',bodyColor:'#b9ccb2',borderColor:'rgba(0,255,65,.2)',borderWidth:1}},
-  scales:{x:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9},maxRotation:0,maxTicksLimit:14},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.04)'}}}
+  interaction:{mode:'index',intersect:false},
+  animation:{duration:900,easing:'easeOutQuart'},
+  elements:{
+    point:{hoverRadius:5,hitRadius:14,hoverBorderWidth:2,hoverBackgroundColor:'#0f1412'},
+    line:{borderWidth:2,capBezierPoints:true}
+  },
+  plugins:{
+    legend:{labels:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:10},boxWidth:12,usePointStyle:true,pointStyle:'rectRounded'}},
+    tooltip:{backgroundColor:'rgba(10,15,13,.96)',titleColor:'#00ff41',bodyColor:'#dfe4e0',borderColor:'rgba(0,255,65,.3)',borderWidth:1,padding:10,cornerRadius:8,boxPadding:5,displayColors:true,titleFont:{family:'JetBrains Mono',weight:'bold',size:11},bodyFont:{family:'JetBrains Mono',size:10}}
+  },
+  scales:{x:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9},maxRotation:0,maxTicksLimit:14},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.05)'}}}
 };
+
+// Smooth vertical gradient fill for area/bar datasets — falls back to a
+// flat color before the chart area is laid out (first paint).
+function vGrad(ctxObj,c1,c2){
+  const {ctx,chartArea}=ctxObj.chart;
+  if(!chartArea)return c1;
+  const g=ctx.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
+  g.addColorStop(0,c1);g.addColorStop(1,c2);
+  return g;
+}
 
 function mkChart(id,cfg){
   if(charts[id])charts[id].destroy();
@@ -2059,11 +2078,11 @@ function buildAllCharts(d){
 
   // 1. Atmosphere & Comfort
   mkChart('chart-atmosphere',{type:'line',data:{labels,datasets:[
-    {label:'Air Temp (°C)',data:h.temperature_2m,borderColor:'#00ff41',backgroundColor:'rgba(0,255,65,.07)',tension:.3,pointRadius:0,yAxisID:'y'},
-    {label:'Apparent Temp (°C)',data:h.apparent_temperature,borderColor:'#f97316',borderDash:[4,4],tension:.3,pointRadius:0,fill:false,yAxisID:'y'},
-    {label:'Dew Point (°C)',data:h.dew_point_2m,borderColor:'#00eefc',tension:.3,pointRadius:0,fill:false,yAxisID:'y'},
-    {label:'Surface Pressure (hPa)',data:h.surface_pressure,borderColor:'#a855f7',tension:.3,pointRadius:0,fill:false,yAxisID:'y2'}
-  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    {label:'Air Temp (°C)',data:h.temperature_2m,borderColor:'#00ff41',backgroundColor:c=>vGrad(c,'rgba(0,255,65,.4)','rgba(0,255,65,0)'),borderWidth:2.5,tension:.35,pointRadius:0,fill:true,yAxisID:'y'},
+    {label:'Apparent Temp (°C)',data:h.apparent_temperature,borderColor:'#f97316',borderDash:[4,4],tension:.35,pointRadius:0,fill:false,yAxisID:'y'},
+    {label:'Dew Point (°C)',data:h.dew_point_2m,borderColor:'#00eefc',tension:.35,pointRadius:0,fill:false,yAxisID:'y'},
+    {label:'Surface Pressure (hPa)',data:h.surface_pressure,borderColor:'#a855f7',tension:.35,pointRadius:0,fill:false,yAxisID:'y2'}
+  ]},options:{...C_DEFAULTS,scales:{
     x:{...C_DEFAULTS.scales.x},
     y:{...C_DEFAULTS.scales.y,title:{display:true,text:'Temperature (°C)',color:'#b9ccb2',font:{size:9}}},
     y2:{position:'right',ticks:{color:'#a855f7',font:{family:'JetBrains Mono',size:9}},grid:{drawOnChartArea:false},title:{display:true,text:'Pressure (hPa)',color:'#a855f7',font:{size:9}}}
@@ -2071,11 +2090,11 @@ function buildAllCharts(d){
 
   // 2. Precipitation
   mkChart('chart-precipitation',{type:'bar',data:{labels,datasets:[
-    {label:'Total Precip. (mm)',data:h.precipitation,backgroundColor:'rgba(37,99,235,.6)',yAxisID:'y'},
-    {label:'Rain (mm)',data:h.rain,backgroundColor:'rgba(59,130,246,.5)',yAxisID:'y'},
-    {label:'Showers (mm)',data:h.showers,backgroundColor:'rgba(96,165,250,.4)',yAxisID:'y'},
-    {label:'Precip. Prob (%)',data:h.precipitation_probability,type:'line',borderColor:'#f43f5e',borderWidth:2,pointRadius:0,tension:.3,fill:false,yAxisID:'y2'}
-  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    {label:'Total Precip. (mm)',data:h.precipitation,backgroundColor:c=>vGrad(c,'rgba(59,130,246,.85)','rgba(37,99,235,.35)'),borderRadius:4,borderSkipped:false,yAxisID:'y'},
+    {label:'Rain (mm)',data:h.rain,backgroundColor:c=>vGrad(c,'rgba(96,165,250,.7)','rgba(59,130,246,.25)'),borderRadius:4,borderSkipped:false,yAxisID:'y'},
+    {label:'Showers (mm)',data:h.showers,backgroundColor:c=>vGrad(c,'rgba(147,197,253,.6)','rgba(96,165,250,.2)'),borderRadius:4,borderSkipped:false,yAxisID:'y'},
+    {label:'Precip. Prob (%)',data:h.precipitation_probability,type:'line',borderColor:'#f43f5e',borderWidth:2.5,pointRadius:0,tension:.35,fill:false,yAxisID:'y2'}
+  ]},options:{...C_DEFAULTS,scales:{
     x:{...C_DEFAULTS.scales.x,stacked:false},
     y:{...C_DEFAULTS.scales.y,title:{display:true,text:'Amount (mm)',color:'#b9ccb2',font:{size:9}}},
     y2:{position:'right',min:0,max:100,ticks:{color:'#f43f5e',font:{family:'JetBrains Mono',size:9}},grid:{drawOnChartArea:false},title:{display:true,text:'Probability (%)',color:'#f43f5e',font:{size:9}}}
@@ -2083,9 +2102,9 @@ function buildAllCharts(d){
 
   // 3. ET0 & VPD
   mkChart('chart-agri',{type:'bar',data:{labels,datasets:[
-    {label:'Evapotranspiration (mm)',data:h.evapotranspiration.map(v=>Math.abs(v||0)),backgroundColor:'rgba(16,185,129,.55)',yAxisID:'y'},
-    {label:'Vapour Pressure Deficit (kPa)',data:h.vapour_pressure_deficit,type:'line',borderColor:'#b45309',borderWidth:2,pointRadius:0,tension:.3,fill:false,yAxisID:'y2'}
-  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    {label:'Evapotranspiration (mm)',data:h.evapotranspiration.map(v=>Math.abs(v||0)),backgroundColor:c=>vGrad(c,'rgba(16,185,129,.85)','rgba(5,150,105,.3)'),borderRadius:4,borderSkipped:false,yAxisID:'y'},
+    {label:'Vapour Pressure Deficit (kPa)',data:h.vapour_pressure_deficit,type:'line',borderColor:'#b45309',borderWidth:2.5,pointRadius:0,tension:.35,fill:false,yAxisID:'y2'}
+  ]},options:{...C_DEFAULTS,scales:{
     x:{...C_DEFAULTS.scales.x},
     y:{...C_DEFAULTS.scales.y,title:{display:true,text:'ET₀ (mm)',color:'#b9ccb2',font:{size:9}}},
     y2:{position:'right',ticks:{color:'#b45309',font:{family:'JetBrains Mono',size:9}},grid:{drawOnChartArea:false},title:{display:true,text:'VPD (kPa)',color:'#b45309',font:{size:9}}}
@@ -2093,21 +2112,21 @@ function buildAllCharts(d){
 
   // 4. Cloud Layers
   mkChart('chart-clouds',{type:'line',data:{labels,datasets:[
-    {label:'Total Cover (%)',data:h.cloud_cover,borderColor:'#475569',borderWidth:2.5,backgroundColor:'rgba(71,85,105,.15)',tension:.3,pointRadius:0,fill:true},
-    {label:'High Cloud (%)',data:h.cloud_cover_high,borderColor:'#cbd5e1',tension:.3,pointRadius:0,fill:false},
-    {label:'Mid Cloud (%)',data:h.cloud_cover_mid,borderColor:'#94a3b8',tension:.3,pointRadius:0,fill:false},
-    {label:'Low Cloud (%)',data:h.cloud_cover_low,borderColor:'#64748b',tension:.3,pointRadius:0,fill:false}
-  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    {label:'Total Cover (%)',data:h.cloud_cover,borderColor:'#94a3b8',borderWidth:2.5,backgroundColor:c=>vGrad(c,'rgba(148,163,184,.35)','rgba(148,163,184,0)'),tension:.35,pointRadius:0,fill:true},
+    {label:'High Cloud (%)',data:h.cloud_cover_high,borderColor:'#cbd5e1',tension:.35,pointRadius:0,fill:false},
+    {label:'Mid Cloud (%)',data:h.cloud_cover_mid,borderColor:'#94a3b8',tension:.35,pointRadius:0,fill:false},
+    {label:'Low Cloud (%)',data:h.cloud_cover_low,borderColor:'#64748b',tension:.35,pointRadius:0,fill:false}
+  ]},options:{...C_DEFAULTS,scales:{
     x:{...C_DEFAULTS.scales.x},
     y:{...C_DEFAULTS.scales.y,min:0,max:100,title:{display:true,text:'Sky Coverage (%)',color:'#b9ccb2',font:{size:9}}}
   }}});
 
   // 5. Soil Dynamics
   mkChart('chart-soil',{type:'line',data:{labels,datasets:[
-    {label:'Surface 0cm (°C)',data:h.soil_temperature_0cm,borderColor:'#78350f',backgroundColor:'rgba(120,53,15,.1)',tension:.3,pointRadius:0,fill:true},
-    {label:'Shallow 6cm (°C)',data:h.soil_temperature_6cm,borderColor:'#92400e',tension:.3,pointRadius:0,fill:false},
-    {label:'Deep 18cm (°C)',data:h.soil_temperature_18cm,borderColor:'#b45309',tension:.3,pointRadius:0,fill:false}
-  ]},options:{...C_DEFAULTS,animation:{duration:400},scales:{
+    {label:'Surface 0cm (°C)',data:h.soil_temperature_0cm,borderColor:'#f59e0b',backgroundColor:c=>vGrad(c,'rgba(245,158,11,.35)','rgba(245,158,11,0)'),borderWidth:2.5,tension:.35,pointRadius:0,fill:true},
+    {label:'Shallow 6cm (°C)',data:h.soil_temperature_6cm,borderColor:'#d97706',tension:.35,pointRadius:0,fill:false},
+    {label:'Deep 18cm (°C)',data:h.soil_temperature_18cm,borderColor:'#92400e',tension:.35,pointRadius:0,fill:false}
+  ]},options:{...C_DEFAULTS,scales:{
     x:{...C_DEFAULTS.scales.x},
     y:{...C_DEFAULTS.scales.y,title:{display:true,text:'Soil Temp (°C)',color:'#b9ccb2',font:{size:9}}}
   }}});
