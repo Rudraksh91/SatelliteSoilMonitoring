@@ -822,7 +822,7 @@ header{
         <span id="hw-dot" class="w-[6px] h-[6px] rounded-full bg-white/20 transition-all"></span>
         <span id="hw-label">HW</span>
       </button>
-      <span class="font-label-caps text-label-caps text-primary hidden xl:block">CMDR. R. PATEL</span>
+      <span class="font-label-caps text-label-caps text-primary hidden xl:block">CAET</span>
     </div>
   </div>
 </header>
@@ -1196,7 +1196,7 @@ header{
     <section class="gp rounded-xl flex flex-col overflow-hidden" style="height:45%">
       <div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">schedule</span><h2 class="font-headline-md text-headline-md text-primary">Irrigation Cycle Timeline — Dediapada</h2></div>
-        <div class="flex items-center gap-md font-data-sm text-data-sm"><span class="text-secondary">SCANNING FIELDS...</span><span class="text-on-surface-variant" id="auto-utc">UTC —</span></div>
+        <div class="flex items-center gap-md font-data-sm text-data-sm"><span class="text-secondary">SCANNING FIELDS...</span><span class="text-on-surface-variant" id="auto-utc">IST —</span></div>
       </div>
       <div class="flex-1 overflow-x-auto relative tl-grid" id="tl-scroll">
         <div class="sticky top-0 z-10 flex border-b border-white/10 bg-surface/90 backdrop-blur-md">
@@ -1902,9 +1902,12 @@ function tickVWC(){
 // the same thresholds shown in the Smart Logic Rulebook below it
 // (VWC<20% → drip, PRECIP_PROB>60% → suspend, TEMP>38°C → ET0 boost).
 // ══════════════════════════════════════════════════
-// Full 24h day (00:00–23:00 UTC), horizontally scrollable — "now" sits at
-// whatever column matches the real current hour rather than a fixed slot.
+// Full 24h day (00:00–23:00 IST — Dediapada, Gujarat local time, UTC+5:30,
+// no DST), horizontally scrollable — "now" sits at whatever column matches
+// the real current hour rather than a fixed slot.
 const TL_COLW=80, TL_HOURS_SHOWN=24;
+const IST_OFFSET_MS=5.5*3600*1000;
+function toIST(date){return new Date(date.getTime()+IST_OFFSET_MS)}
 const TL_FIELDS=[
   {row:'tl-row-A',vwcKey:'vA'},
   {row:'tl-row-B',vwcKey:'vB'},
@@ -1915,8 +1918,10 @@ let _tlAutoScrolled=false;
 function tlHourLabel(h){return String(((h%24)+24)%24).padStart(2,'0')+':00'}
 
 function renderTimelineHeader(now){
-  // Uses UTC to match the "UTC hh:mm:ss" clock shown in this same panel header.
-  const curHour=now.getUTCHours();
+  // Uses IST (Dediapada, Gujarat local time) to match the "IST hh:mm:ss"
+  // clock shown in this same panel header.
+  const ist=toIST(now);
+  const curHour=ist.getUTCHours();
   const wrap=document.getElementById('tl-hours');
   if(wrap){
     wrap.innerHTML='';
@@ -1927,7 +1932,7 @@ function renderTimelineHeader(now){
       wrap.appendChild(div);
     }
   }
-  const nowOffset=curHour*TL_COLW+(now.getUTCMinutes()/60)*TL_COLW;
+  const nowOffset=curHour*TL_COLW+(ist.getUTCMinutes()/60)*TL_COLW;
   const nowLine=document.getElementById('tl-now-line');
   if(nowLine)nowLine.style.left=(192+nowOffset)+'px';
   // Scroll the "now" marker into view once the AUTO tab is actually visible
@@ -2277,7 +2282,13 @@ function pushLog(){checkFieldTransitions();pushHeartbeat();}
 // ══════════════════════════════════════════════════
 // CLOCK
 // ══════════════════════════════════════════════════
-function updateClock(){const utc=new Date().toISOString().split('T')[1].split('.')[0];set('utc-clock','UTC: '+utc);set('auto-utc','UTC '+utc)}
+function updateClock(){
+  const utc=new Date().toISOString().split('T')[1].split('.')[0];
+  set('utc-clock','UTC: '+utc);
+  const ist=toIST(new Date());
+  const istStr=String(ist.getUTCHours()).padStart(2,'0')+':'+String(ist.getUTCMinutes()).padStart(2,'0')+':'+String(ist.getUTCSeconds()).padStart(2,'0');
+  set('auto-utc','IST '+istStr);
+}
 
 // ══════════════════════════════════════════════════
 // INIT
