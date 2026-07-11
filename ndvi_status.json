@@ -4,28 +4,28 @@
   "jpeg_name": "NDVI_Dediapada_2026-07-11.jpeg",
   "folder_id": "1pmU6XqLXVVwtcFFgJMTPE7LMjbn0Tvwe",
   "jpeg_id": "1H5ykCeAfxS9t9Y6jXyZcF6Fk5BFx7JM7",
-  "jpeg_url": "https://drive.google.com/thumbnail?sz=w1024&id=1H5ykCeAfxS9t9Y6jXyZcF6Fk5BFx7JM7",
+  "jpeg_url": "https://drive.google.com/uc?export=view&id=1H5ykCeAfxS9t9Y6jXyZcF6Fk5BFx7JM7",
   "zones": [
     {
-      "zone": "Zone 1 – Boys Hostel",
+      "zone": "Zone 1 \u2013 Boys Hostel",
       "ndvi": 0.504,
       "pixels": 25,
       "status": "THRIVING",
       "action": "No action needed"
     },
     {
-      "zone": "Zone 2 – Main College",
+      "zone": "Zone 2 \u2013 Main College",
       "ndvi": 0.2774,
       "pixels": 72,
       "status": "MODERATE",
-      "action": "Irrigate in 2–3 days"
+      "action": "Irrigate in 2\u20133 days"
     },
     {
-      "zone": "Zone 3 – Diploma College",
+      "zone": "Zone 3 \u2013 Diploma College",
       "ndvi": 0.2761,
       "pixels": 40,
       "status": "MODERATE",
-      "action": "Irrigate in 2–3 days"
+      "action": "Irrigate in 2\u20133 days"
     }
   ],
   "weather": {
