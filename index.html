@@ -941,7 +941,7 @@ header{
       </div>
     </div>
     <div class="gp flex-1 p-sm rounded-lg overflow-hidden flex flex-col">
-      <div class="font-label-caps text-on-surface-variant border-b border-white/10 pb-2 mb-sm">LIVE_SENSOR_READINGS</div>
+      <div class="font-label-caps text-on-surface-variant border-b border-white/10 pb-2 mb-sm">LIVE_WEATHER_FEED</div>
       <div class="space-y-sm flex-1 overflow-y-auto pr-1">
         <div class="flex justify-between items-center py-xs border-b border-white/5">
           <div><span class="font-data-sm text-secondary block">TEMP_AMBIENT</span><span class="font-label-caps text-[9px] text-on-surface-variant">OPEN-METEO API</span></div>
@@ -1230,42 +1230,9 @@ header{
       <section class="col-span-8 gp rounded-xl flex flex-col overflow-hidden">
         <div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
           <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">account_tree</span><h2 class="font-headline-md text-headline-md text-primary">Smart Logic Rulebook</h2></div>
-          <button class="bg-primary-container text-on-primary font-label-caps text-label-caps px-md py-xs rounded hover:opacity-90 active:scale-95 transition-all">+ NEW_RULE</button>
+          <button onclick="openRuleModal()" class="bg-primary-container text-on-primary font-label-caps text-label-caps px-md py-xs rounded hover:opacity-90 active:scale-95 transition-all">+ NEW_RULE</button>
         </div>
-        <div class="flex-1 overflow-y-auto p-sm space-y-sm">
-          <div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center gap-md">
-            <div class="bg-primary/10 border border-primary/20 w-12 h-12 flex items-center justify-center rounded shrink-0"><span class="material-symbols-outlined mso text-primary-container">water_drop</span></div>
-            <div class="flex-1 grid grid-cols-3 gap-md">
-              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">SOIL_VWC &lt; 20%</span></div>
-              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary">OPEN_DRIP_VALVE</span></div>
-              <div class="flex items-center justify-end gap-sm"><span class="font-data-sm text-data-sm text-primary-container">ENABLED</span><span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer">edit</span></div>
-            </div>
-          </div>
-          <div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center gap-md">
-            <div class="bg-secondary/10 border border-secondary/20 w-12 h-12 flex items-center justify-center rounded shrink-0"><span class="material-symbols-outlined mso text-secondary">cloud</span></div>
-            <div class="flex-1 grid grid-cols-3 gap-md">
-              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">RAIN (NOW / NEXT_24H≥10mm / LAST_48H) OR PROB&gt;60%</span></div>
-              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary">SUSPEND_IRRIGATION</span></div>
-              <div class="flex items-center justify-end gap-sm"><span class="font-data-sm text-data-sm text-primary-container">ENABLED</span><span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer">edit</span></div>
-            </div>
-          </div>
-          <div class="bg-surface-container-low border border-white/5 p-sm rounded-lg flex items-center gap-md opacity-60 hover:opacity-100 transition-opacity">
-            <div class="bg-on-surface-variant/5 border border-on-surface-variant/10 w-12 h-12 flex items-center justify-center rounded shrink-0"><span class="material-symbols-outlined mso text-on-surface-variant/40">device_thermostat</span></div>
-            <div class="flex-1 grid grid-cols-3 gap-md">
-              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">TEMP &gt; 38°C</span></div>
-              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary">BOOST_ET0_COMP</span></div>
-              <div class="flex items-center justify-end gap-sm"><span class="font-data-sm text-data-sm text-on-surface-variant/40">STBY</span><span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer">toggle_off</span></div>
-            </div>
-          </div>
-          <div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center gap-md">
-            <div class="bg-primary/10 border border-primary/20 w-12 h-12 flex items-center justify-center rounded shrink-0"><span class="material-symbols-outlined mso text-primary-container">cloud_upload</span></div>
-            <div class="flex-1 grid grid-cols-3 gap-md">
-              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm">EVERY 30 MIN</span></div>
-              <div><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary">SYNC_GOOGLE_DRIVE</span></div>
-              <div class="flex items-center justify-end gap-sm"><span class="font-data-sm text-data-sm text-primary-container">ENABLED</span><span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer">edit</span></div>
-            </div>
-          </div>
-        </div>
+        <div class="flex-1 overflow-y-auto p-sm space-y-sm" id="rules-list"></div>
       </section>
       <section class="col-span-4 gp rounded-xl flex flex-col overflow-hidden">
         <div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
@@ -1903,7 +1870,6 @@ function pipeShowTree(){
 // VWC is treated as one farm-wide reading, same as weather.
 const S={vA:22.4,vB:22.4,vC:22.4,tmp:34.2,hum:67,et0:4.8,vpd:1.3,wind:12,press:1008,precip_prob:5,rain_mm:0,rain_next24h_mm:0,hours_since_rain:Infinity,apt:36.0,dew:22.0};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const rng=(a,b)=>+(a+Math.random()*(b-a)).toFixed(2);
 function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
 function pct(id,v){const e=document.getElementById(id);if(e)e.style.width=clamp(v,0,100).toFixed(1)+'%'}
 
@@ -2150,24 +2116,85 @@ function switchWeatherTab(name,btn){
 }
 
 // ══════════════════════════════════════════════════
-// VWC + soil simulated state
+// VWC — FAO-56 soil-water balance (no sensor, no randomness)
 // ══════════════════════════════════════════════════
 function updateVWC(){
   const avg=((S.vA+S.vB+S.vC)/3).toFixed(1);
   set('vwc-avg-map','VWC: '+avg+'%');
-  set('vwc-alert',S.vA<20?'CRITICAL':S.vA<22?'WATCH':'NORMAL');
-  set('ndvi-vwc',S.vA.toFixed(1)+'%');
-  set('ndvi-vwc-status',S.vA>25?'OPTIMAL':S.vA>20?'ADEQUATE':'LOW — IRRIGATING');
+  const minVWC=Math.min(S.vA,S.vB,S.vC);
+  set('vwc-alert',minVWC<20?'CRITICAL':minVWC<22?'WATCH':'NORMAL');
+  set('ndvi-vwc',avg+'%');
+  set('ndvi-vwc-status',parseFloat(avg)>25?'OPTIMAL':parseFloat(avg)>20?'ADEQUATE':'LOW — IRRIGATING');
   const dep=((clamp(23-S.vA,0,10)/100)*.4*1000/.9).toFixed(0);
   set('irrig-depth',dep+'mm');
   set('next-irrig','T+'+(S.vA>22?120:30)+'MIN');
 }
 
+// ══════════════════════════════════════════════════
+// FAO-56 SOIL WATER BALANCE (Allen et al. 1998)
+// ══════════════════════════════════════════════════
+// Soil parameters — Gujarat campus clay loam (FAO-56 Table 5)
+const FAO56_PARAMS={FC:28,WP:13,rootDepth:0.4,p:0.5};
+// _ndviZones is populated by fetchNdviStatus() so Kc reflects live satellite data
+window._ndviZones=null;
+
+function ndviToKc(ndvi){
+  // Bausch & Neale (1987) linear Kc–NDVI relationship
+  return Math.max(0.5,Math.min(1.2,0.2+1.25*(ndvi||0.35)));
+}
+
+async function initFAO56VWC(){
+  try{
+    const {FC,WP,rootDepth,p}=FAO56_PARAMS;
+    const TAW=(FC-WP)/100*rootDepth*1000;  // mm total available water in root zone
+    const RAW=p*TAW;                        // mm readily available water
+    const resp=await fetch(
+      'https://api.open-meteo.com/v1/forecast'
+      +'?latitude=21.62707&longitude=73.5854'
+      +'&daily=et0_fao_evapotranspiration,precipitation_sum'
+      +'&past_days=30&forecast_days=0&timezone=Asia%2FKolkata'
+    );
+    const d=await resp.json();
+    const ET0d=d.daily.et0_fao_evapotranspiration;
+    const RAINd=d.daily.precipitation_sum;
+    // Per-zone Kc from satellite NDVI; fall back to 0.35 if not yet loaded
+    const zones=window._ndviZones||[];
+    const Kcs=[0,1,2].map(i=>ndviToKc(zones[i]?.ndvi));
+    // Start at field capacity (Dr=0) 30 days ago; step forward day by day
+    const Dr=[0,0,0];
+    for(let i=0;i<ET0d.length;i++){
+      const Pe=Math.min(RAINd[i]||0,TAW);  // effective precip — cap at TAW (no runoff carry)
+      [0,1,2].forEach(z=>{
+        const ETc=Kcs[z]*(ET0d[i]||0);
+        // Ks: stress coefficient — 1 above RAW, linear reduction below
+        const Ks=Dr[z]<=RAW?1:Math.max(0,(TAW-Dr[z])/(TAW-RAW));
+        Dr[z]=Math.max(0,Math.min(TAW,Dr[z]-Pe+Ks*ETc));
+      });
+    }
+    const toVWC=dr=>Math.max(WP,Math.min(FC,FC-(dr/(rootDepth*1000))*100));
+    S.vA=toVWC(Dr[0]);
+    S.vB=toVWC(Dr[1]);
+    S.vC=toVWC(Dr[2]);
+    updateVWC();
+    renderTimeline();
+    console.log(`[FAO-56] VWC — A:${S.vA.toFixed(1)}% B:${S.vB.toFixed(1)}% C:${S.vC.toFixed(1)}%`);
+  }catch(e){
+    console.warn('[FAO-56] init failed — keeping current VWC:',e);
+  }
+}
+
+const VWC_TICK_S=5, VWC_ROOT_M=0.4;   // matches setInterval(tickVWC,5000)
 function tickVWC(){
-  // One shared farm-wide VWC drift — no real per-field soil sensor exists,
-  // so all 3 fields track the same value (matches how weather is shared).
-  const shared=clamp(S.vA+rng(-.3,.1),14,32);
-  S.vA=S.vB=S.vC=shared;
+  // Sub-daily drift using FAO-56 per-zone Kc: zones with higher NDVI
+  // (denser canopy) evapotranspire faster and diverge over time.
+  const rainPct=S.rain_mm>0?Math.min(18,S.rain_mm/(VWC_ROOT_M*10)):0;
+  ['vA','vB','vC'].forEach((k,i)=>{
+    const kc=ndviToKc((window._ndviZones||[])[i]?.ndvi);
+    const etcPct=kc*S.et0*(VWC_TICK_S/86400)/(VWC_ROOT_M*10);
+    const dripping=AUTO_OPT_LIVE.dripControlA&&!rainGuardActive()&&S[k]<20;
+    const irrPct=dripping?0.12:0;
+    S[k]=clamp(S[k]-etcPct+rainPct+irrPct,FAO56_PARAMS.WP,FAO56_PARAMS.FC);
+  });
   updateVWC();
   renderTimeline();
 }
@@ -2424,7 +2451,8 @@ function renderTimeline(){
       }
       // ── Zone health rows ──────────────────────────────────────────────────
       if(Array.isArray(data.zones)){
-        data.zones.slice(0,3).forEach((z,i)=>{
+        window._ndviZones=data.zones.slice(0,3);  // store for FAO-56 Kc
+        window._ndviZones.forEach((z,i)=>{
           const nameEl=document.getElementById('zone-name-'+i);
           const ndviEl=document.getElementById('zone-ndvi-'+i);
           const stEl  =document.getElementById('zone-status-'+i);
@@ -2439,6 +2467,7 @@ function renderTimeline(){
             stEl.style.color=STATUS_COLOR[s]||'inherit';
           }
         });
+        initFAO56VWC();  // re-run balance with fresh per-zone NDVI → Kc
       }
       // ── Log only on real change, so this doesn't spam every 15-min poll ────
       if(typeof logSystemEvent==='function' && data.jpeg_id && data.jpeg_id!==window._lastNdviJpegId){
@@ -2481,17 +2510,6 @@ function nav(id){
   if(id==='climate')setTimeout(()=>Object.values(charts).forEach(c=>c.resize()),100);
   // Timeline auto-scroll to "now" needs the tab actually visible/measurable
   if(id==='auto')setTimeout(()=>{if(typeof renderTimeline==='function')renderTimeline();},50);
-}
-
-// ══════════════════════════════════════════════════
-// SENSOR BARS ANIMATION
-// ══════════════════════════════════════════════════
-function animateBars(){
-  ['sb-a1','sb-b1','sb-c1','sb-t1','sb-e1'].forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    if(!el.children.length)for(let i=0;i<6;i++){const d=document.createElement('div');d.className='w-1 bg-primary/30';d.style.height='8px';el.appendChild(d)}
-    Array.from(el.children).forEach(b=>{b.style.height=(Math.random()*24+4)+'px';b.style.transition='height .3s ease-in-out'});
-  });
 }
 
 // ══════════════════════════════════════════════════
@@ -2553,12 +2571,12 @@ function checkFieldTransitions(){
   });
 }
 
-// Heartbeat: real current sensor reading, rotated fairly across all 3
+// Heartbeat: current water-balance state, rotated fairly across all 3
 // fields (not just Field A) so the log doesn't go quiet between transitions.
 function pushHeartbeat(){
   const keys=['vA','vB','vC'];
   const key=keys[_heartbeatIdx%keys.length];_heartbeatIdx++;
-  logSystemEvent(`SENSOR_READ [${FIELD_LABELS[key]}]: VWC=${S[key].toFixed(1)}% · ET0=${S.et0.toFixed(2)}mm/d (FARM-WIDE)`);
+  logSystemEvent(`BALANCE_READ [${FIELD_LABELS[key]}]: VWC=${S[key].toFixed(1)}% · ET0=${S.et0.toFixed(2)}mm/d (FARM-WIDE)`);
 }
 
 function pushLog(){checkFieldTransitions();pushHeartbeat();}
@@ -3079,8 +3097,8 @@ setInterval(()=>{
 fetchWeather();
 setInterval(fetchWeather, 10*60*1000); // refresh every 10 min
 setTimeout(()=>{updateVWC();renderTimeline();pushLog();renderAutoOptUI();},500);
+initFAO56VWC();  // seed VWC from 30-day FAO-56 balance on first load (before NDVI zones arrive)
 setInterval(tickVWC,5000);
-setInterval(animateBars,1000);
 setInterval(pushLog,6000);
 setInterval(updateClock,1000);
 updateClock();
@@ -4026,8 +4044,8 @@ function showSatLoader(onComplete) {
     { t:   0, txt:'INITIALIZING TERRA-CORE...',    col:'rgba(185,204,178,.45)' },
     { t: 520, txt:'SATELLITE NODE HANDSHAKE...',   col:'rgba(185,204,178,.45)' },
     { t:1080, txt:'FETCHING NDVI DATA STREAM...',  col:'rgba(0,219,233,.65)'   },
-    { t:1640, txt:'SYNCING OPEN-METEO WEATHER...', col:'rgba(0,219,233,.65)'   },
-    { t:2200, txt:'CALIBRATING SOIL SENSORS...',   col:'rgba(185,204,178,.45)' },
+    { t:1640, txt:'SYNCING WEATHER API...',        col:'rgba(0,219,233,.65)'   },
+    { t:2200, txt:'COMPUTING SOIL WATER BALANCE...', col:'rgba(185,204,178,.45)' },
     { t:2680, txt:'ALL SYSTEMS NOMINAL ✓',         col:'#00ff41'               },
   ];
   const timers = msgs.map(({ t, txt, col }) =>
@@ -4311,6 +4329,182 @@ function applyTheme(theme, animate){
   });
 
 })();
+</script>
+
+<!-- ── RULE EDITOR MODAL ─────────────────────────────────────────────────── -->
+<div id="rule-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden" onclick="if(event.target===this)closeRuleModal()">
+  <div class="bg-[#0d1117] border border-white/10 rounded-xl p-md w-full max-w-lg mx-4 shadow-2xl" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-md">
+      <h3 class="font-headline-md text-headline-md text-primary" id="rule-modal-title">NEW_RULE</h3>
+      <button onclick="closeRuleModal()" class="material-symbols-outlined mso text-on-surface-variant/60 hover:text-primary transition-colors">close</button>
+    </div>
+    <div class="mb-sm">
+      <span class="font-label-caps text-[9px] text-on-surface-variant/60 block mb-xs">RULE_ICON</span>
+      <div class="flex gap-xs flex-wrap" id="rule-icon-picker"></div>
+    </div>
+    <div class="mb-sm">
+      <span class="font-label-caps text-[9px] text-on-surface-variant/60 block mb-xs">IF_CONDITION</span>
+      <input id="rule-condition" type="text" placeholder="e.g. SOIL_VWC &lt; 20%" autocomplete="off"
+        class="w-full bg-surface-container-low border border-white/10 rounded px-sm py-xs font-data-sm text-data-sm text-on-surface focus:border-primary/60 outline-none transition-colors">
+      <div class="flex flex-wrap gap-xs mt-xs" id="condition-chips"></div>
+    </div>
+    <div class="mb-md">
+      <span class="font-label-caps text-[9px] text-on-surface-variant/60 block mb-xs">THEN_ACTION</span>
+      <input id="rule-action" type="text" placeholder="e.g. OPEN_DRIP_VALVE" autocomplete="off"
+        class="w-full bg-surface-container-low border border-white/10 rounded px-sm py-xs font-data-sm text-data-sm text-on-surface focus:border-secondary/60 outline-none transition-colors">
+      <div class="flex flex-wrap gap-xs mt-xs" id="action-chips"></div>
+    </div>
+    <div class="flex gap-sm justify-end">
+      <button onclick="closeRuleModal()" class="font-label-caps text-label-caps px-md py-xs rounded border border-white/10 text-on-surface-variant/60 hover:border-white/20 hover:text-on-surface transition-all">CANCEL</button>
+      <button onclick="saveRule()" class="bg-primary-container text-on-primary font-label-caps text-label-caps px-md py-xs rounded hover:opacity-90 active:scale-95 transition-all">SAVE_RULE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// SMART LOGIC RULEBOOK — editable, localStorage-backed
+// ══════════════════════════════════════════════════
+const RULES_KEY='agrisat_rules_v1';
+const RULES_DEFAULT=[
+  {id:'r1',icon:'water_drop',color:'primary',  condition:'SOIL_VWC < 20%',action:'OPEN_DRIP_VALVE',enabled:true},
+  {id:'r2',icon:'cloud',     color:'secondary', condition:'RAIN (NOW / NEXT_24H≥10mm / LAST_48H) OR PROB>60%',action:'SUSPEND_IRRIGATION',enabled:true},
+  {id:'r3',icon:'device_thermostat',color:'surface',condition:'TEMP > 38°C',action:'BOOST_ET0_COMP',enabled:false},
+  {id:'r4',icon:'cloud_upload',color:'primary', condition:'EVERY 30 MIN',action:'SYNC_GOOGLE_DRIVE',enabled:true},
+];
+let _rules=[];
+function _loadRules(){try{const s=localStorage.getItem(RULES_KEY);_rules=s?JSON.parse(s):[...RULES_DEFAULT];}catch{_rules=[...RULES_DEFAULT];}}
+function _saveRules(){localStorage.setItem(RULES_KEY,JSON.stringify(_rules));}
+
+const _ICONS=[
+  {icon:'water_drop',label:'WATER'},{icon:'cloud',label:'RAIN'},
+  {icon:'device_thermostat',label:'TEMP'},{icon:'cloud_upload',label:'SYNC'},
+  {icon:'warning',label:'ALERT'},{icon:'schedule',label:'TIME'},
+  {icon:'grass',label:'NDVI'},{icon:'bolt',label:'AUTO'},
+  {icon:'thermostat',label:'ET0'},{icon:'sensors',label:'SENSOR'},
+];
+const _COND_CHIPS=[
+  'SOIL_VWC < 20%','SOIL_VWC < 25%','TEMP > 38°C','TEMP > 40°C',
+  'PRECIP_PROB > 60%','RAIN > 10mm','NDVI < 0.25','EVERY 30 MIN','EVERY 60 MIN','WIND > 30km/h',
+];
+const _ACT_CHIPS=[
+  'OPEN_DRIP_VALVE','CLOSE_DRIP_VALVE','SUSPEND_IRRIGATION',
+  'BOOST_ET0_COMP','SYNC_GOOGLE_DRIVE','SEND_ALERT','LOG_EVENT',
+];
+
+function _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderRules(){
+  const list=document.getElementById('rules-list');
+  if(!list)return;
+  if(!_rules.length){
+    list.innerHTML='<div class="text-center text-on-surface-variant/40 font-label-caps text-[10px] py-lg">NO RULES DEFINED — CLICK + NEW_RULE TO ADD</div>';
+    return;
+  }
+  list.innerHTML=_rules.map(r=>{
+    const iconCls=r.color==='primary'?'bg-primary/10 border-primary/20 text-primary-container'
+      :r.color==='secondary'?'bg-secondary/10 border-secondary/20 text-secondary'
+      :'bg-on-surface-variant/5 border-on-surface-variant/10 text-on-surface-variant/40';
+    const stColor=r.enabled?'text-primary-container':'text-on-surface-variant/40';
+    const rowOp=r.enabled?'':'opacity-60 hover:opacity-100 transition-opacity';
+    return `<div class="bg-surface-container-low border border-white/10 p-sm rounded-lg flex items-center gap-md ${rowOp}">
+      <div class="${iconCls} border w-12 h-12 flex items-center justify-center rounded shrink-0">
+        <span class="material-symbols-outlined mso">${_esc(r.icon)}</span>
+      </div>
+      <div class="flex-1 grid grid-cols-3 gap-md min-w-0">
+        <div class="min-w-0"><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">IF_CONDITION</span><span class="font-data-sm text-data-sm truncate block" title="${_esc(r.condition)}">${_esc(r.condition)}</span></div>
+        <div class="min-w-0"><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">THEN_ACTION</span><span class="font-data-sm text-data-sm text-secondary truncate block" title="${_esc(r.action)}">${_esc(r.action)}</span></div>
+        <div class="flex items-center justify-end gap-xs shrink-0">
+          <span class="font-data-sm text-[9px] ${stColor} cursor-pointer hover:text-primary transition-colors" onclick="toggleRule('${r.id}')">${r.enabled?'ENABLED':'STBY'}</span>
+          <span class="material-symbols-outlined mso text-on-surface-variant/40 hover:text-primary cursor-pointer transition-colors text-[18px]" onclick="openRuleModal('${r.id}')">edit</span>
+          <span class="material-symbols-outlined mso text-on-surface-variant/30 hover:text-error cursor-pointer transition-colors text-[16px]" onclick="deleteRule('${r.id}')">delete</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let _editId=null,_selIcon='water_drop';
+
+function openRuleModal(ruleId){
+  _editId=ruleId||null;
+  const r=ruleId?_rules.find(x=>x.id===ruleId):null;
+  _selIcon=r?.icon||'water_drop';
+  document.getElementById('rule-modal-title').textContent=ruleId?'EDIT_RULE':'NEW_RULE';
+  document.getElementById('rule-condition').value=r?.condition||'';
+  document.getElementById('rule-action').value=r?.action||'';
+  _renderIconPicker();
+  document.getElementById('condition-chips').innerHTML=_COND_CHIPS.map(c=>
+    `<button onclick="document.getElementById('rule-condition').value='${c.replace(/'/g,"\\'")}'" class="font-label-caps text-[8px] px-xs py-[2px] rounded border border-white/10 text-on-surface-variant/50 hover:border-primary/40 hover:text-primary transition-all">${_esc(c)}</button>`
+  ).join('');
+  document.getElementById('action-chips').innerHTML=_ACT_CHIPS.map(a=>
+    `<button onclick="document.getElementById('rule-action').value='${a}'" class="font-label-caps text-[8px] px-xs py-[2px] rounded border border-white/10 text-on-surface-variant/50 hover:border-secondary/40 hover:text-secondary transition-all">${a}</button>`
+  ).join('');
+  document.getElementById('rule-modal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('rule-condition').focus(),50);
+}
+
+function _renderIconPicker(){
+  document.getElementById('rule-icon-picker').innerHTML=_ICONS.map(({icon,label})=>{
+    const sel=icon===_selIcon;
+    return `<button onclick="selectRuleIcon('${icon}')" id="rib-${icon}"
+      class="flex flex-col items-center gap-[2px] px-xs py-xs rounded border transition-all ${sel?'border-primary/60 bg-primary/10 text-primary-container':'border-white/10 bg-white/5 text-on-surface-variant/50 hover:border-white/20'}">
+      <span class="material-symbols-outlined mso text-[18px]">${icon}</span>
+      <span class="font-label-caps text-[7px]">${label}</span>
+    </button>`;
+  }).join('');
+}
+
+function selectRuleIcon(icon){
+  _selIcon=icon;
+  _ICONS.forEach(({icon:ic})=>{
+    const btn=document.getElementById('rib-'+ic);
+    if(!btn)return;
+    const sel=ic===icon;
+    btn.className=`flex flex-col items-center gap-[2px] px-xs py-xs rounded border transition-all ${sel?'border-primary/60 bg-primary/10 text-primary-container':'border-white/10 bg-white/5 text-on-surface-variant/50 hover:border-white/20'}`;
+  });
+}
+
+function closeRuleModal(){
+  document.getElementById('rule-modal').classList.add('hidden');
+  _editId=null;
+}
+
+function saveRule(){
+  const cond=document.getElementById('rule-condition').value.trim();
+  const act=document.getElementById('rule-action').value.trim();
+  if(!cond||!act)return;
+  if(_editId){
+    const r=_rules.find(x=>x.id===_editId);
+    if(r){r.icon=_selIcon;r.condition=cond;r.action=act;}
+  }else{
+    _rules.push({id:'r'+Date.now(),icon:_selIcon,color:'primary',condition:cond,action:act,enabled:true});
+  }
+  _saveRules();renderRules();closeRuleModal();
+  if(typeof logSystemEvent==='function')
+    logSystemEvent(`RULEBOOK: ${_editId?'RULE_UPDATED':'RULE_ADDED'} — IF ${cond} THEN ${act}`);
+}
+
+function deleteRule(id){
+  if(!confirm('Delete this rule?'))return;
+  const r=_rules.find(x=>x.id===id);
+  _rules=_rules.filter(x=>x.id!==id);
+  _saveRules();renderRules();
+  if(typeof logSystemEvent==='function')
+    logSystemEvent(`RULEBOOK: RULE_DELETED — ${r?.condition||id}`);
+}
+
+function toggleRule(id){
+  const r=_rules.find(x=>x.id===id);
+  if(!r)return;
+  r.enabled=!r.enabled;
+  _saveRules();renderRules();
+  if(typeof logSystemEvent==='function')
+    logSystemEvent(`RULEBOOK: RULE_${r.enabled?'ENABLED':'DISABLED'} — IF ${r.condition}`);
+}
+
+// Boot
+_loadRules();renderRules();
 </script>
 </body>
 </html>
