@@ -853,10 +853,10 @@ header{
       <div class="gp p-sm border-l-2 border-l-secondary-container relative overflow-hidden flex-grow">
         <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">SOIL VWC — 24H TREND</p>
         <div class="h-24 w-full bg-surface-container-low relative flex items-end gap-[2px] p-1 border border-white/5">
-          <div class="bg-primary/40 w-full" style="height:55%"></div><div class="bg-primary/40 w-full" style="height:60%"></div>
-          <div class="bg-primary/60 w-full" style="height:72%"></div><div class="bg-primary/40 w-full" style="height:65%"></div>
-          <div class="bg-primary-container w-full" style="height:80%"></div><div class="bg-primary/40 w-full" style="height:58%"></div>
-          <div class="bg-primary/40 w-full" style="height:62%"></div><div class="bg-primary/40 w-full" style="height:70%"></div>
+          <div class="vwc-hist-bar bg-primary/40 w-full transition-all" style="height:4%"></div><div class="vwc-hist-bar bg-primary/40 w-full transition-all" style="height:4%"></div>
+          <div class="vwc-hist-bar bg-primary/40 w-full transition-all" style="height:4%"></div><div class="vwc-hist-bar bg-primary/40 w-full transition-all" style="height:4%"></div>
+          <div class="vwc-hist-bar bg-primary/40 w-full transition-all" style="height:4%"></div><div class="vwc-hist-bar bg-primary/40 w-full transition-all" style="height:4%"></div>
+          <div class="vwc-hist-bar bg-primary/40 w-full transition-all" style="height:4%"></div><div class="vwc-hist-bar bg-primary/40 w-full transition-all" style="height:4%"></div>
         </div>
         <div class="flex justify-between mt-sm font-data-sm text-data-sm text-on-surface-variant/60">
           <span>T-24H</span><span id="vwc-avg-map">VWC: —%</span>
@@ -874,9 +874,7 @@ header{
       <div class="gp px-lg py-sm flex items-center gap-xl border-t-2 border-primary-container/30">
         <div class="text-center"><p class="font-label-caps text-label-caps text-on-surface-variant/60">FIELD AREA</p><p class="font-data-lg text-data-lg text-primary">0.15 HA</p></div>
         <div class="h-8 w-px bg-white/10"></div>
-        <div class="text-center"><p class="font-label-caps text-label-caps text-on-surface-variant/60">NODE_SYNC</p><p class="font-data-lg text-data-lg text-secondary">ACTIVE</p></div>
-        <div class="h-8 w-px bg-white/10"></div>
-        <div class="text-center"><p class="font-label-caps text-label-caps text-on-surface-variant/60">UPLINK</p><p class="font-data-lg text-data-lg text-primary">OPTIMAL</p></div>
+        <div class="text-center"><p class="font-label-caps text-label-caps text-on-surface-variant/60">UPLINK</p><p class="font-data-lg text-data-lg text-primary" id="cc-uplink">CONNECTING...</p></div>
       </div>
     </div>
     <!-- Right -->
@@ -890,20 +888,20 @@ header{
         <div class="mt-sm flex gap-1"><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container/20"></div><div class="h-1 flex-grow bg-primary-container/20"></div></div>
       </div>
       <div class="gp p-sm border-t-2">
-        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">SAR SATELLITES</p>
+        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">OPTICAL SATELLITES</p>
         <div class="flex justify-between items-center">
           <span class="font-display-lg text-[32px] font-bold text-secondary kpi-glow-cyan">2</span>
-          <span class="font-data-sm text-data-sm text-secondary-fixed-dim bg-secondary/10 px-2 py-0.5 rounded">EOS-04 · S-1</span>
+          <span class="font-data-sm text-data-sm text-secondary-fixed-dim bg-secondary/10 px-2 py-0.5 rounded">S2A · S2B</span>
         </div>
       </div>
       <div class="gp p-sm border-t-2 border-primary-fixed-dim">
-        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">GEMINI AI EFFICIENCY</p>
+        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">RULE ENGINE</p>
         <div class="flex items-center gap-md">
           <div class="relative w-16 h-16">
-            <svg class="w-full h-full" viewBox="0 0 36 36"><circle class="text-white/5" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-width="3"/><circle class="text-primary-container" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="91,100" stroke-linecap="round" stroke-width="3"/></svg>
-            <span class="absolute inset-0 flex items-center justify-center font-data-sm text-data-sm text-primary-container">91%</span>
+            <svg class="w-full h-full" viewBox="0 0 36 36"><circle class="text-white/5" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-width="3"/><circle id="rule-engine-ring" class="text-primary-container" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="0,100" stroke-linecap="round" stroke-width="3"/></svg>
+            <span class="absolute inset-0 flex items-center justify-center font-data-sm text-data-sm text-primary-container" id="rule-engine-pct">—%</span>
           </div>
-          <div><p class="font-data-sm text-data-sm text-on-surface">GENAI v2 SDK</p><p class="font-label-caps text-label-caps text-on-surface-variant/60">AUTONOMOUS IRRIGATION</p></div>
+          <div><p class="font-data-sm text-data-sm text-on-surface" id="rule-engine-count">— RULES</p><p class="font-label-caps text-label-caps text-on-surface-variant/60">ENABLED / TOTAL</p></div>
         </div>
       </div>
       <div class="gp flex-grow overflow-hidden flex flex-col p-0">
@@ -912,7 +910,6 @@ header{
           <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">SOIL_VWC_LOW</span><span class="font-label-caps text-label-caps text-error" id="vwc-alert">WATCH</span></div>
           <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">RAIN_GUARD</span><span class="font-label-caps text-label-caps text-primary-container" id="rain-alert">CLEAR</span></div>
           <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">DRIVE_SYNC</span><span class="font-label-caps text-label-caps text-secondary">ACTIVE</span></div>
-          <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">UPLINK_JITTER</span><span class="font-label-caps text-label-caps text-on-surface-variant/40">LOW</span></div>
           <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">ET0_THRESHOLD</span><span class="font-label-caps text-label-caps text-primary-container" id="et0-alert">NORMAL</span></div>
           <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">PRECIP_PROB</span><span class="font-label-caps text-label-caps text-secondary-fixed-dim" id="precip-alert">—%</span></div>
         </div>
@@ -934,10 +931,10 @@ header{
         <div class="font-label-caps text-on-surface-variant" id="ndvi-vwc-status">LOADING...</div>
       </div>
       <div class="h-16 flex items-end gap-1">
-        <div class="flex-1 bg-primary/20 h-[50%]"></div><div class="flex-1 bg-primary/30 h-[58%]"></div>
-        <div class="flex-1 bg-primary/40 h-[65%]"></div><div class="flex-1 bg-primary/20 h-[55%]"></div>
-        <div class="flex-1 bg-primary-container h-[75%]"></div><div class="flex-1 bg-primary/50 h-[68%]"></div>
-        <div class="flex-1 bg-primary/30 h-[60%]"></div>
+        <div class="vwc-hist-bar flex-1 bg-primary/40 transition-all" style="height:4%"></div><div class="vwc-hist-bar flex-1 bg-primary/40 transition-all" style="height:4%"></div>
+        <div class="vwc-hist-bar flex-1 bg-primary/40 transition-all" style="height:4%"></div><div class="vwc-hist-bar flex-1 bg-primary/40 transition-all" style="height:4%"></div>
+        <div class="vwc-hist-bar flex-1 bg-primary/40 transition-all" style="height:4%"></div><div class="vwc-hist-bar flex-1 bg-primary/40 transition-all" style="height:4%"></div>
+        <div class="vwc-hist-bar flex-1 bg-primary/40 transition-all" style="height:4%"></div><div class="vwc-hist-bar flex-1 bg-primary/40 transition-all" style="height:4%"></div>
       </div>
     </div>
     <div class="gp flex-1 p-sm rounded-lg overflow-hidden flex flex-col">
@@ -1415,23 +1412,17 @@ header{
   <div class="gp p-sm border-t-2 mb-gutter shrink-0">
     <div class="flex justify-between items-center">
       <div><p class="font-label-caps text-on-surface-variant mb-xs">AGRISAT · DEDIAPADA FARM · 21.6277°N 73.5903°E</p><p class="font-data-lg text-data-lg text-primary-container">ALL SYSTEMS NOMINAL</p></div>
-      <div class="text-right"><p class="font-label-caps text-on-surface-variant">UPTIME</p><p class="font-display-lg text-[32px] font-bold text-primary-container kpi-glow-green">99.98%</p></div>
+      <div class="text-right"><p class="font-label-caps text-on-surface-variant">LAST NDVI SYNC</p><p class="font-display-lg text-[20px] font-bold text-primary-container kpi-glow-green" id="health-last-sync">—</p></div>
     </div>
   </div>
   <div class="grid grid-cols-3 gap-gutter">
-    <!-- SENTINEL-1 SATELLITE — full-width card -->
+    <!-- SENTINEL-2 SATELLITE — full-width card -->
     <div class="gp col-span-3 border-t-2 overflow-hidden flex gap-md items-center p-sm relative">
       <div class="scanline absolute inset-0 pointer-events-none opacity-40"></div>
-      <!-- Sentinel-1 ESA photo + SVG fallback -->
+      <!-- Stylized Sentinel-2 illustration (no stock photo — avoids mislabeling
+           a different Copernicus satellite as this one) -->
       <div class="shrink-0 relative z-10 w-[220px] h-[110px] rounded overflow-hidden bg-surface-container-low border border-secondary-container/40">
-        <img
-          src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Sentinel-1_radar_vision_ESA386375.jpg/480px-Sentinel-1_radar_vision_ESA386375.jpg"
-          alt="Sentinel-1 SAR Satellite — ESA/Copernicus"
-          class="w-full h-full object-cover"
-          id="s1-photo"
-          onerror="document.getElementById('s1-photo').style.display='none';document.getElementById('s1-svg').style.display='block'">
-        <!-- SVG fallback (hidden unless photo fails) -->
-        <svg id="s1-svg" style="display:none" width="220" height="110" viewBox="0 0 220 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg id="s1-svg" width="220" height="110" viewBox="0 0 220 110" fill="none" xmlns="http://www.w3.org/2000/svg">
           <!-- Left solar panel A -->
           <rect x="4"  y="30" width="38" height="40" rx="2" fill="rgba(0,80,160,.5)" stroke="rgba(0,219,233,.45)" stroke-width="1"/>
           <line x1="17" y1="30" x2="17" y2="70" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
@@ -1450,7 +1441,7 @@ header{
           <!-- BODY — gold thermal blanket -->
           <rect x="98" y="18" width="44" height="62" rx="3" fill="rgba(30,22,5,.92)" stroke="rgba(180,140,20,.7)" stroke-width="1.5"/>
           <rect x="104" y="24" width="32" height="10" rx="1" fill="rgba(180,140,20,.18)" stroke="rgba(180,140,20,.5)" stroke-width=".7"/>
-          <text x="108" y="32" font-size="5" fill="rgba(180,140,20,.85)" font-family="JetBrains Mono">S-1</text>
+          <text x="108" y="32" font-size="5" fill="rgba(180,140,20,.85)" font-family="JetBrains Mono">S-2</text>
           <rect x="104" y="40" width="14" height="16" rx="1" fill="rgba(0,219,233,.07)" stroke="rgba(0,219,233,.3)" stroke-width=".5"/>
           <rect x="122" y="40" width="14" height="16" rx="1" fill="rgba(0,219,233,.07)" stroke="rgba(0,219,233,.3)" stroke-width=".5"/>
           <rect x="104" y="60" width="32" height="8" rx="1" fill="rgba(180,140,20,.12)" stroke="rgba(180,140,20,.4)" stroke-width=".6"/>
@@ -1466,7 +1457,7 @@ header{
           <line x1="158" y1="43" x2="216" y2="43" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
           <line x1="158" y1="57" x2="216" y2="57" stroke="rgba(0,219,233,.25)" stroke-width=".6"/>
           <text x="164" y="85" font-size="6" fill="rgba(0,219,233,.5)" font-family="JetBrains Mono">SOLAR-R</text>
-          <!-- C-Band SAR Antenna (the signature long panel) -->
+          <!-- MSI optical instrument bay (the signature long panel) -->
           <rect x="62"  y="86" width="116" height="18" rx="1.5" fill="rgba(0,180,255,.07)" stroke="rgba(0,180,255,.6)" stroke-width="1.2"/>
           <line x1="78"  y1="86" x2="78"  y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
           <line x1="94"  y1="86" x2="94"  y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
@@ -1474,38 +1465,37 @@ header{
           <line x1="126" y1="86" x2="126" y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
           <line x1="142" y1="86" x2="142" y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
           <line x1="158" y1="86" x2="158" y2="104" stroke="rgba(0,180,255,.3)" stroke-width=".6"/>
-          <text x="82" y="98" font-size="5.5" fill="rgba(0,180,255,.65)" font-family="JetBrains Mono">C-BAND SAR ANTENNA</text>
+          <text x="90" y="98" font-size="5.5" fill="rgba(0,180,255,.65)" font-family="JetBrains Mono">MSI OPTICAL ARRAY</text>
           <defs><filter id="glow2"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
         </svg>
       </div>
       <!-- Details -->
       <div class="flex-1 relative z-10">
-        <p class="font-label-caps text-on-surface-variant mb-xs tracking-widest">SENTINEL-1 · ESA / COPERNICUS NODE</p>
+        <p class="font-label-caps text-on-surface-variant mb-xs tracking-widest">SENTINEL-2 · ESA / COPERNICUS NODE</p>
         <div class="flex items-center gap-sm mb-xs">
           <span class="flex h-2.5 w-2.5 rounded-full bg-secondary-container animate-pulse"></span>
           <span class="font-data-lg text-data-lg text-secondary">ACTIVE</span>
         </div>
         <div class="grid grid-cols-3 gap-gutter mt-sm">
-          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SATELLITE</p><p class="font-data-sm text-data-sm text-secondary-container">Sentinel-1A / 1B</p></div>
-          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SENSOR</p><p class="font-data-sm text-data-sm text-secondary">C-Band SAR · 5m res</p></div>
-          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">ORBIT</p><p class="font-data-sm text-data-sm text-secondary">693 km SSO</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SATELLITE</p><p class="font-data-sm text-data-sm text-secondary-container">Sentinel-2A / 2B</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SENSOR</p><p class="font-data-sm text-data-sm text-secondary">MSI (Optical) · 10m res</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">ORBIT</p><p class="font-data-sm text-data-sm text-secondary">786 km SSO</p></div>
           <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">AGENCY</p><p class="font-data-sm text-data-sm text-secondary-container">ESA · Copernicus</p></div>
-          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">PORTAL</p><p class="font-data-sm text-data-sm text-secondary">planetarycomputer.microsoft.com</p></div>
-          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">REPEAT CYCLE</p><p class="font-data-sm text-data-sm text-secondary">6 days (A+B)</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">PORTAL</p><p class="font-data-sm text-data-sm text-secondary">earthengine.google.com</p></div>
+          <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">REPEAT CYCLE</p><p class="font-data-sm text-data-sm text-secondary">5 days (A+B)</p></div>
         </div>
         <p class="font-label-caps text-[9px] text-on-surface-variant/40 mt-sm">NDVI source · Dediapada Farm · 21.6277°N 73.5903°E · Sentinel-2 multispectral · 10 m</p>
       </div>
       <!-- Signal panel -->
       <div class="shrink-0 relative z-10 flex flex-col gap-xs text-right">
-        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">DATA ACCESS</p><p class="font-data-sm text-data-sm text-secondary">PLANETARY PC</p></div>
-        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">LAST SCENE</p><p class="font-data-sm text-data-sm text-secondary-container">2026-05-26</p></div>
-        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">CLOUD CVR</p><p class="font-data-sm text-data-sm text-secondary-container">&lt; 5%</p></div>
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">DATA ACCESS</p><p class="font-data-sm text-data-sm text-secondary">EARTH ENGINE</p></div>
+        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">LAST SCENE</p><p class="font-data-sm text-data-sm text-secondary-container" id="health-last-scene">—</p></div>
         <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">HARVEST</p><p class="font-data-sm text-data-sm text-secondary">3-DAY CYCLE</p></div>
       </div>
     </div>
 
-    <!-- BHOONIDHI SATELLITE — full-width card -->
-    <div class="gp col-span-3 border-t-2 overflow-hidden flex gap-md items-center p-sm relative">
+    <!-- BHOONIDHI SATELLITE — planned, not wired (kept honest: see Pipeline tab) -->
+    <div class="gp col-span-3 border-t-2 overflow-hidden flex gap-md items-center p-sm relative opacity-70">
       <div class="scanline absolute inset-0 pointer-events-none opacity-40"></div>
       <!-- SVG: EOS-04 SAR Satellite -->
       <div class="shrink-0 relative z-10">
@@ -1518,18 +1508,17 @@ header{
           <line x1="4"  y1="62" x2="64" y2="62" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
           <text x="10" y="92" font-size="7" fill="rgba(0,238,252,.5)" font-family="JetBrains Mono">SOLAR-L</text>
           <!-- Left arm -->
-          <rect x="64" y="51" width="22" height="8" fill="rgba(0,255,65,.25)" stroke="rgba(0,255,65,.3)" stroke-width=".5"/>
+          <rect x="64" y="51" width="22" height="8" fill="rgba(255,180,171,.25)" stroke="rgba(255,180,171,.3)" stroke-width=".5"/>
           <!-- Body -->
-          <rect x="86" y="22" width="48" height="66" rx="3" fill="rgba(12,28,20,.9)" stroke="rgba(0,255,65,.6)" stroke-width="1.5"/>
+          <rect x="86" y="22" width="48" height="66" rx="3" fill="rgba(12,28,20,.9)" stroke="rgba(255,180,171,.5)" stroke-width="1.5"/>
           <rect x="92" y="28" width="36" height="12" rx="1" fill="rgba(0,238,252,.12)" stroke="rgba(0,238,252,.4)" stroke-width=".8"/>
           <text x="96" y="37" font-size="5.5" fill="rgba(0,238,252,.7)" font-family="JetBrains Mono">EOS-04</text>
-          <rect x="92" y="46" width="16" height="18" rx="1" fill="rgba(0,255,65,.08)" stroke="rgba(0,255,65,.35)" stroke-width=".6"/>
-          <rect x="112" y="46" width="16" height="18" rx="1" fill="rgba(0,255,65,.08)" stroke="rgba(0,255,65,.35)" stroke-width=".6"/>
-          <circle cx="110" cy="71" r="3" fill="#00ff41" opacity=".9" filter="url(#glow)"/>
-          <circle cx="110" cy="71" r="6" fill="none" stroke="rgba(0,255,65,.4)" stroke-width=".8"/>
-          <defs><filter id="glow"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+          <rect x="92" y="46" width="16" height="18" rx="1" fill="rgba(255,180,171,.06)" stroke="rgba(255,180,171,.3)" stroke-width=".6"/>
+          <rect x="112" y="46" width="16" height="18" rx="1" fill="rgba(255,180,171,.06)" stroke="rgba(255,180,171,.3)" stroke-width=".6"/>
+          <circle cx="110" cy="71" r="3" fill="#ffb4ab" opacity=".7"/>
+          <circle cx="110" cy="71" r="6" fill="none" stroke="rgba(255,180,171,.3)" stroke-width=".8"/>
           <!-- Right arm -->
-          <rect x="134" y="51" width="22" height="8" fill="rgba(0,255,65,.25)" stroke="rgba(0,255,65,.3)" stroke-width=".5"/>
+          <rect x="134" y="51" width="22" height="8" fill="rgba(255,180,171,.25)" stroke="rgba(255,180,171,.3)" stroke-width=".5"/>
           <!-- Right solar panel -->
           <rect x="156" y="32" width="60" height="46" rx="2" fill="rgba(0,60,120,.45)" stroke="rgba(0,238,252,.45)" stroke-width="1"/>
           <line x1="176" y1="32" x2="176" y2="78" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
@@ -1538,8 +1527,8 @@ header{
           <line x1="156" y1="62" x2="216" y2="62" stroke="rgba(0,238,252,.25)" stroke-width=".6"/>
           <text x="162" y="92" font-size="7" fill="rgba(0,238,252,.5)" font-family="JetBrains Mono">SOLAR-R</text>
           <!-- Top antenna -->
-          <line x1="110" y1="22" x2="110" y2="8" stroke="rgba(0,255,65,.7)" stroke-width="1.5"/>
-          <ellipse cx="110" cy="6" rx="6" ry="4" fill="none" stroke="rgba(0,255,65,.55)" stroke-width="1"/>
+          <line x1="110" y1="22" x2="110" y2="8" stroke="rgba(255,180,171,.5)" stroke-width="1.5"/>
+          <ellipse cx="110" cy="6" rx="6" ry="4" fill="none" stroke="rgba(255,180,171,.4)" stroke-width="1"/>
           <!-- SAR array (bottom) -->
           <rect x="78" y="88" width="64" height="16" rx="1" fill="rgba(0,238,252,.08)" stroke="rgba(0,238,252,.5)" stroke-width="1"/>
           <line x1="91"  y1="88" x2="91"  y2="104" stroke="rgba(0,238,252,.3)" stroke-width=".6"/>
@@ -1553,8 +1542,8 @@ header{
       <div class="flex-1 relative z-10">
         <p class="font-label-caps text-on-surface-variant mb-xs tracking-widest">BHOONIDHI SATELLITE NODE</p>
         <div class="flex items-center gap-sm mb-xs">
-          <span class="flex h-2.5 w-2.5 rounded-full bg-primary-container animate-pulse"></span>
-          <span class="font-data-lg text-data-lg text-primary">ONLINE</span>
+          <span class="flex h-2.5 w-2.5 rounded-full bg-[#ffb4ab]"></span>
+          <span class="font-data-lg text-data-lg" style="color:#ffb4ab">PLANNED, NOT WIRED</span>
         </div>
         <div class="grid grid-cols-3 gap-gutter mt-sm">
           <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SATELLITE</p><p class="font-data-sm text-data-sm text-primary-container">EOS-04 / RISAT-1A</p></div>
@@ -1564,13 +1553,7 @@ header{
           <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">PORTAL</p><p class="font-data-sm text-data-sm text-secondary">bhoonidhi.nrsc.gov.in</p></div>
           <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">REPEAT CYCLE</p><p class="font-data-sm text-data-sm text-secondary">12 days</p></div>
         </div>
-      </div>
-      <!-- Signal status panel -->
-      <div class="shrink-0 relative z-10 flex flex-col gap-xs text-right">
-        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">UPLINK</p><p class="font-data-sm text-data-sm text-primary">NOMINAL</p></div>
-        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">SIGNAL</p><p class="font-data-sm text-data-sm text-primary">−72 dBm</p></div>
-        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">LAST PASS</p><p class="font-data-sm text-data-sm text-secondary-fixed-dim">06:14 UTC</p></div>
-        <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">NEXT PASS</p><p class="font-data-sm text-data-sm text-secondary-fixed-dim">18:26 UTC</p></div>
+        <p class="font-label-caps text-[9px] text-on-surface-variant/40 mt-sm">No programmatic integration yet — SAR products would have to be pulled from the portal by hand. Google Earth Engine (Sentinel-2) is the pipeline's real imagery source today. See Pipeline tab.</p>
       </div>
     </div>
     <div class="gp p-sm border-l-2">
@@ -1579,19 +1562,19 @@ header{
       <p class="font-label-caps text-on-surface-variant/60 mt-1" id="health-api-time">Last fetch: —</p>
     </div>
     <div class="gp p-sm border-l-2">
-      <p class="font-label-caps text-on-surface-variant mb-xs">GEMINI AI MODEL</p>
-      <p class="font-data-lg text-data-lg text-tertiary-fixed-dim">google.genai v2</p>
-      <p class="font-label-caps text-on-surface-variant/60 mt-1">Irrigation + VWC inference</p>
+      <p class="font-label-caps text-on-surface-variant mb-xs">FAO-56 WATER BALANCE</p>
+      <p class="font-data-lg text-data-lg text-tertiary-fixed-dim">Allen et al. 1998</p>
+      <p class="font-label-caps text-on-surface-variant/60 mt-1">Rule-based VWC + irrigation logic</p>
     </div>
     <div class="gp p-sm border-l-2">
       <p class="font-label-caps text-on-surface-variant mb-xs">GOOGLE DRIVE SYNC</p>
       <p class="font-data-lg text-data-lg text-secondary">ACTIVE</p>
-      <p class="font-label-caps text-on-surface-variant/60 mt-1">Last push: 18 min ago</p>
+      <p class="font-label-caps text-on-surface-variant/60 mt-1" id="health-drive-push">Last push: —</p>
     </div>
     <div class="gp p-sm border-l-2">
-      <p class="font-label-caps text-on-surface-variant mb-xs">STITCH MCP</p>
-      <p class="font-data-lg text-data-lg text-secondary">CONNECTED</p>
-      <p class="font-label-caps text-on-surface-variant/60 mt-1">stitch.googleapis.com/mcp</p>
+      <p class="font-label-caps text-on-surface-variant mb-xs">GITHUB PAGES</p>
+      <p class="font-data-lg text-data-lg text-secondary" id="health-gh">LIVE</p>
+      <p class="font-label-caps text-on-surface-variant/60 mt-1">raw.githubusercontent.com</p>
     </div>
     <div class="gp p-sm border-l-2">
       <p class="font-label-caps text-on-surface-variant mb-xs">WEATHER DATA SOURCE</p>
@@ -1854,15 +1837,15 @@ function pipeShowTree(){
     <span class="font-label-caps text-label-caps text-on-surface-variant/40" style="font-size:9px">SYSTEM ACTIVE // NODE_774_OP · DEDIAPADA · GUJARAT</span>
   </div>
   <div class="flex items-center gap-lg">
-    <span class="font-label-caps text-label-caps text-secondary-fixed-dim" style="font-size:9px">UPTIME: 99.98%</span>
-    <span class="font-label-caps text-label-caps text-secondary-fixed-dim" style="font-size:9px">LATENCY: 14MS</span>
+    <span class="font-label-caps text-label-caps text-secondary-fixed-dim" style="font-size:9px" id="footer-session">SESSION: 0M</span>
+    <span class="font-label-caps text-label-caps text-secondary-fixed-dim" style="font-size:9px" id="footer-latency">LATENCY: —</span>
     <span class="font-label-caps text-label-caps text-secondary" style="font-size:9px" id="utc-clock">UTC: —</span>
   </div>
 </footer>
 
 <script>
 // ══════════════════════════════════════════════════
-// LIVE STATE (seeds from API, random jitter between)
+// LIVE STATE (seeds from Open-Meteo API, drifts via FAO-56 water balance — no randomness)
 // ══════════════════════════════════════════════════
 // vA/vB/vC kept as 3 properties (rather than one shared field) so existing
 // per-field UI hookups don't need touching, but they are always kept in
@@ -1872,6 +1855,14 @@ const S={vA:22.4,vB:22.4,vC:22.4,tmp:34.2,hum:67,et0:4.8,vpd:1.3,wind:12,press:1
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
 function pct(id,v){const e=document.getElementById(id);if(e)e.style.width=clamp(v,0,100).toFixed(1)+'%'}
+function _relTime(date){
+  const mins=Math.round((Date.now()-date.getTime())/60000);
+  if(mins<1)return 'just now';
+  if(mins<60)return mins+' min ago';
+  const hrs=Math.round(mins/60);
+  if(hrs<24)return hrs+' hr'+(hrs===1?'':'s')+' ago';
+  return Math.round(hrs/24)+' day'+(Math.round(hrs/24)===1?'':'s')+' ago';
+}
 
 // ══════════════════════════════════════════════════
 // OPEN-METEO API FETCH
@@ -1900,7 +1891,10 @@ function now_idx(times){
 async function fetchWeather(){
   set('api-status','API: FETCHING...');
   try{
+    const _t0=performance.now();
     const r=await fetch(API_URL);
+    const _ms=Math.round(performance.now()-_t0);
+    set('footer-latency','LATENCY: '+_ms+'MS');
     if(!r.ok)throw new Error('HTTP '+r.status);
     const d=await r.json();
     weatherData=d;
@@ -1911,6 +1905,7 @@ async function fetchWeather(){
     set('api-time',t);
     set('health-api-time','Last fetch: '+t);
     set('health-api','LIVE');
+    set('cc-uplink','NOMINAL');
     // Animate sync bar
     const bar=document.getElementById('api-sync-bar');
     if(bar){bar.style.width='0%';setTimeout(()=>bar.style.width='100%',50)}
@@ -1920,6 +1915,7 @@ async function fetchWeather(){
   }catch(e){
     set('api-status','API: ERROR — '+e.message);
     set('health-api','ERROR');
+    set('cc-uplink','ERROR');
     console.warn('Open-Meteo fetch failed:',e);
   }
 }
@@ -2121,6 +2117,7 @@ function switchWeatherTab(name,btn){
 function updateVWC(){
   const avg=((S.vA+S.vB+S.vC)/3).toFixed(1);
   set('vwc-avg-map','VWC: '+avg+'%');
+  _recordVWCHistory(parseFloat(avg));
   const minVWC=Math.min(S.vA,S.vB,S.vC);
   set('vwc-alert',minVWC<20?'CRITICAL':minVWC<22?'WATCH':'NORMAL');
   set('ndvi-vwc',avg+'%');
@@ -2198,6 +2195,46 @@ function tickVWC(){
   updateVWC();
   renderTimeline();
 }
+
+// ══════════════════════════════════════════════════
+// VWC HISTORY — rolling log of real FAO-56 VWC samples (localStorage,
+// pruned past 24h), used to draw the "24H TREND" bars from actual computed
+// state. No synthetic/random fill — bars stay dim until real samples land.
+// ══════════════════════════════════════════════════
+const VWC_HISTORY_KEY='agrisat_vwc_history_v1';
+const VWC_HISTORY_SPAN_MS=24*3600*1000;
+const VWC_HISTORY_MIN_GAP_MS=5*60*1000;  // sample at most every 5 min
+let _vwcHistory=[];
+function _loadVWCHistory(){try{const s=localStorage.getItem(VWC_HISTORY_KEY);_vwcHistory=s?JSON.parse(s):[];}catch{_vwcHistory=[];}}
+function _recordVWCHistory(avg){
+  const now=Date.now();
+  const last=_vwcHistory[_vwcHistory.length-1];
+  if(!last||now-last.t>=VWC_HISTORY_MIN_GAP_MS){
+    _vwcHistory.push({t:now,v:avg});
+    _vwcHistory=_vwcHistory.filter(p=>now-p.t<=VWC_HISTORY_SPAN_MS);
+    try{localStorage.setItem(VWC_HISTORY_KEY,JSON.stringify(_vwcHistory));}catch{}
+  }
+  renderVWCHistoryBars();
+}
+function renderVWCHistoryBars(){
+  const bars=document.querySelectorAll('.vwc-hist-bar');
+  if(!bars.length)return;
+  const n=8,now=Date.now(),slice=VWC_HISTORY_SPAN_MS/n;
+  const vals=Array.from({length:n},(_,i)=>{
+    const lo=now-VWC_HISTORY_SPAN_MS+i*slice,hi=lo+slice;
+    const pts=_vwcHistory.filter(p=>p.t>=lo&&p.t<hi);
+    return pts.length?pts.reduce((s,p)=>s+p.v,0)/pts.length:null;
+  });
+  const known=vals.filter(v=>v!==null);
+  if(!known.length)return;
+  const lo=Math.min(...known),hi=Math.max(...known),span=Math.max(hi-lo,0.5);
+  bars.forEach((el,i)=>{
+    const v=vals[i];
+    el.style.height=(v===null?4:(15+((v-lo)/span)*70)).toFixed(0)+'%';
+    el.style.opacity=v===null?'.15':'1';
+  });
+}
+_loadVWCHistory();
 
 // ══════════════════════════════════════════════════
 // IRRIGATION CYCLE TIMELINE — driven by live state (S.vA/vB/vC soil VWC —
@@ -2449,6 +2486,18 @@ function renderTimeline(){
         const d=new Date(data.updated);
         upEl.textContent=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}).toUpperCase();
       }
+      // ── System Health page — real values, not fabricated placeholders ─────
+      const hlsEl=document.getElementById('health-last-scene');
+      if(hlsEl&&data.scene_date)hlsEl.textContent=data.scene_date;
+      if(data.updated){
+        const rel=_relTime(new Date(data.updated));
+        const hSyncEl=document.getElementById('health-last-sync');
+        if(hSyncEl)hSyncEl.textContent=rel;
+        const hPushEl=document.getElementById('health-drive-push');
+        if(hPushEl)hPushEl.textContent='Last push: '+rel;
+      }
+      const ghEl=document.getElementById('health-gh');
+      if(ghEl)ghEl.textContent='LIVE';
       // ── Zone health rows ──────────────────────────────────────────────────
       if(Array.isArray(data.zones)){
         window._ndviZones=data.zones.slice(0,3);  // store for FAO-56 Kc
@@ -2475,7 +2524,11 @@ function renderTimeline(){
         logSystemEvent(`DRIVE_SYNC COMPLETE — NEW NDVI SCENE ${data.scene_date||'—'} PULLED FROM GOOGLE DRIVE`);
       }
     })
-    .catch(err=>console.warn('NDVI status unavailable:',err));
+    .catch(err=>{
+      console.warn('NDVI status unavailable:',err);
+      const ghEl=document.getElementById('health-gh');
+      if(ghEl)ghEl.textContent='ERROR';
+    });
   }
   poll();
   setInterval(poll,REFRESH_MS);
@@ -2584,12 +2637,15 @@ function pushLog(){checkFieldTransitions();pushHeartbeat();}
 // ══════════════════════════════════════════════════
 // CLOCK
 // ══════════════════════════════════════════════════
+const _sessionStart=Date.now();
 function updateClock(){
   const utc=new Date().toISOString().split('T')[1].split('.')[0];
   set('utc-clock','UTC: '+utc);
   const ist=toIST(new Date());
   const istStr=String(ist.getUTCHours()).padStart(2,'0')+':'+String(ist.getUTCMinutes()).padStart(2,'0')+':'+String(ist.getUTCSeconds()).padStart(2,'0');
   set('auto-utc','IST '+istStr);
+  const mins=Math.floor((Date.now()-_sessionStart)/60000);
+  set('footer-session','SESSION: '+(mins<60?mins+'M':(mins/60).toFixed(1)+'H'));
 }
 
 // ══════════════════════════════════════════════════
@@ -4395,6 +4451,7 @@ const _ACT_CHIPS=[
 function _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function renderRules(){
+  _renderRuleEngineStat();
   const list=document.getElementById('rules-list');
   if(!list)return;
   if(!_rules.length){
@@ -4422,6 +4479,20 @@ function renderRules(){
       </div>
     </div>`;
   }).join('');
+}
+
+// Real Rulebook engine stat — reflects actual enabled/total rule count,
+// shown on Command Center in place of the old fabricated "Gemini AI" card.
+function _renderRuleEngineStat(){
+  const pctEl=document.getElementById('rule-engine-pct');
+  const countEl=document.getElementById('rule-engine-count');
+  const ring=document.getElementById('rule-engine-ring');
+  if(!pctEl||!countEl||!ring)return;
+  const total=_rules.length,enabled=_rules.filter(r=>r.enabled).length;
+  const pct=total?Math.round(enabled/total*100):0;
+  pctEl.textContent=pct+'%';
+  countEl.textContent=`${enabled} / ${total} RULES`;
+  ring.setAttribute('stroke-dasharray',pct+',100');
 }
 
 let _editId=null,_selIcon='water_drop';
