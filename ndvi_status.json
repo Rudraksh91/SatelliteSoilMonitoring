@@ -1,24 +1,24 @@
 {
-  "updated": "2026-07-08T23:14:27.445033",
+  "updated": "2026-07-11T22:15:59.553848",
   "scene_date": "2026-06-27",
-  "jpeg_name": "NDVI_Dediapada_2026-07-08.jpeg",
+  "jpeg_name": "NDVI_Dediapada_2026-07-11.jpeg",
   "folder_id": "1pmU6XqLXVVwtcFFgJMTPE7LMjbn0Tvwe",
-  "jpeg_id": "1LUk-wILEmXZZ8Q0UBu7_WLvWDzIL-q3U",
-  "jpeg_url": "https://drive.google.com/thumbnail?sz=w1024&id=1LUk-wILEmXZZ8Q0UBu7_WLvWDzIL-q3U",
+  "jpeg_id": "1H5ykCeAfxS9t9Y6jXyZcF6Fk5BFx7JM7",
+  "jpeg_url": "https://drive.google.com/thumbnail?sz=w1024&id=1H5ykCeAfxS9t9Y6jXyZcF6Fk5BFx7JM7",
   "zones": [
     {
       "zone": "Zone 1 – Boys Hostel",
       "ndvi": 0.134,
       "pixels": 21,
-      "status": "HOLD",
-      "action": "Rain forecast 45.8 mm — skip irrigation"
+      "status": "STRESSED",
+      "action": "Irrigate within 24 h"
     },
     {
       "zone": "Zone 2 – Main College",
       "ndvi": 0.2374,
       "pixels": 68,
-      "status": "HOLD",
-      "action": "Rain forecast 45.8 mm — skip irrigation"
+      "status": "STRESSED",
+      "action": "Irrigate within 24 h"
     },
     {
       "zone": "Zone 3 – Diploma College",
@@ -29,8 +29,8 @@
     }
   ],
   "weather": {
-    "et0_mm_day": 2.23,
-    "rain_3d_mm": 45.8,
-    "vpd_kpa": 0.04
+    "et0_mm_day": 3.85,
+    "rain_3d_mm": 12.5,
+    "vpd_kpa": 0.17
   }
 }
