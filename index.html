@@ -68,122 +68,6 @@ body{
   transition:background .4s ease, color .3s ease;
 }
 
-/* ── LIGHT THEME ─────────────────────────────────────── */
-body.theme-light{
-  background:
-    radial-gradient(ellipse 60% 50% at 10% 70%, rgba(0,200,80,.10) 0%, transparent 58%),
-    radial-gradient(ellipse 50% 40% at 90% 15%, rgba(0,180,200,.08) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 55% at 50% 105%,rgba(200,240,210,.60) 0%, transparent 65%),
-    #f0f7f0 !important;
-  color:#0d2010;
-}
-body.theme-light .gp{
-  background:rgba(255,255,255,.78) !important;
-  border-color:rgba(0,100,50,.10) !important;
-  border-top-color:rgba(0,100,50,.10) !important;
-  border-right-color:rgba(0,100,50,.10) !important;
-  border-bottom-color:rgba(0,100,50,.10) !important;
-  border-left-color:rgba(0,100,50,.10) !important;
-  box-shadow:0 1px 2px rgba(0,0,0,.05),0 6px 28px rgba(0,80,40,.09) !important;
-}
-body.theme-light header{
-  background:rgba(240,250,242,.88) !important;
-  border-bottom-color:rgba(0,100,50,.14) !important;
-}
-body.theme-light aside{
-  background:rgba(240,250,242,.85) !important;
-  border-right-color:rgba(0,100,50,.12) !important;
-}
-body.theme-light footer,
-body.theme-light #mob-nav{
-  background:rgba(240,250,242,.88) !important;
-  border-top-color:rgba(0,100,50,.12) !important;
-}
-/* Text */
-body.theme-light{color:#0d2010}
-body.theme-light .text-on-surface-variant,
-body.theme-light [class*="text-on-surface-variant"]{color:#3a5c3c !important}
-body.theme-light .bg-white\/5{background:rgba(0,0,0,.04) !important}
-body.theme-light .bg-white\/10{background:rgba(0,0,0,.07) !important}
-body.theme-light .border-white\/5{border-color:rgba(0,0,0,.06) !important}
-body.theme-light .border-white\/10{border-color:rgba(0,0,0,.10) !important}
-body.theme-light .bg-surface-container-lowest{background:rgba(230,245,232,.8) !important}
-body.theme-light .bg-surface-container-low{background:rgba(220,240,224,.8) !important}
-body.theme-light .bg-error\/10{background:rgba(220,30,30,.07) !important}
-body.theme-light .border-error\/30{border-color:rgba(220,30,30,.3) !important}
-body.theme-light .text-error{color:#c00020 !important}
-body.theme-light .bg-secondary\/10{background:rgba(0,150,160,.10) !important}
-body.theme-light .bg-primary\/10{background:rgba(0,160,60,.10) !important}
-/* Grid background */
-body.theme-light .grid-bg{
-  background-image:linear-gradient(rgba(0,130,60,.06) 1px,transparent 1px),
-  linear-gradient(90deg,rgba(0,130,60,.06) 1px,transparent 1px) !important;
-}
-/* Scanline lighter */
-body.theme-light .scanline{
-  background:linear-gradient(to bottom,transparent 50%,rgba(0,130,60,.015) 50%);
-  background-size:100% 4px;
-}
-/* Log stream */
-body.theme-light #log-stream{color:rgba(0,110,50,.8) !important}
-/* Nav buttons text */
-body.theme-light .nav-btn{color:rgba(30,80,40,.55) !important}
-body.theme-light .nav-btn:hover{color:#00a040 !important;background:rgba(0,150,60,.08) !important}
-body.theme-light .nav-btn.text-primary{color:#007a30 !important}
-/* Mode toggle bar */
-body.theme-light .mode-toggle{background:rgba(0,0,0,.04) !important;color:rgba(20,60,30,.6) !important}
-body.theme-light .mode-toggle.sel,.theme-light .mode-toggle[style*="background"]{background:rgba(0,150,60,.15) !important}
-
-/* ── LIGHT THEME FONTS ──
-   Switch UI chrome to Inter (clean, readable).
-   Keep JetBrains Mono ONLY for live data values, coordinates,
-   log stream, and terminal-style readouts.
-── */
-body.theme-light{font-family:'Inter',sans-serif !important}
-
-/* Nav & sidebar labels */
-body.theme-light .nav-btn{font-family:'Inter',sans-serif !important;font-size:12px !important;letter-spacing:.01em !important}
-body.theme-light .mob-btn-lbl{font-family:'Inter',sans-serif !important;font-size:9px !important;letter-spacing:.02em !important;font-weight:600 !important}
-
-/* Mode / Auto / Manual toggles */
-body.theme-light .mode-toggle{font-family:'Inter',sans-serif !important;letter-spacing:.03em !important;font-weight:600 !important}
-
-/* Weather tabs */
-body.theme-light .wtab{font-family:'Inter',sans-serif !important;letter-spacing:.02em !important;font-size:10.5px !important}
-
-/* Duration buttons */
-body.theme-light .dur-btn{font-family:'Inter',sans-serif !important;letter-spacing:.02em !important;font-size:9.5px !important}
-
-/* Crop search & dropdown */
-body.theme-light .crop-search{font-family:'Inter',sans-serif !important;letter-spacing:.01em !important;color:#007a30 !important;background:rgba(255,255,255,.9) !important;border-color:rgba(0,100,50,.2) !important}
-body.theme-light .crop-opt{font-family:'Inter',sans-serif !important;letter-spacing:.01em !important;font-size:10px !important}
-body.theme-light .crop-cat-hdr{font-family:'Inter',sans-serif !important;font-size:8px !important;letter-spacing:.06em !important;font-weight:700 !important}
-
-/* Tailwind text classes used for headings & body */
-body.theme-light [class*="font-mono"]{font-family:'Inter',sans-serif !important;letter-spacing:.01em !important}
-body.theme-light [class*="text-headline"]{font-family:'Inter',sans-serif !important;letter-spacing:-.01em !important}
-body.theme-light [class*="text-body"]{font-family:'Inter',sans-serif !important;letter-spacing:0 !important}
-body.theme-light [class*="text-label"]{font-family:'Inter',sans-serif !important;letter-spacing:.04em !important}
-body.theme-light [class*="tracking-wider"]{letter-spacing:.05em !important}
-
-/* Tooltip in light mode */
-body.theme-light .sat-tip{background:rgba(255,255,255,.96) !important;border-color:rgba(0,120,60,.25) !important;color:#006830 !important;font-family:'Inter',sans-serif !important;letter-spacing:.02em !important;box-shadow:0 4px 16px rgba(0,80,40,.12) !important}
-
-/* ── Keep Mono for actual data ── */
-body.theme-light #log-stream,
-body.theme-light [id*="ndvi"],
-body.theme-light [id*="et0"],
-body.theme-light [id*="vpd"],
-body.theme-light [id*="rainfall"],
-body.theme-light [id*="temp"],
-body.theme-light [id*="humid"],
-body.theme-light [id*="lat"],
-body.theme-light [id*="lon"],
-body.theme-light [id*="coord"],
-body.theme-light [id*="timer"],
-body.theme-light [id*="flow"],
-body.theme-light code{font-family:'JetBrains Mono',monospace !important}
-
 /* ── APPLE GLASS PANEL ── */
 .gp{
   /* near-transparent fill — lets body gradient bleed through */
@@ -3213,44 +3097,16 @@ updateClock();
       <button onclick="closeSettingsModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(185,204,178,.6);width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
 
-    <!-- Theme Section -->
+    <!-- Data & Cache Section -->
     <div style="margin-bottom:20px">
-      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:rgba(0,238,252,.55);margin-bottom:14px;text-transform:uppercase">Display Theme</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <!-- Dark Theme Card -->
-        <button id="theme-btn-dark" onclick="setTheme('dark')" style="position:relative;padding:16px 14px;border-radius:14px;border:1.5px solid rgba(0,255,65,.35);background:rgba(6,10,9,.85);cursor:pointer;text-align:left;transition:all .2s">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;color:#00ff41">DARK</span>
-            <span id="theme-check-dark" class="material-symbols-outlined" style="font-size:16px;color:#00ff41;font-variation-settings:'FILL' 1">check_circle</span>
-          </div>
-          <!-- Mini preview -->
-          <div style="border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
-            <div style="height:8px;background:#0d1a10"></div>
-            <div style="padding:6px;background:#080c0a;display:flex;gap:4px">
-              <div style="flex:1;height:20px;border-radius:4px;background:rgba(0,255,65,.08);border:1px solid rgba(0,255,65,.15)"></div>
-              <div style="flex:1;height:20px;border-radius:4px;background:rgba(0,219,233,.06);border:1px solid rgba(0,219,233,.12)"></div>
-            </div>
-          </div>
-          <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.4);margin-top:8px;letter-spacing:.06em">Default · Mission Control</p>
-        </button>
-
-        <!-- Light Theme Card -->
-        <button id="theme-btn-light" onclick="setTheme('light')" style="position:relative;padding:16px 14px;border-radius:14px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);cursor:pointer;text-align:left;transition:all .2s">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;color:rgba(185,204,178,.7)">LIGHT</span>
-            <span id="theme-check-light" class="material-symbols-outlined" style="font-size:16px;color:rgba(185,204,178,.3);font-variation-settings:'FILL' 0">radio_button_unchecked</span>
-          </div>
-          <!-- Mini preview -->
-          <div style="border-radius:8px;overflow:hidden;border:1px solid rgba(0,0,0,.08)">
-            <div style="height:8px;background:#d0ead2"></div>
-            <div style="padding:6px;background:#f0f7f0;display:flex;gap:4px">
-              <div style="flex:1;height:20px;border-radius:4px;background:rgba(255,255,255,.9);border:1px solid rgba(0,120,60,.12)"></div>
-              <div style="flex:1;height:20px;border-radius:4px;background:rgba(255,255,255,.9);border:1px solid rgba(0,120,60,.12)"></div>
-            </div>
-          </div>
-          <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.4);margin-top:8px;letter-spacing:.06em">Light · Field Mode</p>
-        </button>
-      </div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:rgba(0,238,252,.55);margin-bottom:14px;text-transform:uppercase">Data &amp; Cache</p>
+      <button id="clear-cache-btn" onclick="clearAppCache()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;border:1.5px solid rgba(0,255,65,.25);background:rgba(0,255,65,.06);cursor:pointer;text-align:left;transition:all .2s">
+        <div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;color:#00ff41;display:block">FORCE REFRESH</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.45);letter-spacing:.04em">Clear cached files &amp; reload the latest deployed version</span>
+        </div>
+        <span id="clear-cache-icon" class="material-symbols-outlined" style="font-size:20px;color:#00ff41">refresh</span>
+      </button>
     </div>
 
     <div style="height:1px;background:rgba(255,255,255,.07);margin-bottom:20px"></div>
@@ -4229,9 +4085,6 @@ window.addEventListener('DOMContentLoaded', () => {
   if (window.matchMedia('(display-mode: standalone)').matches) {
     document.getElementById('install-banner').style.display = 'none';
   }
-  // Apply saved theme
-  const savedTheme = localStorage.getItem('agrisat_theme') || 'dark';
-  applyTheme(savedTheme, false);
 });
 
 // ── SETTINGS MODAL ──────────────────────────────────────────
@@ -4242,47 +4095,25 @@ function closeSettingsModal(){
   document.getElementById('settings-modal').style.display='none';
 }
 
-function setTheme(theme){
-  localStorage.setItem('agrisat_theme', theme);
-  applyTheme(theme, true);
-}
-
-function applyTheme(theme, animate){
-  const body = document.body;
-  const darkBtn  = document.getElementById('theme-btn-dark');
-  const lightBtn = document.getElementById('theme-btn-light');
-  const darkChk  = document.getElementById('theme-check-dark');
-  const lightChk = document.getElementById('theme-check-light');
-
-  if(theme === 'light'){
-    body.classList.add('theme-light');
-    // Light button — selected
-    if(lightBtn){
-      lightBtn.style.borderColor = 'rgba(0,160,60,.5)';
-      lightBtn.style.background  = 'rgba(0,160,60,.08)';
+// Clears the service-worker cache (and any stray registrations) so a
+// fresh page load always pulls the latest deployed index.html/assets —
+// fixes stale-cache confusion after a new deploy.
+async function clearAppCache(){
+  const btn  = document.getElementById('clear-cache-btn');
+  const icon = document.getElementById('clear-cache-icon');
+  if(btn){ btn.style.pointerEvents='none'; btn.style.opacity='.6'; }
+  if(icon) icon.textContent='sync';
+  try{
+    if('caches' in window){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
     }
-    if(lightChk){ lightChk.textContent='check_circle'; lightChk.style.color='#007a30'; lightChk.style.fontVariationSettings="'FILL' 1"; }
-    // Dark button — unselected
-    if(darkBtn){
-      darkBtn.style.borderColor = 'rgba(255,255,255,.12)';
-      darkBtn.style.background  = 'rgba(255,255,255,.04)';
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
     }
-    if(darkChk){ darkChk.textContent='radio_button_unchecked'; darkChk.style.color='rgba(185,204,178,.3)'; darkChk.style.fontVariationSettings="'FILL' 0"; }
-  } else {
-    body.classList.remove('theme-light');
-    // Dark button — selected
-    if(darkBtn){
-      darkBtn.style.borderColor = 'rgba(0,255,65,.35)';
-      darkBtn.style.background  = 'rgba(6,10,9,.85)';
-    }
-    if(darkChk){ darkChk.textContent='check_circle'; darkChk.style.color='#00ff41'; darkChk.style.fontVariationSettings="'FILL' 1"; }
-    // Light button — unselected
-    if(lightBtn){
-      lightBtn.style.borderColor = 'rgba(255,255,255,.12)';
-      lightBtn.style.background  = 'rgba(255,255,255,.05)';
-    }
-    if(lightChk){ lightChk.textContent='radio_button_unchecked'; lightChk.style.color='rgba(185,204,178,.3)'; lightChk.style.fontVariationSettings="'FILL' 0"; }
-  }
+  }catch(err){ console.warn('[Cache] Clear failed:', err); }
+  location.reload();
 }
 
 // ══════════════════════════════════════════════════
