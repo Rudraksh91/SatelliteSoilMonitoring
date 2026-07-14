@@ -1,36 +1,36 @@
 {
-  "updated": "2026-07-11T22:30:33.369864",
+  "updated": "2026-07-14T23:01:12.845288",
   "scene_date": "2026-07-10",
-  "jpeg_name": "NDVI_Dediapada_2026-07-11.jpeg",
+  "jpeg_name": "NDVI_Dediapada_2026-07-14.jpeg",
   "folder_id": "1pmU6XqLXVVwtcFFgJMTPE7LMjbn0Tvwe",
-  "jpeg_id": "1H5ykCeAfxS9t9Y6jXyZcF6Fk5BFx7JM7",
+  "jpeg_id": "1pcXCQztgDHtZVuZG23V-sCNffu85hYw4",
   "jpeg_url": "https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main/ndvi_latest.jpeg",
   "zones": [
     {
-      "zone": "Zone 1 \u2013 Boys Hostel",
+      "zone": "Zone 1 – Boys Hostel",
       "ndvi": 0.504,
       "pixels": 25,
       "status": "THRIVING",
       "action": "No action needed"
     },
     {
-      "zone": "Zone 2 \u2013 Main College",
+      "zone": "Zone 2 – Main College",
       "ndvi": 0.2774,
       "pixels": 72,
       "status": "MODERATE",
-      "action": "Irrigate in 2\u20133 days"
+      "action": "Irrigate in 2–3 days"
     },
     {
-      "zone": "Zone 3 \u2013 Diploma College",
+      "zone": "Zone 3 – Diploma College",
       "ndvi": 0.2761,
       "pixels": 40,
       "status": "MODERATE",
-      "action": "Irrigate in 2\u20133 days"
+      "action": "Irrigate in 2–3 days"
     }
   ],
   "weather": {
-    "et0_mm_day": 3.85,
-    "rain_3d_mm": 12.5,
-    "vpd_kpa": 0.17
+    "et0_mm_day": 3.83,
+    "rain_3d_mm": 11.7,
+    "vpd_kpa": 0.46
   }
 }
