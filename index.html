@@ -4289,13 +4289,25 @@ async function clearAppCache(){
 // ══════════════════════════════════════════════════
 const RULES_KEY='agrisat_rules_v1';
 const RULES_DEFAULT=[
-  {id:'r1',icon:'water_drop',color:'primary',  condition:'SOIL VWC < 20%',action:'OPEN DRIP VALVE',enabled:true},
+  {id:'r1',icon:'water_drop',color:'primary',  condition:'SOIL VWC < 30%',action:'OPEN DRIP VALVE',enabled:true},
   {id:'r2',icon:'cloud',     color:'secondary', condition:'RAIN (NOW / NEXT 24H≥10mm / LAST 48H) OR PROB>60%',action:'SUSPEND IRRIGATION',enabled:true},
   {id:'r3',icon:'device_thermostat',color:'surface',condition:'TEMP > 38°C',action:'BOOST ET0 COMP',enabled:false},
   {id:'r4',icon:'cloud_upload',color:'primary', condition:'EVERY 30 MIN',action:'SYNC GOOGLE DRIVE',enabled:true},
 ];
 let _rules=[];
-function _loadRules(){try{const s=localStorage.getItem(RULES_KEY);_rules=s?JSON.parse(s):[...RULES_DEFAULT];}catch{_rules=[...RULES_DEFAULT];}}
+function _loadRules(){
+  try{const s=localStorage.getItem(RULES_KEY);_rules=s?JSON.parse(s):[...RULES_DEFAULT];}catch{_rules=[...RULES_DEFAULT];}
+  // One-time migration: the drip rule used to default to 20% back when the
+  // Rulebook was cosmetic-only (editing it did nothing), so any device still
+  // holding that untouched 20% predates the real threshold ever being wired
+  // up — bump it to the actual operating point once, then never touch it again.
+  if(!localStorage.getItem('agrisat_rules_migrated_v2')){
+    const r1=_rules.find(r=>r.id==='r1');
+    if(r1 && r1.condition==='SOIL VWC < 20%')r1.condition='SOIL VWC < 30%';
+    localStorage.setItem('agrisat_rules_migrated_v2','1');
+    _saveRules();
+  }
+}
 function _saveRules(){localStorage.setItem(RULES_KEY,JSON.stringify(_rules));}
 
 // Live link from the Rulebook into the actual Timeline engine: pulls the VWC%
@@ -4318,7 +4330,7 @@ const _ICONS=[
   {icon:'thermostat',label:'ET0'},{icon:'sensors',label:'SENSOR'},
 ];
 const _COND_CHIPS=[
-  'SOIL VWC < 20%','SOIL VWC < 25%','TEMP > 38°C','TEMP > 40°C',
+  'SOIL VWC < 20%','SOIL VWC < 25%','SOIL VWC < 30%','TEMP > 38°C','TEMP > 40°C',
   'PRECIP PROB > 60%','RAIN > 10mm','NDVI < 0.25','EVERY 30 MIN','EVERY 60 MIN','WIND > 30km/h',
 ];
 const _ACT_CHIPS=[
