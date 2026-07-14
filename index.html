@@ -2077,7 +2077,8 @@ function tickVWC(){
   ['vA','vB','vC'].forEach((k,i)=>{
     const kc=ndviToKc((window._ndviZones||[])[i]?.ndvi);
     const etcPct=kc*S.et0*(VWC_TICK_S/86400)/(VWC_ROOT_M*10);
-    const dripping=AUTO_OPT_LIVE.dripControlA&&!rainGuardActive()&&S[k]<20;
+    const dripAt=_liveVwcThreshold();
+    const dripping=AUTO_OPT_LIVE.dripControlA&&!rainGuardActive()&&dripAt!==null&&S[k]<dripAt;
     const irrPct=dripping?0.12:0;
     S[k]=clamp(S[k]-etcPct+rainPct+irrPct,FAO56_PARAMS.WP,FAO56_PARAMS.FC);
   });
@@ -2273,9 +2274,12 @@ function evaluateFieldAction(vwc,fieldKey){
     return {label:'MANUAL OVERRIDE · AUTO DISABLED',cls:'bg-white/5 border-white/10 text-on-surface-variant/40',spanCols:2.4};
   if(rainGuardActive())
     return {label:'RAIN GUARD HOLD',cls:'bg-secondary-container/10 border-secondary-container/30 text-secondary-container',spanCols:4};
-  if(vwc<20)
+  const dripAt=_liveVwcThreshold();
+  if(dripAt===null)
+    return {label:'DRIP RULE DISABLED',cls:'bg-white/5 border-white/10 text-on-surface-variant/40',spanCols:2.4};
+  if(vwc<dripAt)
     return {label:'DRIP CYCLE ACTIVE · '+vwc.toFixed(1)+'%',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38 && AUTO_OPT_LIVE.et0Comp};
-  if(vwc<23)
+  if(vwc<dripAt+3)
     return {label:'DRIP SCHEDULED · '+vwc.toFixed(1)+'%',cls:'bg-secondary/20 border-secondary/40 text-secondary',spanCols:2.2};
   return {label:'MONITORING · '+vwc.toFixed(1)+'%',cls:'bg-white/5 border-white/10 text-on-surface-variant/60',spanCols:1.8};
 }
@@ -4268,6 +4272,18 @@ const RULES_DEFAULT=[
 let _rules=[];
 function _loadRules(){try{const s=localStorage.getItem(RULES_KEY);_rules=s?JSON.parse(s):[...RULES_DEFAULT];}catch{_rules=[...RULES_DEFAULT];}}
 function _saveRules(){localStorage.setItem(RULES_KEY,JSON.stringify(_rules));}
+
+// Live link from the Rulebook into the actual Timeline engine: pulls the VWC%
+// out of the enabled "OPEN DRIP VALVE" rule's condition text so editing that
+// rule here really changes when the drip fires, instead of the rule being a
+// cosmetic label next to a hardcoded number. Returns null if no enabled rule
+// matches (drip-on-VWC is then treated as off, same as toggling it disabled).
+function _liveVwcThreshold(){
+  const rule=_rules.find(r=>r.enabled && /open drip valve/i.test(r.action) && /vwc/i.test(r.condition));
+  if(!rule)return null;
+  const m=rule.condition.match(/(\d+(?:\.\d+)?)\s*%/);
+  return m?parseFloat(m[1]):null;
+}
 
 const _ICONS=[
   {icon:'water_drop',label:'WATER'},{icon:'cloud',label:'RAIN'},
