@@ -465,6 +465,8 @@ header{
 .crop-search::placeholder{color:rgba(185,204,178,.3)}
 .crop-search:focus{border-color:rgba(0,255,65,.3)}
 .crop-drop{position:absolute;z-index:9999;background:rgba(6,10,9,.98);border:1px solid rgba(0,255,65,.15);border-radius:8px;max-height:220px;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.9);scrollbar-width:thin;scrollbar-color:rgba(0,255,65,.2) transparent}
+.gj-filter-btn{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.05em;padding:4px 7px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:rgba(8,12,10,.9);color:rgba(185,204,178,.5);cursor:pointer;transition:all .15s;white-space:nowrap}
+.gj-filter-btn.gj-on{background:rgba(0,255,65,.14);border-color:rgba(0,255,65,.4);color:#00ff41}
 .crop-opt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;padding:5px 10px;cursor:pointer;color:rgba(185,204,178,.75);transition:background .1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .crop-opt:hover{background:rgba(0,255,65,.1);color:#00ff41}
 .crop-cat-hdr{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:800;letter-spacing:.12em;padding:5px 10px 2px;color:rgba(0,238,252,.45);border-top:1px solid rgba(255,255,255,.05);margin-top:2px}
@@ -1130,7 +1132,10 @@ header{
             <span id="v1-status" class="font-data-lg text-[28px] font-bold text-on-surface-variant/30 leading-none">CLOSED</span>
           </div>
           <div class="shrink-0 relative">
-            <p class="font-label-caps text-[9px] text-on-surface-variant/40 mb-1">CROP TYPE</p>
+            <div class="flex items-center justify-between mb-1">
+              <p class="font-label-caps text-[9px] text-on-surface-variant/40">CROP TYPE</p>
+              <button type="button" id="v1-gj-toggle" class="gj-filter-btn" onmousedown="event.preventDefault();toggleGjFilter(1)" title="Show only crops locally grown in Gujarat">🌾 GUJARAT</button>
+            </div>
             <input id="v1-crop-search" class="crop-search" placeholder="SEARCH PLANT / CROP..."
               oninput="filterCrops(1,this.value)"
               onfocus="showCropDrop(1)"
@@ -1178,7 +1183,10 @@ header{
             <span id="v2-status" class="font-data-lg text-[28px] font-bold text-on-surface-variant/30 leading-none">CLOSED</span>
           </div>
           <div class="shrink-0 relative">
-            <p class="font-label-caps text-[9px] text-on-surface-variant/40 mb-1">CROP TYPE</p>
+            <div class="flex items-center justify-between mb-1">
+              <p class="font-label-caps text-[9px] text-on-surface-variant/40">CROP TYPE</p>
+              <button type="button" id="v2-gj-toggle" class="gj-filter-btn" onmousedown="event.preventDefault();toggleGjFilter(2)" title="Show only crops locally grown in Gujarat">🌾 GUJARAT</button>
+            </div>
             <input id="v2-crop-search" class="crop-search" placeholder="SEARCH PLANT / CROP..."
               oninput="filterCrops(2,this.value)"
               onfocus="showCropDrop(2)"
@@ -1226,7 +1234,10 @@ header{
             <span id="v3-status" class="font-data-lg text-[28px] font-bold text-on-surface-variant/30 leading-none">CLOSED</span>
           </div>
           <div class="shrink-0 relative">
-            <p class="font-label-caps text-[9px] text-on-surface-variant/40 mb-1">CROP TYPE</p>
+            <div class="flex items-center justify-between mb-1">
+              <p class="font-label-caps text-[9px] text-on-surface-variant/40">CROP TYPE</p>
+              <button type="button" id="v3-gj-toggle" class="gj-filter-btn" onmousedown="event.preventDefault();toggleGjFilter(3)" title="Show only crops locally grown in Gujarat">🌾 GUJARAT</button>
+            </div>
             <input id="v3-crop-search" class="crop-search" placeholder="SEARCH PLANT / CROP..."
               oninput="filterCrops(3,this.value)"
               onfocus="showCropDrop(3)"
@@ -2549,14 +2560,14 @@ function updateClock(){
 // ══════════════════════════════════════════════════
 const CROP_DB=[
   // Cereals
-  {key:'wheat',cat:'Cereals',label:'Wheat',mm:2,dur:30,flow:3},
-  {key:'rice',cat:'Cereals',label:'Rice / Paddy',mm:4,dur:60,flow:6},
+  {key:'wheat',cat:'Cereals',label:'Wheat',mm:2,dur:30,flow:3,gj:1},
+  {key:'rice',cat:'Cereals',label:'Rice / Paddy',mm:4,dur:60,flow:6,gj:1},
   {key:'maize',cat:'Cereals',label:'Maize / Corn',mm:3,dur:30,flow:4},
   {key:'barley',cat:'Cereals',label:'Barley',mm:2,dur:30,flow:3},
   {key:'oats',cat:'Cereals',label:'Oats',mm:2,dur:30,flow:3},
   {key:'rye',cat:'Cereals',label:'Rye',mm:2,dur:30,flow:3},
-  {key:'sorghum',cat:'Cereals',label:'Sorghum',mm:2,dur:30,flow:3},
-  {key:'pearl_millet',cat:'Cereals',label:'Pearl Millet',mm:2,dur:15,flow:3},
+  {key:'sorghum',cat:'Cereals',label:'Sorghum',mm:2,dur:30,flow:3,gj:1},
+  {key:'pearl_millet',cat:'Cereals',label:'Pearl Millet',mm:2,dur:15,flow:3,gj:1},
   {key:'finger_millet',cat:'Cereals',label:'Finger Millet',mm:2,dur:15,flow:3},
   {key:'foxtail_millet',cat:'Cereals',label:'Foxtail Millet',mm:1,dur:15,flow:2},
   {key:'proso_millet',cat:'Cereals',label:'Proso Millet',mm:1,dur:15,flow:2},
@@ -2572,7 +2583,7 @@ const CROP_DB=[
   {key:'job_tears',cat:'Cereals',label:'Jobs Tears (Adlay)',mm:3,dur:30,flow:4},
   // Legumes
   {key:'soybean',cat:'Legumes',label:'Soybean',mm:3,dur:30,flow:4},
-  {key:'chickpea',cat:'Legumes',label:'Chickpea',mm:2,dur:30,flow:3},
+  {key:'chickpea',cat:'Legumes',label:'Chickpea',mm:2,dur:30,flow:3,gj:1},
   {key:'lentil',cat:'Legumes',label:'Lentil',mm:2,dur:30,flow:3},
   {key:'green_pea',cat:'Legumes',label:'Green Pea',mm:2,dur:30,flow:3},
   {key:'blackeyed_pea',cat:'Legumes',label:'Black-eyed Pea',mm:2,dur:15,flow:3},
@@ -2580,25 +2591,25 @@ const CROP_DB=[
   {key:'navy_bean',cat:'Legumes',label:'Navy Bean',mm:2,dur:30,flow:3},
   {key:'pinto_bean',cat:'Legumes',label:'Pinto Bean',mm:2,dur:30,flow:3},
   {key:'lima_bean',cat:'Legumes',label:'Lima Bean',mm:2,dur:30,flow:3},
-  {key:'mung_bean',cat:'Legumes',label:'Mung Bean',mm:2,dur:15,flow:3},
+  {key:'mung_bean',cat:'Legumes',label:'Mung Bean',mm:2,dur:15,flow:3,gj:1},
   {key:'adzuki',cat:'Legumes',label:'Adzuki Bean',mm:2,dur:15,flow:3},
-  {key:'pigeon_pea',cat:'Legumes',label:'Pigeon Pea (Toor Dal)',mm:2,dur:30,flow:3},
+  {key:'pigeon_pea',cat:'Legumes',label:'Pigeon Pea (Toor Dal)',mm:2,dur:30,flow:3,gj:1},
   {key:'cowpea',cat:'Legumes',label:'Cowpea',mm:2,dur:15,flow:3},
   {key:'fava_bean',cat:'Legumes',label:'Fava Bean (Broad Bean)',mm:3,dur:30,flow:3},
   {key:'lupine',cat:'Legumes',label:'Lupine',mm:2,dur:15,flow:3},
-  {key:'peanut',cat:'Legumes',label:'Groundnut / Peanut',mm:2,dur:15,flow:3},
-  {key:'moth_bean',cat:'Legumes',label:'Moth Bean',mm:1,dur:15,flow:2},
+  {key:'peanut',cat:'Legumes',label:'Groundnut / Peanut',mm:2,dur:15,flow:3,gj:1},
+  {key:'moth_bean',cat:'Legumes',label:'Moth Bean',mm:1,dur:15,flow:2,gj:1},
   {key:'horse_gram',cat:'Legumes',label:'Horse Gram',mm:1,dur:15,flow:2},
   {key:'velvet_bean',cat:'Legumes',label:'Velvet Bean',mm:2,dur:15,flow:3},
   {key:'winged_bean',cat:'Legumes',label:'Winged Bean',mm:3,dur:30,flow:4},
-  {key:'hyacinth_bean',cat:'Legumes',label:'Hyacinth Bean (Lablab)',mm:2,dur:15,flow:3},
-  {key:'cluster_bean',cat:'Legumes',label:'Cluster Bean (Guar)',mm:1,dur:15,flow:2},
+  {key:'hyacinth_bean',cat:'Legumes',label:'Hyacinth Bean (Lablab)',mm:2,dur:15,flow:3,gj:1},
+  {key:'cluster_bean',cat:'Legumes',label:'Cluster Bean (Guar)',mm:1,dur:15,flow:2,gj:1},
   {key:'sword_bean',cat:'Legumes',label:'Sword Bean',mm:3,dur:30,flow:4},
   // Vegetables
   {key:'tomato',cat:'Vegetables',label:'Tomato',mm:3,dur:30,flow:4},
-  {key:'potato',cat:'Vegetables',label:'Potato',mm:3,dur:30,flow:4},
-  {key:'onion',cat:'Vegetables',label:'Onion',mm:2,dur:30,flow:3},
-  {key:'garlic',cat:'Vegetables',label:'Garlic',mm:2,dur:15,flow:3},
+  {key:'potato',cat:'Vegetables',label:'Potato',mm:3,dur:30,flow:4,gj:1},
+  {key:'onion',cat:'Vegetables',label:'Onion',mm:2,dur:30,flow:3,gj:1},
+  {key:'garlic',cat:'Vegetables',label:'Garlic',mm:2,dur:15,flow:3,gj:1},
   {key:'shallot',cat:'Vegetables',label:'Shallot',mm:2,dur:15,flow:3},
   {key:'cabbage',cat:'Vegetables',label:'Cabbage',mm:3,dur:30,flow:4},
   {key:'cauliflower',cat:'Vegetables',label:'Cauliflower',mm:3,dur:30,flow:4},
@@ -2623,14 +2634,14 @@ const CROP_DB=[
   {key:'ash_gourd',cat:'Vegetables',label:'Ash Gourd (Winter Melon)',mm:3,dur:30,flow:4},
   {key:'eggplant',cat:'Vegetables',label:'Eggplant / Brinjal',mm:3,dur:30,flow:4},
   {key:'bell_pepper',cat:'Vegetables',label:'Bell Pepper / Capsicum',mm:3,dur:30,flow:4},
-  {key:'chili',cat:'Vegetables',label:'Chili Pepper',mm:2,dur:30,flow:3},
-  {key:'okra',cat:'Vegetables',label:'Okra / Bhindi',mm:2,dur:30,flow:3},
+  {key:'chili',cat:'Vegetables',label:'Chili Pepper',mm:2,dur:30,flow:3,gj:1},
+  {key:'okra',cat:'Vegetables',label:'Okra / Bhindi',mm:2,dur:30,flow:3,gj:1},
   {key:'sweet_corn',cat:'Vegetables',label:'Sweet Corn',mm:3,dur:30,flow:4},
   {key:'asparagus',cat:'Vegetables',label:'Asparagus',mm:3,dur:30,flow:4},
   {key:'artichoke',cat:'Vegetables',label:'Globe Artichoke',mm:3,dur:30,flow:4},
   {key:'leek',cat:'Vegetables',label:'Leek',mm:2,dur:30,flow:3},
   {key:'celery',cat:'Vegetables',label:'Celery',mm:3,dur:30,flow:4},
-  {key:'fennel',cat:'Vegetables',label:'Fennel',mm:2,dur:15,flow:3},
+  {key:'fennel',cat:'Vegetables',label:'Fennel',mm:2,dur:15,flow:3,gj:1},
   {key:'parsnip',cat:'Vegetables',label:'Parsnip',mm:2,dur:15,flow:3},
   {key:'celeriac',cat:'Vegetables',label:'Celeriac',mm:2,dur:30,flow:3},
   {key:'kohlrabi',cat:'Vegetables',label:'Kohlrabi',mm:2,dur:15,flow:3},
@@ -2653,8 +2664,8 @@ const CROP_DB=[
   {key:'yam',cat:'Root Crops',label:'Yam',mm:3,dur:30,flow:4},
   {key:'taro',cat:'Root Crops',label:'Taro / Colocasia',mm:4,dur:30,flow:5},
   {key:'arrowroot',cat:'Root Crops',label:'Arrowroot',mm:3,dur:30,flow:4},
-  {key:'ginger',cat:'Root Crops',label:'Ginger',mm:3,dur:30,flow:4},
-  {key:'turmeric',cat:'Root Crops',label:'Turmeric',mm:3,dur:30,flow:4},
+  {key:'ginger',cat:'Root Crops',label:'Ginger',mm:3,dur:30,flow:4,gj:1},
+  {key:'turmeric',cat:'Root Crops',label:'Turmeric',mm:3,dur:30,flow:4,gj:1},
   {key:'elephant_yam',cat:'Root Crops',label:'Elephant Foot Yam',mm:3,dur:30,flow:4},
   {key:'lotus_root',cat:'Root Crops',label:'Lotus Root',mm:6,dur:0,flow:6},
   {key:'jicama',cat:'Root Crops',label:'Jicama (Yam Bean)',mm:2,dur:30,flow:3},
@@ -2663,8 +2674,8 @@ const CROP_DB=[
   {key:'oca',cat:'Root Crops',label:'Oca',mm:2,dur:30,flow:3},
   {key:'ulluco',cat:'Root Crops',label:'Ulluco',mm:2,dur:30,flow:3},
   // Fruits
-  {key:'mango',cat:'Fruits',label:'Mango',mm:4,dur:60,flow:5},
-  {key:'banana',cat:'Fruits',label:'Banana / Plantain',mm:6,dur:0,flow:6},
+  {key:'mango',cat:'Fruits',label:'Mango',mm:4,dur:60,flow:5,gj:1},
+  {key:'banana',cat:'Fruits',label:'Banana / Plantain',mm:6,dur:0,flow:6,gj:1},
   {key:'apple',cat:'Fruits',label:'Apple',mm:4,dur:60,flow:5},
   {key:'grape',cat:'Fruits',label:'Grape / Vine',mm:3,dur:30,flow:4},
   {key:'orange',cat:'Fruits',label:'Orange',mm:4,dur:60,flow:5},
@@ -2674,8 +2685,9 @@ const CROP_DB=[
   {key:'grapefruit',cat:'Fruits',label:'Grapefruit',mm:4,dur:60,flow:5},
   {key:'tangerine',cat:'Fruits',label:'Tangerine / Clementine',mm:3,dur:30,flow:4},
   {key:'mandarin',cat:'Fruits',label:'Mandarin',mm:3,dur:30,flow:4},
-  {key:'papaya',cat:'Fruits',label:'Papaya',mm:4,dur:60,flow:5},
-  {key:'guava',cat:'Fruits',label:'Guava',mm:3,dur:30,flow:4},
+  {key:'papaya',cat:'Fruits',label:'Papaya',mm:4,dur:60,flow:5,gj:1},
+  {key:'guava',cat:'Fruits',label:'Guava',mm:3,dur:30,flow:4,gj:1},
+  {key:'sapota',cat:'Fruits',label:'Sapota / Chikoo',mm:4,dur:60,flow:5,gj:1},
   {key:'pineapple',cat:'Fruits',label:'Pineapple',mm:3,dur:30,flow:4},
   {key:'strawberry',cat:'Fruits',label:'Strawberry',mm:2,dur:15,flow:3},
   {key:'raspberry',cat:'Fruits',label:'Raspberry',mm:2,dur:15,flow:3},
@@ -2687,7 +2699,7 @@ const CROP_DB=[
   {key:'apricot',cat:'Fruits',label:'Apricot',mm:3,dur:30,flow:4},
   {key:'pear',cat:'Fruits',label:'Pear',mm:3,dur:30,flow:4},
   {key:'fig',cat:'Fruits',label:'Fig',mm:3,dur:30,flow:4},
-  {key:'date_palm',cat:'Fruits',label:'Date Palm',mm:5,dur:60,flow:5},
+  {key:'date_palm',cat:'Fruits',label:'Date Palm',mm:5,dur:60,flow:5,gj:1},
   {key:'coconut',cat:'Fruits',label:'Coconut',mm:5,dur:60,flow:5},
   {key:'avocado',cat:'Fruits',label:'Avocado',mm:4,dur:60,flow:5},
   {key:'pomegranate',cat:'Fruits',label:'Pomegranate',mm:3,dur:30,flow:4},
@@ -2730,11 +2742,11 @@ const CROP_DB=[
   // Oil Crops
   {key:'sunflower',cat:'Oil Crops',label:'Sunflower',mm:3,dur:30,flow:4},
   {key:'canola',cat:'Oil Crops',label:'Canola / Rapeseed',mm:2,dur:30,flow:3},
-  {key:'sesame',cat:'Oil Crops',label:'Sesame',mm:1,dur:15,flow:2},
-  {key:'castor',cat:'Oil Crops',label:'Castor Bean',mm:2,dur:30,flow:3},
+  {key:'sesame',cat:'Oil Crops',label:'Sesame',mm:1,dur:15,flow:2,gj:1},
+  {key:'castor',cat:'Oil Crops',label:'Castor Bean',mm:2,dur:30,flow:3,gj:1},
   {key:'safflower',cat:'Oil Crops',label:'Safflower',mm:2,dur:30,flow:3},
   {key:'flaxseed',cat:'Oil Crops',label:'Flaxseed / Linseed',mm:2,dur:15,flow:3},
-  {key:'mustard',cat:'Oil Crops',label:'Mustard',mm:2,dur:15,flow:3},
+  {key:'mustard',cat:'Oil Crops',label:'Mustard',mm:2,dur:15,flow:3,gj:1},
   {key:'olive',cat:'Oil Crops',label:'Olive',mm:2,dur:30,flow:3},
   {key:'oil_palm',cat:'Oil Crops',label:'Oil Palm',mm:6,dur:0,flow:6},
   {key:'jojoba',cat:'Oil Crops',label:'Jojoba',mm:1,dur:15,flow:2},
@@ -2745,7 +2757,7 @@ const CROP_DB=[
   {key:'niger_seed',cat:'Oil Crops',label:'Niger Seed (Ramtil)',mm:1,dur:15,flow:2},
   {key:'tung',cat:'Oil Crops',label:'Tung Tree',mm:3,dur:30,flow:4},
   // Fiber Crops
-  {key:'cotton',cat:'Fiber Crops',label:'Cotton',mm:2,dur:30,flow:3},
+  {key:'cotton',cat:'Fiber Crops',label:'Cotton',mm:2,dur:30,flow:3,gj:1},
   {key:'jute',cat:'Fiber Crops',label:'Jute',mm:4,dur:60,flow:5},
   {key:'flax_fiber',cat:'Fiber Crops',label:'Flax (Fiber)',mm:2,dur:15,flow:3},
   {key:'sisal',cat:'Fiber Crops',label:'Sisal',mm:1,dur:15,flow:2},
@@ -2754,7 +2766,7 @@ const CROP_DB=[
   {key:'sunn_hemp',cat:'Fiber Crops',label:'Sunn Hemp',mm:3,dur:30,flow:4},
   {key:'agave',cat:'Fiber Crops',label:'Agave',mm:1,dur:15,flow:2},
   // Sugar Crops
-  {key:'sugarcane',cat:'Sugar Crops',label:'Sugarcane',mm:6,dur:0,flow:5},
+  {key:'sugarcane',cat:'Sugar Crops',label:'Sugarcane',mm:6,dur:0,flow:5,gj:1},
   {key:'sugar_beet',cat:'Sugar Crops',label:'Sugar Beet',mm:3,dur:30,flow:4},
   {key:'stevia',cat:'Sugar Crops',label:'Stevia',mm:2,dur:30,flow:3},
   {key:'sweet_sorghum',cat:'Sugar Crops',label:'Sweet Sorghum',mm:3,dur:30,flow:4},
@@ -2775,8 +2787,8 @@ const CROP_DB=[
   {key:'cinnamon',cat:'Spices',label:'Cinnamon',mm:4,dur:30,flow:4},
   {key:'vanilla',cat:'Spices',label:'Vanilla',mm:4,dur:60,flow:5},
   {key:'saffron',cat:'Spices',label:'Saffron',mm:1,dur:15,flow:2},
-  {key:'coriander',cat:'Spices',label:'Coriander / Cilantro',mm:2,dur:15,flow:3},
-  {key:'cumin',cat:'Spices',label:'Cumin',mm:1,dur:15,flow:2},
+  {key:'coriander',cat:'Spices',label:'Coriander / Cilantro',mm:2,dur:15,flow:3,gj:1},
+  {key:'cumin',cat:'Spices',label:'Cumin',mm:1,dur:15,flow:2,gj:1},
   {key:'fenugreek',cat:'Spices',label:'Fenugreek',mm:2,dur:15,flow:3},
   {key:'star_anise',cat:'Spices',label:'Star Anise',mm:3,dur:30,flow:4},
   {key:'allspice',cat:'Spices',label:'Allspice',mm:3,dur:30,flow:4},
@@ -2812,7 +2824,7 @@ const CROP_DB=[
   {key:'shiso',cat:'Herbs',label:'Shiso (Perilla)',mm:2,dur:15,flow:3},
   {key:'vietnamese_coriander',cat:'Herbs',label:'Vietnamese Coriander',mm:2,dur:15,flow:3},
   // Forage
-  {key:'alfalfa',cat:'Forage',label:'Alfalfa / Lucerne',mm:4,dur:60,flow:5},
+  {key:'alfalfa',cat:'Forage',label:'Alfalfa / Lucerne',mm:4,dur:60,flow:5,gj:1},
   {key:'red_clover',cat:'Forage',label:'Red Clover',mm:3,dur:30,flow:4},
   {key:'white_clover',cat:'Forage',label:'White Clover',mm:3,dur:30,flow:4},
   {key:'ryegrass',cat:'Forage',label:'Ryegrass',mm:3,dur:30,flow:4},
@@ -2834,7 +2846,7 @@ const CROP_DB=[
   {key:'sandalwood',cat:'Plantation',label:'Sandalwood',mm:2,dur:30,flow:3},
   {key:'gmelina',cat:'Plantation',label:'Gmelina',mm:3,dur:30,flow:4},
   // Industrial
-  {key:'tobacco',cat:'Industrial',label:'Tobacco',mm:3,dur:30,flow:4},
+  {key:'tobacco',cat:'Industrial',label:'Tobacco',mm:3,dur:30,flow:4,gj:1},
   {key:'indigo',cat:'Industrial',label:'Indigo',mm:3,dur:30,flow:4},
   {key:'henna',cat:'Industrial',label:'Henna / Mehndi',mm:1,dur:15,flow:2},
   {key:'woad',cat:'Industrial',label:'Woad',mm:2,dur:15,flow:3},
@@ -2861,6 +2873,7 @@ const CROP_DB=[
   {key:'withania',cat:'Medicinal',label:'Withania / Ashwagandha',mm:1,dur:15,flow:2},
   {key:'sarpagandha',cat:'Medicinal',label:'Sarpagandha (Rauwolfia)',mm:2,dur:30,flow:3},
   {key:'coleus',cat:'Medicinal',label:'Coleus (Plectranthus)',mm:2,dur:15,flow:3},
+  {key:'isabgol',cat:'Medicinal',label:'Isabgol (Psyllium Husk)',mm:1,dur:15,flow:2,gj:1},
 ];
 
 const valveState={
@@ -2945,11 +2958,23 @@ function selectDurByMins(z,mins){
   valveState[z].duration=mins;
 }
 
+// Per-valve "Gujarat crops only" quick filter — narrows the 300-crop global
+// database down to the ~35 crops actually grown around Dediapada, so a
+// farmer isn't hunting through Ginseng/Feijoa/Quinoa to find Bajra or Guar.
+const _gjFilter={1:false,2:false,3:false};
+function toggleGjFilter(z){
+  _gjFilter[z]=!_gjFilter[z];
+  const btn=document.getElementById('v'+z+'-gj-toggle');
+  if(btn)btn.classList.toggle('gj-on',_gjFilter[z]);
+  showCropDrop(z);   // (re)opens the list in place, re-rendered with the new filter
+}
+
 function renderCropDrop(z,q){
   const drop=document.getElementById('v'+z+'-crop-drop');
   if(!drop)return;
   const query=(q||'').toLowerCase().trim();
-  const list=query?CROP_DB.filter(c=>c.label.toLowerCase().includes(query)||c.cat.toLowerCase().includes(query)):CROP_DB;
+  let list=query?CROP_DB.filter(c=>c.label.toLowerCase().includes(query)||c.cat.toLowerCase().includes(query)):CROP_DB;
+  if(_gjFilter[z])list=list.filter(c=>c.gj);
   const cats={};
   list.forEach(c=>{if(!cats[c.cat])cats[c.cat]=[];cats[c.cat].push(c)});
   let html='<div class="crop-opt" style="color:rgba(255,100,100,.7)" onmousedown="setCrop('+z+',\'\')">NONE — MANUAL CONTROL</div>';
@@ -2957,7 +2982,7 @@ function renderCropDrop(z,q){
     html+='<div class="crop-cat-hdr">'+cat.toUpperCase()+'</div>';
     items.forEach(c=>{html+='<div class="crop-opt" onmousedown="setCrop('+z+',\''+c.key+'\')">'+c.label.toUpperCase()+'</div>';});
   });
-  if(list.length===0)html='<div class="crop-opt" style="color:rgba(185,204,178,.3)">NO MATCH FOUND</div>';
+  if(list.length===0)html='<div class="crop-opt" style="color:rgba(185,204,178,.3)">'+(_gjFilter[z]?'NO MATCH IN GUJARAT CROPS — TRY THE 🌾 FILTER OFF':'NO MATCH FOUND')+'</div>';
   drop.innerHTML=html;
 }
 
