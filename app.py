@@ -1,12 +1,11 @@
 """
 AgriSat Dediapada — Professional Satellite Irrigation Dashboard
 """
-import base64, io, json, math, os
+import base64, io, json, math, os, re, subprocess
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
 import folium
-import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")   # non-interactive backend — renders to PNG, no JS needed
@@ -17,6 +16,34 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 # Map rendered via st.iframe(data:text/html;base64,…) — no external component JS needed
+
+# ── Physical test valve (direct Pi GPIO, no LoRa/ESP32 yet) ───────────────────
+# Single relay+solenoid wired straight to the Pi for hardware bring-up testing.
+# See hardware/raspberry_pi/test_valve.py for the standalone CLI version —
+# this mirrors the same pin/polarity so both agree on what "open" means.
+# Streamlit re-runs this whole file top-to-bottom on every interaction, so GPIO
+# setup is wrapped in st.cache_resource — it claims the pin once for the life
+# of the server process instead of re-claiming (and briefly releasing) it on
+# every rerun, which would make the physical valve's state unreliable.
+VALVE_GPIO_PIN = 23
+
+@st.cache_resource
+def _init_gpio():
+    try:
+        import RPi.GPIO as GPIO
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+        GPIO.setup(VALVE_GPIO_PIN, GPIO.OUT, initial=GPIO.HIGH)  # HIGH = relay off = valve closed
+        return GPIO
+    except Exception:
+        return None
+
+_GPIO = _init_gpio()
+HAS_GPIO = _GPIO is not None
+
+def set_physical_valve(open_: bool):
+    if HAS_GPIO:
+        _GPIO.output(VALVE_GPIO_PIN, _GPIO.LOW if open_ else _GPIO.HIGH)
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 FIELD_LAT, FIELD_LON = 21.628, 73.592
@@ -517,20 +544,98 @@ class DriveLogger:
         except Exception as e: st.toast(f"Drive sync: {e}",icon="⚠️")
 
 
-# ─── Weather ──────────────────────────────────────────────────────────────────
-@st.cache_data(ttl=900)
+# ─── Weather (India Meteorological Department) ─────────────────────────────────
+# No third-party weather API, no ground sensor: IMD publishes a daily city
+# bulletin (Tmax/Tmin, RH at 0830/1730, 24h rainfall, 7-day categorical
+# forecast) for Surat — the nearest IMD-reporting city to Dediapada (~70 km).
+# It's a legacy scraped HTML page, not a JSON API, and daily-resolution, not
+# hourly — so ET0 is derived via FAO-56 Hargreaves-Samani (needs only
+# Tmax/Tmin + latitude) and "current" temp via a diurnal curve bounded by
+# today's real Tmax/Tmin, rather than a sensor-style instantaneous reading
+# IMD simply doesn't publish.
+IMD_STATION_ID = 42840   # Surat
+IMD_CITY_URL = f"https://city.imd.gov.in/citywx/city_weather_test.php?id={IMD_STATION_ID}"
+
+# IMD's own rainfall-intensity nomenclature (mm/24h bands) — used to turn a
+# categorical text forecast ("Light rain") into an indicative depth. Not a
+# measurement, but grounded in IMD's published category definitions.
+_IMD_RAIN_MM = [("extremely heavy",150.0),("very heavy",80.0),("heavy",50.0),
+                ("moderate",20.0),("thunder",20.0),("shower",10.0),("light",5.0)]
+
+def _imd_strip(html): return re.sub(r"<[^>]+>"," ",html).strip()
+
+def _imd_table_dict(html):
+    out={}
+    for row in re.findall(r"<tr.*?</tr>",html,re.S):
+        cells=re.findall(r"<td[^>]*>(.*?)</td>",row,re.S)
+        if len(cells)==2:
+            label,value=_imd_strip(cells[0]),_imd_strip(cells[1])
+            if label and value: out[label]=value
+    return out
+
+def _imd_find(d,*keywords):
+    for k,v in d.items():
+        kl=k.lower()
+        if all(kw in kl for kw in keywords): return v
+    return None
+
+def _imd_num(value,fallback):
+    """Parse an IMD table value as float, falling back when it's NA/missing."""
+    if value and value.upper()!="NA":
+        try: return float(value)
+        except ValueError: pass
+    return float(fallback)
+
+def _imd_forecast_rows(html):
+    tail=html[html.find("Day's Forecast"):]
+    rows=[]
+    for row in re.findall(r"<tr.*?</tr>",tail,re.S):
+        cells=re.findall(r"<td[^>]*>(.*?)</td>",row,re.S)
+        if len(cells)==5:
+            rows.append({"tmin":_imd_strip(cells[1]),"tmax":_imd_strip(cells[2]),
+                         "wx":_imd_strip(cells[4])})
+    return rows
+
+def _imd_rain_from_text(wx):
+    wx=wx.lower()
+    for kw,mm in _IMD_RAIN_MM:
+        if kw in wx: return mm
+    return 0.0
+
+def _hargreaves_et0(tmax,tmin,lat_deg,day_of_year):
+    """FAO-56 Hargreaves-Samani reference ET0 (mm/day) from Tmax/Tmin + latitude."""
+    tmean=(tmax+tmin)/2; phi=math.radians(lat_deg)
+    dr=1+0.033*math.cos(2*math.pi*day_of_year/365)
+    delta=0.409*math.sin(2*math.pi*day_of_year/365-1.39)
+    ws=math.acos(max(-1,min(1,-math.tan(phi)*math.tan(delta))))
+    Ra=(24*60/math.pi)*0.0820*dr*(ws*math.sin(phi)*math.sin(delta)+math.cos(phi)*math.cos(delta)*math.sin(ws))
+    return max(0.5,0.0023*(tmean+17.8)*math.sqrt(max(0.1,tmax-tmin))*0.408*Ra)
+
+@st.cache_data(ttl=1800)
 def fetch_weather():
     try:
-        d=requests.get(f"https://api.open-meteo.com/v1/forecast?latitude={FIELD_LAT}&longitude={FIELD_LON}"
-            "&current=temperature_2m,relative_humidity_2m,precipitation"
-            "&daily=et0_fao_evapotranspiration,precipitation_sum"
-            "&timezone=Asia/Kolkata&forecast_days=3",timeout=10).json()
-        c=d["current"]; daily=d.get("daily",{}); t,h=c["temperature_2m"],c["relative_humidity_2m"]
+        html=requests.get(IMD_CITY_URL,timeout=10,
+            headers={"User-Agent":"Mozilla/5.0","Referer":"https://city.imd.gov.in/"}).text
+        obs=_imd_table_dict(html); fc=_imd_forecast_rows(html)
+        if not fc: return None
+        tmax=_imd_num(_imd_find(obs,"maximum temp"),fc[0]["tmax"])
+        tmin=_imd_num(_imd_find(obs,"minimum temp"),fc[0]["tmin"])
+        rh0830=_imd_find(obs,"relative humidity","0830"); rh1730=_imd_find(obs,"relative humidity","1730")
+        rh_vals=[float(v) for v in (rh0830,rh1730) if v and v.upper()!="NA"]
+        hum=sum(rh_vals)/len(rh_vals) if rh_vals else 65.0
+        rain_raw=_imd_find(obs,"24 hours rainfall")
+        rain=0.0 if (not rain_raw or rain_raw.upper() in ("NIL","NA","TRACE")) else float(rain_raw)
+
+        hour=datetime.now().hour+datetime.now().minute/60
+        tmean=(tmax+tmin)/2
+        t=tmean+(tmax-tmin)/2*math.cos(2*math.pi*(hour-15)/24)   # diurnal curve, peak ~15:00 IST
+
+        et0=_hargreaves_et0(tmax,tmin,FIELD_LAT,datetime.now().timetuple().tm_yday)
         es=0.6108*math.exp(17.27*t/(t+237.3))
-        return {"temp":t,"hum":h,"rain":c["precipitation"],"vpd":round(es*(1-h/100),3),
-                "et0":(daily.get("et0_fao_evapotranspiration") or [4.5])[0],
-                "rain_3d":sum((daily.get("precipitation_sum") or [0,0,0])[:3])}
-    except: return None
+        rain_3d=sum(_imd_rain_from_text(d["wx"]) for d in fc[:3])
+        return {"temp":round(t,1),"hum":round(hum,1),"rain":round(rain,1),
+                "vpd":round(es*(1-hum/100),3),"et0":round(et0,2),"rain_3d":round(rain_3d,1)}
+    except Exception: return None
 
 
 # ─── Satellite NDVI (per-field ground truth) ──────────────────────────────────
@@ -592,6 +697,8 @@ for k,v in {"drive":None,
              "irr_log":[],"telemetry":[],"unsent":0,
              "_csv_loaded":False,
              "_last_collect_time": datetime.min,   # tracks 30-min data logging interval
+             "farm_vwc": None,          # FAO-56 water-balance state, seeded from CSV history below
+             "_irr_depth_since_tick": 0.0,   # mm applied since the last balance tick, accumulated as valves open
              # per-field valve timers
              "valve_close_Field A": _now,
              "valve_close_Field B": _now,
@@ -608,8 +715,12 @@ if not st.session_state._csv_loaded:
             hist = pd.read_csv(TELEMETRY_CSV)
             # keep last 200 rows; convert back to list of dicts
             st.session_state.telemetry = hist.tail(200).to_dict("records")
+            if st.session_state.farm_vwc is None and len(hist):
+                st.session_state.farm_vwc = float(hist["VWC (%)"].iloc[-1])
         except Exception:
             pass
+    if st.session_state.farm_vwc is None:
+        st.session_state.farm_vwc = round((FC + WP) / 2, 1)   # no history yet — start at mid-capacity
     st.session_state._csv_loaded = True
 
 # Auto-connect Drive — works on Streamlit Cloud (st.secrets) AND locally (json file)
@@ -631,8 +742,8 @@ if not drive.connected:
 weather=fetch_weather()
 ndvi_data = fetch_ndvi_status()
 zone_by_field = ndvi_data["zone_by_field"] if ndvi_data else {}
-src="⚠️ Estimated"
-vwc=round(max(10.0,min(40.0,0.18*weather["hum"]+np.random.uniform(-.5,.5))),1) if weather else None
+src="🧮 FAO-56 Water Balance"
+vwc=st.session_state.farm_vwc
 
 # ── Per-field valve + irrigation decision ─────────────────────────────────────
 field_crop  = st.session_state.get("crop", "Ornamental/Shade")
@@ -647,6 +758,7 @@ for fname in FIELD_NAMES:
     if irr_f and irr_f["should"] and not v_open:
         st.session_state[vk] = datetime.now() + timedelta(hours=irr_f["dur"])
         v_open = True
+        st.session_state._irr_depth_since_tick += irr_f["depth"]
         st.session_state.irr_log.append({
             "Time": datetime.now().strftime("%d/%m %H:%M"), "Field": fname,
             "VWC %": vwc, "Depth mm": irr_f["depth"],
@@ -664,6 +776,18 @@ _secs_since_log = (datetime.now() - st.session_state._last_collect_time).total_s
 _should_log = _secs_since_log >= 1800   # only write data every 30 minutes
 
 if weather and vwc and _should_log:
+    # ── Advance the FAO-56 water-balance state: deplete by crop ET over the
+    # elapsed interval, replenish by current rainfall and any irrigation
+    # applied since the last tick. No sensor, no randomness — pure model.
+    _c = CROPS.get(field_crop, {"Kc": 1.0, "root_m": 0.5})
+    _elapsed_days = _secs_since_log / 86400.0
+    _etc_pct  = weather["et0"] * _c["Kc"] * _elapsed_days / (_c["root_m"] * 10)
+    _rain_pct = min(TAW, weather.get("rain", 0) / (_c["root_m"] * 10))
+    _irr_pct  = st.session_state._irr_depth_since_tick / (_c["root_m"] * 10)
+    vwc = round(max(WP, min(FC, vwc - _etc_pct + _rain_pct + _irr_pct)), 1)
+    st.session_state.farm_vwc = vwc
+    st.session_state._irr_depth_since_tick = 0.0
+
     st.session_state._last_collect_time = datetime.now()
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     new_rows = []
@@ -671,7 +795,7 @@ if weather and vwc and _should_log:
         trow = {
             "Timestamp": ts, "Field": fname,
             "VWC (%)": round(vwc, 2),
-            "Moisture Source": src.replace("🛰️ ","").replace("⚠️ ",""),
+            "Moisture Source": src,
             "Temp (°C)": weather["temp"], "Humidity (%)": weather["hum"],
             "VPD (kPa)": weather["vpd"], "ET₀ (mm/d)": weather["et0"],
             "Rain (mm)": weather["rain"],
@@ -732,6 +856,21 @@ def _permanent_url() -> str:
     except Exception: pass
     return ""
 
+def _pi_brain_active() -> bool:
+    """Real check — is the agrisat-brain systemd service actually running on
+    this machine? Returns False (not fabricated "online") on any host where
+    that service doesn't exist, e.g. if this ever runs off the Pi again."""
+    try:
+        result = subprocess.run(["systemctl", "is-active", "agrisat-brain"],
+                                 capture_output=True, text=True, timeout=3)
+        return result.stdout.strip() == "active"
+    except Exception:
+        return False
+
+@st.cache_data(ttl=10)
+def _pi_brain_active_cached() -> bool:
+    return _pi_brain_active()
+
 _pub_url  = _tunnel_url()
 _perm_url = _permanent_url()
 
@@ -740,6 +879,8 @@ valve_badge = (f'<span class="badge badge-blue pulse">💧 {len(open_fields)}/3 
                if open_fields else '<span class="badge badge-green">✅ ALL STANDBY</span>')
 drive_badge = '<span class="badge badge-green">☁️ DRIVE SYNCED</span>' if drive.connected \
               else '<span class="badge badge-red">🔴 DRIVE OFF</span>'
+pi_badge = '<span class="badge badge-green">🟢 PI BRAIN ONLINE</span>' if _pi_brain_active_cached() \
+           else '<span class="badge badge-red">🔴 PI BRAIN OFFLINE</span>'
 
 st.markdown(f"""
 <div class="site-header">
@@ -757,7 +898,7 @@ st.markdown(f"""
     </div>
   </div>
   <div class="header-badges">
-    {valve_badge}{drive_badge}
+    {valve_badge}{drive_badge}{pi_badge}
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1151,7 +1292,7 @@ with tab1:
 
         # Radar chart (matplotlib)
         if weather and vwc:
-            st.markdown('<div class="panel-title" style="margin-top:4px">📊 Sensor Radar</div>',
+            st.markdown('<div class="panel-title" style="margin-top:4px">📊 Field Conditions Radar</div>',
                         unsafe_allow_html=True)
             _labels = ["Temp\n(°C)","VPD\n(kPa)","VWC\n(%)","ET₀\n(mm/d)","Hum\n(%)"]
             _raw    = [weather["temp"], weather["vpd"], vwc, weather["et0"], weather["hum"]]
@@ -1194,11 +1335,11 @@ with tab1:
                     st.session_state[f"valve_close_{t}"] = datetime.now()-timedelta(seconds=1)
                 st.success("All valves closed")
 
-    # ── Full-width: Recent Sensor Readings ───────────────────────────────────
+    # ── Full-width: Recent Telemetry ──────────────────────────────────────────
     if st.session_state.telemetry:
         n_rows = len(st.session_state.telemetry)
         st.markdown(
-            f'<div class="panel-title" style="margin-top:12px">📡 Recent Sensor Readings '
+            f'<div class="panel-title" style="margin-top:12px">📡 Recent Telemetry '
             f'<span style="color:#4ade80;font-size:.72rem;font-weight:500;text-transform:none;'
             f'letter-spacing:0">· {n_rows} reading{"s" if n_rows!=1 else ""} · '
             f'auto-logs every 30 min</span></div>',
@@ -1369,12 +1510,16 @@ with tab4:
             if st.button("🔓 Open Valve", use_container_width=True):
                 targets = FIELD_NAMES if ov_field=="All Fields" else [ov_field]
                 for t in targets: st.session_state[f"valve_close_{t}"] = datetime.now()+timedelta(hours=2)
-                st.success(f"Opened {ov_field} for 2h")
+                set_physical_valve(True)
+                st.success(f"Opened {ov_field} for 2h" + (" — physical valve ON" if HAS_GPIO else ""))
         with oc2:
             if st.button("🔒 Close Valve", use_container_width=True):
                 targets = FIELD_NAMES if ov_field=="All Fields" else [ov_field]
                 for t in targets: st.session_state[f"valve_close_{t}"] = datetime.now()-timedelta(seconds=1)
-                st.success(f"Closed {ov_field}")
+                set_physical_valve(False)
+                st.success(f"Closed {ov_field}" + (" — physical valve OFF" if HAS_GPIO else ""))
+        if HAS_GPIO:
+            st.caption(f"🔌 Physical relay wired to GPIO{VALVE_GPIO_PIN} — these buttons drive the real solenoid, not just the simulation.")
 
     # ── Drive Connection Panel (full-width row) ──────────────────────────────
     st.markdown("---")
@@ -1434,7 +1579,7 @@ with tab4:
 # stays completely static until the timer fires or the user interacts.
 st.html("""
 <script>
-  // Reload page every 30 minutes for fresh sensor data
+  // Reload page every 30 minutes for a fresh weather/satellite/telemetry read
   setTimeout(function(){ window.location.reload(); }, 30 * 60 * 1000);
 </script>
 """, unsafe_allow_javascript=True)
