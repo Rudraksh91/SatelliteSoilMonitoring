@@ -17,33 +17,24 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 # Map rendered via st.iframe(data:text/html;base64,…) — no external component JS needed
 
-# ── Physical test valve (direct Pi GPIO, no LoRa/ESP32 yet) ───────────────────
-# Single relay+solenoid wired straight to the Pi for hardware bring-up testing.
-# See hardware/raspberry_pi/test_valve.py for the standalone CLI version —
-# this mirrors the same pin/polarity so both agree on what "open" means.
-# Streamlit re-runs this whole file top-to-bottom on every interaction, so GPIO
-# setup is wrapped in st.cache_resource — it claims the pin once for the life
-# of the server process instead of re-claiming (and briefly releasing) it on
-# every rerun, which would make the physical valve's state unreliable.
-VALVE_GPIO_PIN = 23
+# ── Physical test valve — controlled via MQTT, not direct GPIO ────────────────
+# brain.py (running as its own systemd service on this same Pi) is the single
+# real owner of the relay's GPIO pin. If app.py also claimed that GPIO
+# directly, the two separate processes would fight over the same line. So
+# this just publishes the same command the website's Cloud MQTT panel sends —
+# brain.py's mqtt_on_message() picks it up and drives the physical valve.
+MQTT_FARM_ID = "dediapada-farm-01"
+MQTT_HOST, MQTT_PORT = "broker.hivemq.com", 1883
+MQTT_TOPIC_CMD = f"agrisat/{MQTT_FARM_ID}/cmd"
 
-@st.cache_resource
-def _init_gpio():
+def publish_valve_cmd(zone: int, state: bool) -> bool:
     try:
-        import RPi.GPIO as GPIO
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
-        GPIO.setup(VALVE_GPIO_PIN, GPIO.OUT, initial=GPIO.HIGH)  # HIGH = relay off = valve closed
-        return GPIO
+        import paho.mqtt.publish as mqtt_publish
+        mqtt_publish.single(MQTT_TOPIC_CMD, payload=json.dumps({"zone": zone, "state": state}),
+                             hostname=MQTT_HOST, port=MQTT_PORT)
+        return True
     except Exception:
-        return None
-
-_GPIO = _init_gpio()
-HAS_GPIO = _GPIO is not None
-
-def set_physical_valve(open_: bool):
-    if HAS_GPIO:
-        _GPIO.output(VALVE_GPIO_PIN, _GPIO.LOW if open_ else _GPIO.HIGH)
+        return False
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 FIELD_LAT, FIELD_LON = 21.628, 73.592
@@ -1510,16 +1501,15 @@ with tab4:
             if st.button("🔓 Open Valve", use_container_width=True):
                 targets = FIELD_NAMES if ov_field=="All Fields" else [ov_field]
                 for t in targets: st.session_state[f"valve_close_{t}"] = datetime.now()+timedelta(hours=2)
-                set_physical_valve(True)
-                st.success(f"Opened {ov_field} for 2h" + (" — physical valve ON" if HAS_GPIO else ""))
+                mqtt_ok = publish_valve_cmd(1, True)
+                st.success(f"Opened {ov_field} for 2h" + (" — physical valve command sent" if mqtt_ok else " (MQTT publish failed — check broker connectivity)"))
         with oc2:
             if st.button("🔒 Close Valve", use_container_width=True):
                 targets = FIELD_NAMES if ov_field=="All Fields" else [ov_field]
                 for t in targets: st.session_state[f"valve_close_{t}"] = datetime.now()-timedelta(seconds=1)
-                set_physical_valve(False)
-                st.success(f"Closed {ov_field}" + (" — physical valve OFF" if HAS_GPIO else ""))
-        if HAS_GPIO:
-            st.caption(f"🔌 Physical relay wired to GPIO{VALVE_GPIO_PIN} — these buttons drive the real solenoid, not just the simulation.")
+                mqtt_ok = publish_valve_cmd(1, False)
+                st.success(f"Closed {ov_field}" + (" — physical valve command sent" if mqtt_ok else " (MQTT publish failed — check broker connectivity)"))
+        st.caption(f"🔌 Sends the same MQTT command the website's Cloud MQTT panel uses (farm: `{MQTT_FARM_ID}`) — brain.py on the Pi receives it and drives the real relay.")
 
     # ── Drive Connection Panel (full-width row) ──────────────────────────────
     st.markdown("---")

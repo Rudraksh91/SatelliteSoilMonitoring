@@ -67,6 +67,45 @@ except ImportError:
     HAS_LORA = False
     print("[WARN] SX127x not installed — LoRa disabled (install: pip3 install pyLoRa)")
 
+# ── Physical test valve (direct Pi GPIO, no LoRa field node yet) ──────
+# One relay+solenoid wired straight to this Pi for hardware bring-up —
+# see hardware/raspberry_pi/test_valve.py for the standalone CLI, and
+# app.py's matching set_physical_valve() for the same pin/polarity.
+#
+# NOTE: the actual GPIO.setup() claim happens in init_valve_gpio(), called
+# from main() AFTER init_lora(). SX127x's BOARD.setup() calls
+# GPIO.setmode(GPIO.BCM) again for its own pins — doing that a second time
+# resets lgpio's internal chip handle and silently drops any claim made
+# before it, which is exactly what happened when this pin was claimed here
+# at import time (confirmed via /sys/kernel/debug/gpio: GPIO23 lost its
+# claim the moment init_lora() ran, while LoRa's own pins stayed claimed).
+VALVE_GPIO_PIN = 23
+try:
+    import RPi.GPIO as GPIO
+    HAS_GPIO = True
+except ImportError:
+    HAS_GPIO = False
+    print("[WARN] RPi.GPIO not available — physical test valve disabled")
+
+def init_valve_gpio():
+    if not HAS_GPIO:
+        return
+    try:
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+        GPIO.setup(VALVE_GPIO_PIN, GPIO.OUT, initial=GPIO.HIGH)  # HIGH = relay off = valve closed
+        log.info(f"[Valve] GPIO{VALVE_GPIO_PIN} claimed for physical test valve")
+    except Exception as e:
+        log.error(f"[Valve] GPIO init failed: {e}")
+
+physical_valve_open = False   # tracked separately from node_data — see publish_dashboard()
+
+def set_physical_valve(open_: bool):
+    global physical_valve_open
+    physical_valve_open = open_
+    if HAS_GPIO:
+        GPIO.output(VALVE_GPIO_PIN, GPIO.LOW if open_ else GPIO.HIGH)
+
 # ══════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════
@@ -366,6 +405,7 @@ def mqtt_on_message(client, userdata, msg):
         if d.get("emergency_stop"):
             log.info("[MQTT] Dashboard: EMERGENCY STOP")
             lora_send(build_stop_cmd())
+            set_physical_valve(False)
             return
         if "auto_mode" in d:
             auto_mode = d["auto_mode"]
@@ -376,6 +416,11 @@ def mqtt_on_message(client, userdata, msg):
         if zone and state is not None:
             log.info(f"[MQTT] Dashboard: Zone {zone} → {'OPEN' if state else 'CLOSE'}")
             lora_send(build_valve_cmd(zone, state))
+            # Only one physical relay+solenoid exists right now (no ESP32 field
+            # nodes yet) — drive it directly regardless of which zone was
+            # commanded, so any zone button during bring-up testing controls
+            # the one real valve wired to this Pi.
+            set_physical_valve(state)
     except Exception as e:
         log.error(f"[MQTT] Message error: {e}")
 
@@ -413,7 +458,13 @@ def publish_dashboard():
                     "id":       z["id"],
                     "name":     z["name"],
                     "moisture": node_data[z["node_id"]]["moisture"],
-                    "valve":    node_data[z["node_id"]]["valve"],
+                    # No real per-zone LoRa field nodes yet — the one physical
+                    # relay wired to this Pi stands in for whichever zone is
+                    # commanded, so report its real state here rather than
+                    # node_data's (always-False, no hardware) value. Otherwise
+                    # the dashboard's state-sync logic force-closes the valve
+                    # again a few seconds after every real OPEN command.
+                    "valve":    physical_valve_open,
                     "temp":     node_data[z["node_id"]]["temp"],
                     "online":   (time.time() - node_data[z["node_id"]]["last_seen"]) < 30,
                 }
@@ -423,7 +474,7 @@ def publish_dashboard():
             "moisture":    [node_data[z["node_id"]]["moisture"] for z in ZONES],
             "temperature": weather["temp"],
             "humidity":    weather["humidity"],
-            "valve":       [node_data[z["node_id"]]["valve"] for z in ZONES],
+            "valve":       [physical_valve_open for z in ZONES],
             "pico_online": all(
                 (time.time() - node_data[z["node_id"]]["last_seen"]) < 30
                 for z in ZONES
@@ -444,6 +495,7 @@ def main():
     log.info("══════════════════════════════════════════")
 
     init_lora()
+    init_valve_gpio()
     init_mqtt()
 
     last_ndvi_load    = 0

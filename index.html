@@ -3863,9 +3863,18 @@ function _hwSend(payload) {
 }
 
 // ── Intercept valve commands → forward to ESP32 (LOCAL or CLOUD)
+// Rain guard blocks the OPEN command in BOTH Auto and Manual mode — real
+// water safety takes priority over "manual override bypasses everything",
+// so even a manual button press can't force the valve open during real rain
+// (per live Open-Meteo data, same source rainGuardActive() already uses).
+// CLOSE is never blocked — you can always shut a valve off.
 const _origOpen  = openValve;
 const _origClose = closeValve;
 openValve = function(z) {
+  if (rainGuardActive()) {
+    logValve(`VALVE ${z} OPEN BLOCKED — RAIN GUARD (${rainGuardReason()})`);
+    return;
+  }
   _origOpen(z);
   _hwSend({zone:z, state:true});
 };
