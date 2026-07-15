@@ -450,6 +450,22 @@ header{
 #sat-map{width:100%;height:100%;background:#010b16}
 #sat-map .leaflet-tile-pane{filter:brightness(.68) saturate(.75)}
 #sat-map .leaflet-control-attribution{display:none}
+/* Rain overlay on the map page — only shown when S.rain_mm shows real
+   active rainfall (same RAIN_ACTIVE_MIN_MM threshold rainGuardReason()
+   uses), toggled in fetchWeather(). Not decorative-by-default. */
+#map-rain-fx{
+  background:
+    repeating-linear-gradient(100deg, rgba(200,225,255,.9) 0 1.5px, transparent 1.5px 13px),
+    repeating-linear-gradient(100deg, rgba(200,225,255,.5) 0 1px, transparent 1px 21px);
+  background-size:3px 100%,5px 100%;
+  animation:map-rainfall .35s linear infinite;
+  mix-blend-mode:screen;
+  opacity:.85;
+}
+@keyframes map-rainfall{
+  0%{background-position:0 -20px,0 -30px}
+  100%{background-position:-40px 100px,-60px 140px}
+}
 .sat-tip{background:rgba(10,15,13,.92)!important;border:1px solid rgba(0,255,65,.35)!important;color:#00ff41!important;font-family:'JetBrains Mono',monospace!important;font-size:10px!important;font-weight:600!important;letter-spacing:.08em!important;border-radius:4px!important;padding:5px 8px!important;box-shadow:0 0 12px rgba(0,255,65,.15)!important;white-space:nowrap!important}
 .sat-tip::before{display:none!important}
 /* Mode toggle */
@@ -724,6 +740,7 @@ header{
   <div class="absolute inset-0 z-0">
     <div id="sat-map"></div>
     <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at center,transparent 40%,rgba(10,15,13,.8) 100%)"></div>
+    <div id="map-rain-fx" class="absolute inset-0 pointer-events-none" style="display:none"></div>
   </div>
   <div class="relative z-10 grid grid-cols-12 h-full gap-gutter">
     <!-- Left -->
@@ -1839,6 +1856,8 @@ function applyCurrentData(d){
   set('map-day',isDay);
   set('precip-alert',S.precip_prob.toFixed(0)+'%');
   set('rain-alert',S.rain_mm>0?'RAINING':S.precip_prob>60?'WARN':S.precip_prob>30?'MONITOR':'CLEAR');
+  const rainFx=document.getElementById('map-rain-fx');
+  if(rainFx)rainFx.style.display=(S.rain_mm>=RAIN_ACTIVE_MIN_MM)?'block':'none';
   set('et0-alert',S.et0>6?'HIGH':S.et0>4?'MODERATE':'LOW');
   // Climate page
   set('cl-tmp',S.tmp.toFixed(1));
