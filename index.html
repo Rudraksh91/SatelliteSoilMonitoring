@@ -466,31 +466,8 @@ header{
   0%{background-position:0 -20px,0 -30px}
   100%{background-position:-40px 100px,-60px 140px}
 }
-/* Cloud cover overlay — shown when S.cloud_cover (real Open-Meteo reading)
-   crosses the threshold in updateMapSkyFx(). A light, clearly-artificial
-   cloud icon (pill body + two circular bumps), not a photoreal fog blur —
-   reads as a deliberate UI/HUD element rather than decorative stock art. */
-.map-cloud-blob{
-  position:absolute;
-  background:rgba(255,255,255,.5);
-  border-radius:60px;
-  box-shadow:0 0 16px 2px rgba(255,255,255,.2);
-  animation:map-cloud-drift linear infinite;
-}
-.map-cloud-blob::before,.map-cloud-blob::after{
-  content:'';
-  position:absolute;
-  background:inherit;
-  border-radius:50%;
-}
-.map-cloud-blob::before{width:55%;height:150%;top:-52%;left:6%}
-.map-cloud-blob::after{width:38%;height:115%;top:-38%;left:50%}
-@keyframes map-cloud-drift{
-  from{transform:translateX(0)}
-  to{transform:translateX(160%)}
-}
-/* 3D command-center tilt — the map + weather overlays are one perspective
-   group so clouds/rain/sun-moon stay aligned with the tilted map plane. */
+/* 3D command-center tilt — the map + rain overlay are one perspective
+   group so rain stays aligned with the tilted map plane. */
 #page-map{perspective:2400px}
 #map-3d-wrap{
   transform:rotateX(15deg) scale(1.3);
@@ -772,19 +749,6 @@ header{
     <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at center,transparent 40%,rgba(10,15,13,.8) 100%)"></div>
     <div id="map-rain-fx" class="absolute inset-0 pointer-events-none" style="display:none"></div>
   </div>
-  <!-- Cloud/sky-icon stay OUTSIDE #map-3d-wrap on purpose: nesting an
-       overflow/box-shadow-heavy layer inside the 3D-perspective-transformed
-       wrapper produced a hard rendering seam (browser 3D-compositing quirk,
-       not a clipping bug — removing overflow:hidden alone didn't fix it).
-       This flat layer sits at the same screen position without sharing the
-       tilt transform. -->
-  <div id="map-cloud-fx" class="absolute inset-0 pointer-events-none" style="display:none;z-index:1">
-    <div class="map-cloud-blob" style="top:10%;left:-20%;width:26%;height:9%;animation-duration:38s"></div>
-    <div class="map-cloud-blob" style="top:30%;left:-35%;width:34%;height:11%;animation-duration:52s;animation-delay:-10s"></div>
-    <div class="map-cloud-blob" style="top:55%;left:-25%;width:22%;height:8%;animation-duration:45s;animation-delay:-25s"></div>
-    <div class="map-cloud-blob" style="top:70%;left:-45%;width:30%;height:10%;animation-duration:60s;animation-delay:-35s"></div>
-  </div>
-  <div id="map-sky-icon" class="absolute pointer-events-none" style="top:14px;right:14px;width:22px;height:22px;border-radius:50%;display:none;z-index:2"></div>
   <div class="relative z-10 grid grid-cols-12 h-full gap-gutter">
     <!-- Left -->
     <div class="col-span-3 flex flex-col gap-sm">
@@ -1786,7 +1750,7 @@ function pipeShowTree(){
 // per-field UI hookups don't need touching, but they are always kept in
 // sync in tickVWC() below — there is no real per-field soil sensor, so soil
 // VWC is treated as one farm-wide reading, same as weather.
-const S={vA:22.4,vB:22.4,vC:22.4,tmp:34.2,hum:67,et0:4.8,vpd:1.3,wind:12,press:1008,precip_prob:5,rain_mm:0,rain_next24h_mm:0,hours_since_rain:Infinity,apt:36.0,dew:22.0,cloud_cover:0,is_day:true};
+const S={vA:22.4,vB:22.4,vC:22.4,tmp:34.2,hum:67,et0:4.8,vpd:1.3,wind:12,press:1008,precip_prob:5,rain_mm:0,rain_next24h_mm:0,hours_since_rain:Infinity,apt:36.0,dew:22.0,is_day:true};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
 function pct(id,v){const e=document.getElementById(id);if(e)e.style.width=clamp(v,0,100).toFixed(1)+'%'}
@@ -1855,34 +1819,6 @@ async function fetchWeather(){
   }
 }
 
-// Real sky state on the Map page — cloud_cover and is_day come straight
-// from Open-Meteo (see applyCurrentData). Sun/moon only shows when the
-// sky is actually clear; a cloudy reading shows drifting cloud cover
-// instead, never both — matches what you'd actually see looking up.
-function updateMapSkyFx(){
-  const cloudFx=document.getElementById('map-cloud-fx');
-  const skyIcon=document.getElementById('map-sky-icon');
-  const CLOUDY_MIN=45; // % cover considered "cloudy" for this visual
-  const isCloudy=S.cloud_cover>=CLOUDY_MIN;
-  if(cloudFx){
-    cloudFx.style.display=isCloudy?'block':'none';
-    cloudFx.style.opacity=Math.min(1,S.cloud_cover/100+.2).toFixed(2);
-  }
-  if(skyIcon){
-    if(isCloudy){
-      skyIcon.style.display='none';
-    }else if(S.is_day){
-      skyIcon.style.background='#ffcc4d';
-      skyIcon.style.boxShadow='0 0 12px 3px rgba(255,204,77,.7)';
-      skyIcon.style.display='block';
-    }else{
-      skyIcon.style.background='#e6e9f0';
-      skyIcon.style.boxShadow='0 0 10px 2px rgba(230,233,240,.55)';
-      skyIcon.style.display='block';
-    }
-  }
-}
-
 function applyCurrentData(d){
   const c=d.current,h=d.hourly;
   const idx=now_idx(h.time);
@@ -1920,7 +1856,6 @@ function applyCurrentData(d){
   S.hours_since_rain=hoursSince;
 
   S.is_day=c.is_day===1;
-  S.cloud_cover=h.cloud_cover[idx]??0;
   const isDay=S.is_day?'DAY ☀':'NIGHT 🌙';
   // Map page
   set('map-tmp',S.tmp.toFixed(1)+'°C');
@@ -1931,7 +1866,6 @@ function applyCurrentData(d){
   set('rain-alert',S.rain_mm>0?'RAINING':S.precip_prob>60?'WARN':S.precip_prob>30?'MONITOR':'CLEAR');
   const rainFx=document.getElementById('map-rain-fx');
   if(rainFx)rainFx.style.display=(S.rain_mm>=RAIN_ACTIVE_MIN_MM)?'block':'none';
-  updateMapSkyFx();
   set('et0-alert',S.et0>6?'HIGH':S.et0>4?'MODERATE':'LOW');
   // Climate page
   set('cl-tmp',S.tmp.toFixed(1));
