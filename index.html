@@ -3595,6 +3595,16 @@ let _mqttFarmId    = localStorage.getItem('agrisat_farm_id') || '';
 let _mqttConnected = false;
 let _mqttMode      = false;   // true = cloud tab active
 
+// ── Data-staleness watchdog ──────────────────────────────────────────────
+// MQTT/WebSocket "connected" only means the browser can reach the broker/
+// ESP32 — it says nothing about whether the Pi (brain.py) or ESP32 is
+// still actually alive and publishing. If the Pi is powered off, the
+// browser's own socket to HiveMQ stays "connected" indefinitely; the only
+// real signal is data going quiet. brain.py publishes every ~3s, so no
+// data for STALE_MS is a genuine "the other end went away" signal.
+const STALE_MS = 12000;
+let _lastDataAt = 0;
+
 // ── Active connection mode
 let _hwMode = localStorage.getItem('agrisat_hw_mode') || 'local';
 
@@ -3654,21 +3664,25 @@ function _hwSetStatus(state, sub) {
     disconnected: { color:'rgba(255,255,255,.2)', label:'DISCONNECTED', btnColor:'rgba(185,204,178,.2)', btnTxt:'rgba(185,204,178,.5)' },
     connecting:   { color:'rgba(255,200,50,.8)',  label:'CONNECTING…',  btnColor:'rgba(255,200,50,.3)',  btnTxt:'rgba(255,200,50,.9)' },
     online:       { color:'#00ff41',              label:'CONNECTED',    btnColor:'rgba(0,255,65,.35)',    btnTxt:'#00ff41' },
+    // Socket to the broker/ESP32 is still up, but no data has arrived in
+    // STALE_MS — the actual device on the other end is most likely off.
+    stale:        { color:'rgba(255,150,50,.85)', label:'NO DATA — DEVICE OFFLINE?', btnColor:'rgba(255,150,50,.3)', btnTxt:'rgba(255,150,50,.9)' },
     error:        { color:'rgba(255,80,80,.8)',   label:'ERROR',        btnColor:'rgba(255,80,80,.25)',   btnTxt:'rgba(255,80,80,.8)' },
   };
   const s = states[state] || states.disconnected;
+  const isLive = state==='online' || state==='stale';
 
   dot.style.background  = s.color;
-  dot.style.boxShadow   = state==='online' ? '0 0 8px #00ff41' : 'none';
+  dot.style.boxShadow   = state==='online' ? '0 0 8px #00ff41' : (state==='stale' ? '0 0 8px rgba(255,150,50,.85)' : 'none');
   txt.textContent       = s.label;
   txt.style.color       = s.color;
   sub_.textContent      = sub || '';
   hbtn.style.borderColor = s.btnColor;
   hdot.style.background  = s.color;
-  hdot.style.boxShadow   = state==='online' ? '0 0 6px #00ff41' : 'none';
+  hdot.style.boxShadow   = state==='online' ? '0 0 6px #00ff41' : (state==='stale' ? '0 0 6px rgba(255,150,50,.85)' : 'none');
   hl.style.color         = s.btnTxt;
-  discBtn.style.display  = state==='online' ? 'block' : 'none';
-  liveBox.style.display  = state==='online' ? 'block' : 'none';
+  discBtn.style.display  = isLive ? 'block' : 'none';
+  liveBox.style.display  = isLive ? 'block' : 'none';
 }
 
 // ── Connect to ESP32 WebSocket
@@ -3825,6 +3839,15 @@ function disconnectAllHW() {
 // ── Handle incoming ESP32 data and update dashboard elements
 function _hwHandleData(d) {
   if (!d) return;
+  _lastDataAt = Date.now();
+  // If we were showing "stale" (no-data) and real data just arrived again,
+  // flip back to a clean "online" — same connection, real data resumed.
+  const curLabel = document.getElementById('hw-status-txt')?.textContent;
+  if (curLabel === 'NO DATA — DEVICE OFFLINE?') {
+    _hwSetStatus('online', _mqttMode
+      ? '☁ MQTT · ' + _mqttFarmId + ' · HiveMQ connected'
+      : 'ws://' + _hwIP + ':81 · Live data active');
+  }
 
   // ── Moisture sensors → update the live HW modal readout
   const m = d.moisture || [];
@@ -3892,6 +3915,22 @@ function _hwHandleData(d) {
     }
   }
 }
+
+// ── Staleness watchdog — the socket to the broker/ESP32 can stay "connected"
+// forever even after the actual device (Pi/ESP32) goes offline, since that's
+// a browser-to-broker link, not a device-to-broker one. Poll for how long
+// it's been since real data last arrived and downgrade the status if it's
+// been quiet too long, so "CONNECTED" never lies about the device itself.
+setInterval(() => {
+  if (!_hwConnected && !_mqttConnected) return;
+  if (!_lastDataAt) return; // never received anything yet — let the initial connect message stand
+  const curLabel = document.getElementById('hw-status-txt')?.textContent;
+  if (curLabel !== 'CONNECTED' && curLabel !== 'NO DATA — DEVICE OFFLINE?') return;
+  const quiet = Date.now() - _lastDataAt;
+  if (quiet > STALE_MS && curLabel === 'CONNECTED') {
+    _hwSetStatus('stale', (_mqttMode ? '☁ MQTT socket up' : 'WebSocket up') + ' but no data for ' + Math.round(quiet/1000) + 's — device likely powered off');
+  }
+}, 3000);
 
 // ── Shared HW command sender (LOCAL WS or CLOUD MQTT)
 // brain.py only publishes its state every ~3s, so a command we just sent
