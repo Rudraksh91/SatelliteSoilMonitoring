@@ -2891,6 +2891,11 @@ function setIrrigMode(mode){
   const ind=document.getElementById('mode-indicator');
   ind.textContent=isManual?'MANUAL OVERRIDE':'AUTONOMOUS';
   ind.className='font-data-sm text-data-sm '+(isManual?'text-error':'text-primary-container');
+  // Tell brain.py the real mode too — otherwise its own auto_mode flag
+  // (defaults True, only ever changes via this message) stays stuck at
+  // True, and the state-sync in _hwHandleData() would keep seeing a
+  // mismatch and forcing the UI back to Auto every ~3s publish cycle.
+  if (typeof _hwSend === 'function') _hwSend({auto_mode: !isManual});
   if(isManual){
     logValve('MANUAL_MODE_ENGAGED — AUTO_LOGIC SUSPENDED');
   } else {
@@ -3837,23 +3842,34 @@ function _hwHandleData(d) {
     picoEl.style.color  = d.pico_online ? '#00ff41' : 'rgba(255,80,80,.7)';
   }
 
-  // ── Sync valve states (another device may have changed them)
-  const v = d.valve || [];
-  [0,1,2].forEach(i => {
-    if (v[i] !== undefined && v[i] !== valveState[i+1].open) {
-      v[i] ? openValve(i+1) : closeValve(i+1, true);
-    }
-  });
+  // ── Sync valve states (another device may have changed them) — skipped
+  // for a few seconds after our own last command, see _lastHwCmdTime above.
+  if (Date.now() - _lastHwCmdTime > 4000) {
+    const v = d.valve || [];
+    [0,1,2].forEach(i => {
+      if (v[i] !== undefined && v[i] !== valveState[i+1].open) {
+        v[i] ? openValve(i+1) : closeValve(i+1, true);
+      }
+    });
 
-  // ── Auto mode sync
-  if (d.auto_mode !== undefined) {
-    const curMode = document.getElementById('mode-btn-auto')?.classList.contains('active');
-    if (d.auto_mode !== curMode) setIrrigMode(d.auto_mode ? 'auto' : 'manual');
+    // ── Auto mode sync
+    if (d.auto_mode !== undefined) {
+      const curMode = document.getElementById('mode-btn-auto')?.classList.contains('active');
+      if (d.auto_mode !== curMode) setIrrigMode(d.auto_mode ? 'auto' : 'manual');
+    }
   }
 }
 
 // ── Shared HW command sender (LOCAL WS or CLOUD MQTT)
+// brain.py only publishes its state every ~3s, so a command we just sent
+// can be "raced" by a publish that was generated before brain.py processed
+// it — the sync logic below would then see stale data and bounce our own
+// change right back. _lastHwCmdTime marks a short grace window where
+// incoming sync corrections are ignored, since we already know what we
+// just told the hardware to do.
+let _lastHwCmdTime = 0;
 function _hwSend(payload) {
+  _lastHwCmdTime = Date.now();
   if (_hwConnected && _hwWS && _hwWS.readyState === WebSocket.OPEN) {
     _hwWS.send(JSON.stringify(payload));
   }
