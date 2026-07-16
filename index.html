@@ -732,6 +732,8 @@ header{
     <div class="flex items-center gap-sm text-on-surface-variant">
       <span class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">rss_feed</span>
       <span class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">speed</span>
+      <!-- Settings (only entry point on mobile — sidebar w/ Settings is desktop-only) -->
+      <span onclick="openSettingsModal()" class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">settings</span>
       <!-- HW Connection button -->
       <button onclick="openHWModal()" class="flex items-center gap-[5px] px-2 py-[3px] rounded border transition-all font-label-caps text-[9px] font-bold tracking-widest" id="hw-btn" style="border-color:rgba(185,204,178,.2);color:rgba(185,204,178,.5)">
         <span id="hw-dot" class="w-[6px] h-[6px] rounded-full bg-white/20 transition-all"></span>
