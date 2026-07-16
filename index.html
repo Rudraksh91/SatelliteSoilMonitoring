@@ -1138,6 +1138,15 @@ header{
         <span class="material-symbols-outlined text-error shrink-0" style="font-size:18px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">warning</span>
         <span class="font-label-caps text-[10px] text-error">MANUAL OVERRIDE ACTIVE — Autonomous irrigation logic suspended. You have direct valve control.</span>
       </div>
+      <!-- Rain guard banner — only visible while it's actually blocking opens.
+           The block itself (in openValve()) is a safety feature working as
+           intended, not a bug, but with zero visible reason it just looks
+           like "the button does nothing" — this makes the reason obvious
+           without digging through the log stream. -->
+      <div id="manual-rainguard-banner" style="display:none" class="flex items-center gap-sm px-sm py-xs bg-secondary-container/10 border border-secondary-container/30 rounded-lg shrink-0">
+        <span class="material-symbols-outlined text-secondary-container shrink-0" style="font-size:18px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">rainy</span>
+        <span id="manual-rainguard-text" class="font-label-caps text-[10px] text-secondary-container">RAIN GUARD ACTIVE — valves will not open until conditions clear.</span>
+      </div>
 
       <!-- 3 Valve Zone Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-sm flex-1">
@@ -2551,9 +2560,22 @@ let _prevAction={vA:null,vB:null,vC:null};
 let _prevRainGuard=false;
 let _heartbeatIdx=0;
 
+// Keeps the Manual Mode rain-guard banner in sync with reality — called
+// on every periodic refresh AND immediately on mode switch, so it's never
+// stale by more than a heartbeat and never blank on first load.
+function updateManualRainGuardBanner(){
+  const banner=document.getElementById('manual-rainguard-banner');
+  const text=document.getElementById('manual-rainguard-text');
+  if(!banner||!text)return;
+  const active=rainGuardActive();
+  banner.style.display=active?'flex':'none';
+  if(active)text.innerHTML=`RAIN GUARD ACTIVE (${rainGuardReason()}) — OPEN VALVE is blocked until conditions clear.`;
+}
+
 // Real transition-based events: only fires when a field's actual computed
 // action (from the same rule engine driving the timeline) changes state.
 function checkFieldTransitions(){
+  updateManualRainGuardBanner();
   const rainNow=rainGuardActive();
   if(rainNow!==_prevRainGuard){
     logSystemEvent(rainNow
@@ -2952,6 +2974,7 @@ function setIrrigMode(mode){
   if (typeof _hwSend === 'function') _hwSend({auto_mode: !isManual});
   if(isManual){
     logValve('MANUAL_MODE_ENGAGED — AUTO_LOGIC SUSPENDED');
+    if (typeof updateManualRainGuardBanner === 'function') updateManualRainGuardBanner();
   } else {
     [1,2,3].forEach(z=>{if(valveState[z].open)closeValve(z,true)});
     logValve('AUTO_MODE_RESTORED — RESUMING AUTONOMOUS LOGIC');
