@@ -3942,16 +3942,15 @@ function _hwHandleData(d) {
     picoEl.style.color  = d.pico_online ? '#00ff41' : 'rgba(255,80,80,.7)';
   }
 
-  // ── Sync valve states (another device may have changed them) — skipped
-  // for a few seconds after our own last command, see _lastHwCmdTime above.
+  // ── Valve-state echo sync is intentionally DISABLED: brain.py has only one
+  // physical relay right now and mirrors that single boolean across all 3
+  // zone slots in d.valve (see set_physical_valve() in brain.py). Reflecting
+  // that shared boolean back into 3 independently-tracked zone states here
+  // caused a feedback loop — opening zone 1 made the Pi report zone 2/3 as
+  // "changed" too, which re-fired real openValve/closeValve HW commands for
+  // them, which changed the one shared relay again, forever. Re-enable this
+  // once each zone has its own real hardware to report back independently.
   if (Date.now() - _lastHwCmdTime > 4000) {
-    const v = d.valve || [];
-    [0,1,2].forEach(i => {
-      if (v[i] !== undefined && v[i] !== valveState[i+1].open) {
-        v[i] ? openValve(i+1) : closeValve(i+1, true);
-      }
-    });
-
     // ── Auto mode sync
     if (d.auto_mode !== undefined) {
       const curMode = document.getElementById('mode-btn-auto')?.classList.contains('active');
@@ -4002,24 +4001,17 @@ function _hwSend(payload) {
 // CLOSE is never blocked — you can always shut a valve off.
 const _origOpen  = openValve;
 const _origClose = closeValve;
-// NOTE: outgoing state is intentionally inverted (open→false, close→true) —
-// compensates for the physical relay still behaving inverted on the Pi side
-// (brain.py's GPIO polarity fix hasn't been redeployed/restarted there yet).
-// Dashboard UI (LED/status text) still shows the correct logical open/closed
-// state — only the wire command sent to the relay is flipped. If brain.py is
-// ever redeployed with its own polarity fix live, REVERT this flip or the
-// valve will invert again.
 openValve = function(z) {
   if (rainGuardActive()) {
     logValve(`VALVE ${z} OPEN BLOCKED — RAIN GUARD (${rainGuardReason()})`);
     return;
   }
   _origOpen(z);
-  _hwSend({zone:z, state:false});
+  _hwSend({zone:z, state:true});
 };
 closeValve = function(z, silent, skipHW) {
   _origClose(z, silent);
-  if (!skipHW) _hwSend({zone:z, state:true});
+  if (!skipHW) _hwSend({zone:z, state:false});
 };
 const _origStop = stopAllValves;
 stopAllValves = function() {
