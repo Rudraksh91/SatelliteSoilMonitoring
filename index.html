@@ -2116,7 +2116,7 @@ function tickVWC(){
     const kc=ndviToKc((window._ndviZones||[])[i]?.ndvi);
     const etcPct=kc*S.et0*(VWC_TICK_S/86400)/(VWC_ROOT_M*10);
     const dripAt=_liveVwcThreshold();
-    const dripping=AUTO_OPT_LIVE.dripControlA&&!rainGuardActive()&&dripAt!==null&&S[k]<dripAt;
+    const dripping=AUTO_OPT_LIVE.dripControlA&&!rainGuardActive()&&isFieldDripping(k,S[k],dripAt);
     const irrPct=dripping?0.12:0;
     S[k]=clamp(S[k]-etcPct+rainPct+irrPct,FAO56_PARAMS.WP,FAO56_PARAMS.FC);
   });
@@ -2307,6 +2307,25 @@ function rainGuardReason(){
   return 'CLEAR';
 }
 
+// Auto-drip runs a fixed 1.5h timed cycle once triggered — same idea as a
+// real drip controller's timer, not "open for exactly as long as VWC happens
+// to sit below the threshold" (which flickered open/closed as VWC crossed
+// the line and never settled). Shared by the Timeline display and the VWC
+// replenishment model (tickVWC) so they can't disagree about drip state.
+// Idempotent: calling this again while a cycle is already running just
+// returns true without resetting the expiry.
+const AUTO_DRIP_HOURS=1.5;
+let _autoDripExpiry={vA:0,vB:0,vC:0};
+function isFieldDripping(fieldKey,vwc,dripAt){
+  const now=Date.now();
+  if(_autoDripExpiry[fieldKey]>now)return true;
+  if(dripAt!==null && vwc<dripAt){
+    _autoDripExpiry[fieldKey]=now+AUTO_DRIP_HOURS*3600*1000;
+    return true;
+  }
+  return false;
+}
+
 function evaluateFieldAction(vwc,fieldKey){
   if(fieldKey==='vA' && !AUTO_OPT_LIVE.dripControlA)
     return {label:'MANUAL OVERRIDE · AUTO DISABLED',cls:'bg-white/5 border-white/10 text-on-surface-variant/40',spanCols:2.4};
@@ -2315,8 +2334,10 @@ function evaluateFieldAction(vwc,fieldKey){
   const dripAt=_liveVwcThreshold();
   if(dripAt===null)
     return {label:'DRIP RULE DISABLED',cls:'bg-white/5 border-white/10 text-on-surface-variant/40',spanCols:2.4};
-  if(vwc<dripAt)
-    return {label:'DRIP CYCLE ACTIVE · '+vwc.toFixed(1)+'%',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38 && AUTO_OPT_LIVE.et0Comp};
+  if(isFieldDripping(fieldKey,vwc,dripAt)){
+    const remainMin=Math.max(0,Math.ceil((_autoDripExpiry[fieldKey]-Date.now())/60000));
+    return {label:'DRIP CYCLE ACTIVE · '+vwc.toFixed(1)+'% · '+remainMin+'m left',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38 && AUTO_OPT_LIVE.et0Comp};
+  }
   if(vwc<dripAt+3)
     return {label:'DRIP SCHEDULED · '+vwc.toFixed(1)+'%',cls:'bg-secondary/20 border-secondary/40 text-secondary',spanCols:2.2};
   return {label:'MONITORING · '+vwc.toFixed(1)+'%',cls:'bg-white/5 border-white/10 text-on-surface-variant/60',spanCols:1.8};
