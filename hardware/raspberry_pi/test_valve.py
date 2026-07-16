@@ -5,8 +5,9 @@ TERRA-CORE — Manual solenoid valve test (single valve, direct Pi GPIO)
 Wiring:
   Relay IN  -> Pi GPIO23 (BCM) / physical pin 16
   Relay VCC -> 5V, Relay GND -> Pi GND
-  Relay is ACTIVE-LOW: GPIO LOW = relay energized = valve OPEN
-                       GPIO HIGH = relay de-energized = valve CLOSED
+  Relay is ACTIVE-HIGH (confirmed on FILMAX 12V solenoid + this relay board,
+  NO terminal wiring verified correct): GPIO HIGH = relay energized = valve OPEN
+                                         GPIO LOW  = relay de-energized = valve CLOSED
 
   NOTE: agrisat-brain.service (LoRa init, via SX127x's default board
   pin preset) holds GPIO4/13/17/18/22/27 claimed even with no physical
@@ -24,7 +25,7 @@ import time
 import RPi.GPIO as GPIO
 
 PIN = 23
-ACTIVE_LOW = True
+ACTIVE_LOW = False
 
 
 def setup():

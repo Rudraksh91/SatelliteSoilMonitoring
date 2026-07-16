@@ -93,7 +93,7 @@ def init_valve_gpio():
     try:
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
-        GPIO.setup(VALVE_GPIO_PIN, GPIO.OUT, initial=GPIO.HIGH)  # HIGH = relay off = valve closed
+        GPIO.setup(VALVE_GPIO_PIN, GPIO.OUT, initial=GPIO.LOW)  # relay is ACTIVE-HIGH: LOW = relay off = valve closed
         log.info(f"[Valve] GPIO{VALVE_GPIO_PIN} claimed for physical test valve")
     except Exception as e:
         log.error(f"[Valve] GPIO init failed: {e}")
@@ -104,7 +104,7 @@ def set_physical_valve(open_: bool):
     global physical_valve_open
     physical_valve_open = open_
     if HAS_GPIO:
-        GPIO.output(VALVE_GPIO_PIN, GPIO.LOW if open_ else GPIO.HIGH)
+        GPIO.output(VALVE_GPIO_PIN, GPIO.HIGH if open_ else GPIO.LOW)
 
 # ══════════════════════════════════════════════════════════════════════
 # CONFIGURATION

@@ -4002,17 +4002,24 @@ function _hwSend(payload) {
 // CLOSE is never blocked — you can always shut a valve off.
 const _origOpen  = openValve;
 const _origClose = closeValve;
+// NOTE: outgoing state is intentionally inverted (open→false, close→true) —
+// compensates for the physical relay still behaving inverted on the Pi side
+// (brain.py's GPIO polarity fix hasn't been redeployed/restarted there yet).
+// Dashboard UI (LED/status text) still shows the correct logical open/closed
+// state — only the wire command sent to the relay is flipped. If brain.py is
+// ever redeployed with its own polarity fix live, REVERT this flip or the
+// valve will invert again.
 openValve = function(z) {
   if (rainGuardActive()) {
     logValve(`VALVE ${z} OPEN BLOCKED — RAIN GUARD (${rainGuardReason()})`);
     return;
   }
   _origOpen(z);
-  _hwSend({zone:z, state:true});
+  _hwSend({zone:z, state:false});
 };
 closeValve = function(z, silent, skipHW) {
   _origClose(z, silent);
-  if (!skipHW) _hwSend({zone:z, state:false});
+  if (!skipHW) _hwSend({zone:z, state:true});
 };
 const _origStop = stopAllValves;
 stopAllValves = function() {
