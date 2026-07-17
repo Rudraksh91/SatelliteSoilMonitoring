@@ -3755,6 +3755,9 @@ let _mqttMode      = false;   // true = cloud tab active
 // data for STALE_MS is a genuine "the other end went away" signal.
 const STALE_MS = 12000;
 let _lastDataAt = 0;
+let _brokerConnectedAt = 0; // when the browser's own socket to the broker/ESP32 came up —
+                             // used as the staleness baseline when the device was ALREADY
+                             // off and no real data has ever arrived (see watchdog below)
 
 // ── Active connection mode
 let _hwMode = localStorage.getItem('agrisat_hw_mode') || 'local';
@@ -3856,6 +3859,7 @@ function connectESP32HW(ip) {
 
     _hwWS.onopen = () => {
       _hwConnected = true;
+      _brokerConnectedAt = Date.now();
       _hwSetStatus('online', 'ws://' + _hwIP + ':81 · Live data active');
       logValve('ESP32 CONNECTED · ' + _hwIP + ' · WebSocket OK');
     };
@@ -3932,6 +3936,7 @@ function connectMQTT(farmId) {
 
     _mqttClient.on('connect', () => {
       _mqttConnected = true;
+      _brokerConnectedAt = Date.now();
       _hwSetStatus('online', '☁ MQTT · ' + _mqttFarmId + ' · HiveMQ connected');
       logValve('MQTT CLOUD CONNECTED · ' + _mqttFarmId + ' · ' + brokerUrl);
       _mqttClient.subscribe(topicData, {qos:0}, (err) => {
@@ -4071,12 +4076,21 @@ function _hwHandleData(d) {
 // a browser-to-broker link, not a device-to-broker one. Poll for how long
 // it's been since real data last arrived and downgrade the status if it's
 // been quiet too long, so "CONNECTED" never lies about the device itself.
+//
+// BUG FIXED: if the Pi/ESP32 was ALREADY off when the browser connected to
+// the broker, _lastDataAt never leaves 0 (no data has EVER arrived) — the
+// old code treated that as "too early to judge" and skipped forever, so the
+// pill stayed green/CONNECTED indefinitely even though nothing was ever
+// actually received. Now falls back to _brokerConnectedAt as the staleness
+// baseline in that case, so a device that's off from the start is still
+// correctly flagged after STALE_MS.
 setInterval(() => {
   if (!_hwConnected && !_mqttConnected) return;
-  if (!_lastDataAt) return; // never received anything yet — let the initial connect message stand
+  const baseline = _lastDataAt || _brokerConnectedAt;
+  if (!baseline) return; // socket itself isn't even up yet
   const curLabel = document.getElementById('hw-status-txt')?.textContent;
   if (curLabel !== 'CONNECTED' && curLabel !== 'NO DATA — DEVICE OFFLINE?') return;
-  const quiet = Date.now() - _lastDataAt;
+  const quiet = Date.now() - baseline;
   if (quiet > STALE_MS && curLabel === 'CONNECTED') {
     _hwSetStatus('stale', (_mqttMode ? '☁ MQTT socket up' : 'WebSocket up') + ' but no data for ' + Math.round(quiet/1000) + 's — device likely powered off');
   }
