@@ -215,6 +215,73 @@ body{
 /* ── ICONS ── */
 .mso{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
 
+/* ═══════════════════════════════════════════════════════════
+   macOS-STYLE UI: traffic-light window buttons, spring-based
+   sheet open/close, Dock-style icon magnification.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Traffic lights (top-left of modal headers, macOS window chrome) */
+.macos-traffic{display:flex;gap:8px;align-items:center}
+.macos-traffic span{
+  width:12px;height:12px;border-radius:50%;position:relative;
+  transition:filter .15s ease, transform .15s ease;
+}
+.macos-traffic .tl-red{background:#ff5f57;cursor:pointer}
+.macos-traffic .tl-yellow{background:#febc2e;cursor:default}
+.macos-traffic .tl-green{background:#28c840;cursor:default}
+.macos-traffic span::after{
+  content:"";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:Arial,sans-serif;font-size:9px;font-weight:700;line-height:1;color:rgba(0,0,0,.5);
+  opacity:0;transition:opacity .12s ease;
+}
+.macos-traffic .tl-red::after{content:"✕"}
+.macos-traffic .tl-yellow::after{content:"—"}
+.macos-traffic .tl-green::after{content:"+";font-size:11px}
+.macos-traffic:hover span::after{opacity:1}
+.macos-traffic span:hover{filter:brightness(1.12)}
+.macos-traffic .tl-red:active{transform:scale(.88)}
+
+/* Spring-based sheet open/close — replaces instant display:none/block.
+   The overshoot cubic-bezier (>1 then settles) is the classic macOS
+   "pop" feel used for sheets/popovers. */
+.macos-sheet-backdrop{
+  opacity:0;
+  transition:opacity .22s ease;
+}
+.macos-sheet-backdrop.show{opacity:1}
+.macos-sheet-panel{
+  transform:translate(-50%,-50%) scale(.92);
+  opacity:0;
+  transition:transform .38s cubic-bezier(.34,1.56,.64,1), opacity .22s ease;
+}
+.macos-sheet-backdrop.show .macos-sheet-panel{
+  transform:translate(-50%,-50%) scale(1);
+  opacity:1;
+}
+/* Yellow dot: a little macOS-style "wiggle" — nothing to minimize here,
+   so it's a playful no-op rather than pretending to do something. */
+@keyframes macWiggle{
+  0%,100%{transform:rotate(0)}
+  20%{transform:rotate(-8deg)}
+  40%{transform:rotate(7deg)}
+  60%{transform:rotate(-5deg)}
+  80%{transform:rotate(3deg)}
+}
+.macos-traffic .tl-yellow:hover{animation:macWiggle .4s ease}
+
+/* Dock-style magnification — sidebar/bottom-nav icons scale up on hover,
+   spring-eased like macOS Dock bounce. */
+.dock-icon{
+  display:inline-block;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1);
+  transform-origin:center bottom;
+}
+.nav-btn:hover .dock-icon,
+.mob-btn:hover .dock-icon,
+.mob-btn:active .dock-icon{
+  transform:scale(1.22) translateY(-2px);
+}
+
 /* ── SCANLINE ── */
 .scanline{background:linear-gradient(to bottom,transparent 50%,rgba(0,255,65,.018) 50%);background-size:100% 4px}
 .scanline-anim::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,transparent,rgba(0,255,65,.06) 50%,transparent);animation:scanmove 9s linear infinite;pointer-events:none}
@@ -775,33 +842,33 @@ header{
   </div>
   <nav class="flex-1 py-md flex flex-col gap-base overflow-hidden">
     <button onclick="nav('map')" data-page="map" class="nav-btn flex items-center w-full px-sm py-xs text-primary border-r-2 border-primary-container bg-primary/10 transition-all active:scale-95">
-      <span class="material-symbols-outlined mso min-w-[48px] text-center">public</span>
+      <span class="material-symbols-outlined mso min-w-[48px] text-center dock-icon">public</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Global Map</span>
     </button>
     <button onclick="nav('ndvi')" data-page="ndvi" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
-      <span class="material-symbols-outlined mso min-w-[48px] text-center">analytics</span>
+      <span class="material-symbols-outlined mso min-w-[48px] text-center dock-icon">analytics</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Asset Analytics</span>
     </button>
     <button onclick="nav('climate')" data-page="climate" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
-      <span class="material-symbols-outlined mso min-w-[48px] text-center">thermostat</span>
+      <span class="material-symbols-outlined mso min-w-[48px] text-center dock-icon">thermostat</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Climate Control</span>
     </button>
     <button onclick="nav('auto')" data-page="auto" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
-      <span class="material-symbols-outlined mso min-w-[48px] text-center">smart_toy</span>
+      <span class="material-symbols-outlined mso min-w-[48px] text-center dock-icon">smart_toy</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Automation Logic</span>
     </button>
     <button onclick="nav('health')" data-page="health" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
-      <span class="material-symbols-outlined mso min-w-[48px] text-center">monitor_heart</span>
+      <span class="material-symbols-outlined mso min-w-[48px] text-center dock-icon">monitor_heart</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">System Health</span>
     </button>
     <button onclick="nav('pipeline')" data-page="pipeline" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95">
-      <span class="material-symbols-outlined mso min-w-[48px] text-center">account_tree</span>
+      <span class="material-symbols-outlined mso min-w-[48px] text-center dock-icon">account_tree</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Data Pipeline</span>
     </button>
   </nav>
   <div class="mt-auto py-md border-t border-white/5 shrink-0">
     <button onclick="openSettingsModal()" class="flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all cursor-pointer">
-      <span class="material-symbols-outlined mso min-w-[48px] text-center">settings</span>
+      <span class="material-symbols-outlined mso min-w-[48px] text-center dock-icon">settings</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Settings</span>
     </button>
   </div>
@@ -3337,27 +3404,27 @@ updateClock();
 <!-- MOBILE BOTTOM NAV -->
 <nav id="mob-nav" class="fixed bottom-0 left-0 right-0 z-50 h-14" style="background:rgba(var(--overlay-rgb),.04);backdrop-filter:blur(48px) saturate(2) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.06);border-top:1px solid rgba(var(--overlay-rgb),.10);box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.12),0 -8px 32px rgba(0,0,0,.5);display:none">
   <button class="mob-btn active" data-page="map" onclick="nav('map')">
-    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24">public</span>
+    <span class="material-symbols-outlined dock-icon" style="font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24">public</span>
     <span class="mob-btn-lbl">Map</span>
   </button>
   <button class="mob-btn" data-page="ndvi" onclick="nav('ndvi')">
-    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">analytics</span>
+    <span class="material-symbols-outlined dock-icon" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">analytics</span>
     <span class="mob-btn-lbl">Analytics</span>
   </button>
   <button class="mob-btn" data-page="climate" onclick="nav('climate')">
-    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">thermostat</span>
+    <span class="material-symbols-outlined dock-icon" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">thermostat</span>
     <span class="mob-btn-lbl">Climate</span>
   </button>
   <button class="mob-btn" data-page="auto" onclick="nav('auto')">
-    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">smart_toy</span>
+    <span class="material-symbols-outlined dock-icon" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">smart_toy</span>
     <span class="mob-btn-lbl">Auto</span>
   </button>
   <button class="mob-btn" data-page="health" onclick="nav('health')">
-    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">monitor_heart</span>
+    <span class="material-symbols-outlined dock-icon" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">monitor_heart</span>
     <span class="mob-btn-lbl">Health</span>
   </button>
   <button class="mob-btn" data-page="pipeline" onclick="nav('pipeline')">
-    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">account_tree</span>
+    <span class="material-symbols-outlined dock-icon" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">account_tree</span>
     <span class="mob-btn-lbl">Pipeline</span>
   </button>
 </nav>
@@ -3370,15 +3437,19 @@ updateClock();
 
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- ═══════ SETTINGS MODAL ═══════ -->
-<div id="settings-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeSettingsModal()">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px,92vw);background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:28px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
+<div id="settings-modal" class="macos-sheet-backdrop" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeSettingsModal()">
+  <div class="macos-sheet-panel" style="position:absolute;top:50%;left:50%;width:min(420px,92vw);background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:28px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
-      <div>
+      <div class="macos-traffic">
+        <span class="tl-red" onclick="closeSettingsModal()" title="Close"></span>
+        <span class="tl-yellow" title="Minimize (decorative)"></span>
+        <span class="tl-green" title="Zoom (decorative)"></span>
+      </div>
+      <div style="text-align:right">
         <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:rgba(var(--muted-rgb),.45);margin-bottom:4px">TERRA-CORE · AGRISAT</p>
         <p style="font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--body-text);letter-spacing:-.01em">Settings</p>
       </div>
-      <button onclick="closeSettingsModal()" style="background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.1);border-radius:8px;color:rgba(var(--muted-rgb),.6);width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
 
     <!-- Data & Cache Section -->
@@ -3430,15 +3501,19 @@ updateClock();
 
 <!-- HARDWARE SETTINGS MODAL                                   -->
 <!-- ══════════════════════════════════════════════════════════ -->
-<div id="hw-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeHWModal()">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,92vw);background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:24px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
+<div id="hw-modal" class="macos-sheet-backdrop" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeHWModal()">
+  <div class="macos-sheet-panel" style="position:absolute;top:50%;left:50%;width:min(440px,92vw);background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:24px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <div>
+      <div class="macos-traffic">
+        <span class="tl-red" onclick="closeHWModal()" title="Close"></span>
+        <span class="tl-yellow" title="Minimize (decorative)"></span>
+        <span class="tl-green" title="Zoom (decorative)"></span>
+      </div>
+      <div style="text-align:right">
         <p style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.12em;color:rgba(0,255,65,.7)">HARDWARE CONNECTION</p>
         <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(var(--muted-rgb),.4);margin-top:2px">ESP32 + Raspberry Pi Pico Bridge</p>
       </div>
-      <button onclick="closeHWModal()" style="background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.1);border-radius:8px;color:rgba(var(--muted-rgb),.6);width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
     </div>
 
     <!-- Status badge -->
@@ -3853,15 +3928,30 @@ let _brokerConnectedAt = 0; // when the browser's own socket to the broker/ESP32
 // ── Active connection mode
 let _hwMode = localStorage.getItem('agrisat_hw_mode') || 'local';
 
-// ── Modal helpers
+// ── Modal helpers — macOS-style spring open/close (see .macos-sheet-*
+// CSS). Display is still toggled (so the backdrop doesn't intercept
+// clicks while hidden), just staged around the CSS transition instead
+// of snapping instantly.
+function openMacSheet(id){
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  void el.offsetWidth; // force reflow so the 'show' transition actually runs
+  el.classList.add('show');
+}
+function closeMacSheet(id){
+  const el = document.getElementById(id);
+  el.classList.remove('show');
+  setTimeout(() => { el.style.display = 'none'; }, 220);
+}
+
 function openHWModal() {
-  document.getElementById('hw-modal').style.display = 'block';
+  openMacSheet('hw-modal');
   document.getElementById('hw-ip-input').value = _hwIP;
   document.getElementById('hw-farm-id').value = _mqttFarmId;
   switchHWTab(_hwMode, true);
 }
 function closeHWModal() {
-  document.getElementById('hw-modal').style.display = 'none';
+  closeMacSheet('hw-modal');
 }
 
 // ── Tab switcher
@@ -4503,11 +4593,11 @@ function toggleTheme(){
 renderThemeIcon();
 
 function openSettingsModal(){
-  document.getElementById('settings-modal').style.display='block';
+  openMacSheet('settings-modal');
   renderAlarmToggle();
 }
 function closeSettingsModal(){
-  document.getElementById('settings-modal').style.display='none';
+  closeMacSheet('settings-modal');
 }
 
 // Clears the service-worker cache (and any stray registrations) so a
