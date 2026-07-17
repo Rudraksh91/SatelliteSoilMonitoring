@@ -519,17 +519,18 @@ header{
   <div style="margin-bottom:20px;filter:drop-shadow(0 0 16px rgba(26,80,40,.45))">
     <svg width="220" height="220" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="display:block">
       <defs>
+        <!-- NOTE: the sway/float animations previously here used
+             transform-box:fill-box on <g> elements, which several browsers
+             compute inconsistently — it was flinging the wheat/plant/leaf
+             groups outside the 512x512 canvas (visible as a stray leaf
+             poking out top-left of the logo). Keeping only the signal-wave
+             pulse, which animates opacity only and has no transform-box
+             dependency. -->
         <style>
-          #rrm-sat-g{animation:rrmFloat 3s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 50%}
-          @keyframes rrmFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
           .rrm-sig{animation:rrmSig 1.8s ease-in-out infinite}
           .rrm-sig2{animation:rrmSig 1.8s ease-in-out infinite;animation-delay:.3s}
           .rrm-sig3{animation:rrmSig 1.8s ease-in-out infinite;animation-delay:.6s}
           @keyframes rrmSig{0%,100%{opacity:.15}50%{opacity:.95}}
-          #rrm-plant-g{animation:rrmSway 3s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
-          #rrm-wheat-g{animation:rrmSway 3.5s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
-          #rrm-leaf-g{animation:rrmSway 2.7s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
-          @keyframes rrmSway{0%,100%{transform:rotate(-1.8deg)}50%{transform:rotate(1.8deg)}}
         </style>
       </defs>
 
@@ -675,8 +676,8 @@ header{
 <!-- SIDEBAR -->
 <aside class="hidden md:flex fixed left-0 top-0 h-full z-50 flex-col w-20 hover:w-64 transition-all duration-300 group" style="background:rgba(255,255,255,.03);backdrop-filter:blur(48px) saturate(1.9) brightness(1.05);-webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.05);border-right:1px solid rgba(255,255,255,.09);box-shadow:inset -1px 0 0 rgba(255,255,255,.05),4px 0 40px rgba(0,0,0,.6),1px 0 0 rgba(0,255,65,.04)">
   <div class="p-sm flex items-center gap-xs h-16 overflow-hidden shrink-0" style="border-bottom:1px solid rgba(255,255,255,.05)">
-    <div class="min-w-[48px] h-[48px] flex items-center justify-center rounded-lg shrink-0" style="background:linear-gradient(135deg,rgba(0,255,65,.15) 0%,rgba(0,255,65,.05) 100%);border:1px solid rgba(0,255,65,.2);box-shadow:0 0 16px rgba(0,255,65,.12),inset 0 1px 0 rgba(255,255,255,.08)">
-      <span class="material-symbols-outlined mso text-primary-container" style="font-variation-settings:'FILL' 1;filter:drop-shadow(0 0 6px rgba(0,255,65,.6))">eco</span>
+    <div class="min-w-[48px] h-[48px] flex items-center justify-center rounded-lg shrink-0 overflow-hidden" style="background:linear-gradient(135deg,rgba(0,255,65,.15) 0%,rgba(0,255,65,.05) 100%);border:1px solid rgba(0,255,65,.2);box-shadow:0 0 16px rgba(0,255,65,.12),inset 0 1px 0 rgba(255,255,255,.08)">
+      <img src="icons/icon.svg" alt="TERRA-CORE" style="width:100%;height:100%;object-fit:cover">
     </div>
     <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
       <div class="font-display-lg text-headline-md tracking-widest text-primary" style="text-shadow:0 0 12px rgba(0,255,65,.5),0 0 28px rgba(0,255,65,.2)">TERRA-CORE</div>
