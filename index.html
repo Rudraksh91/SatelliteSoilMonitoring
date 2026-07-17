@@ -1,9 +1,22 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
+<html class="dark" lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimum-scale=1.0, maximum-scale=5.0"/>
 <title>TERRA-CORE | AgriSat Dediapada</title>
+
+<!-- Apply saved/system theme before first paint, to avoid a flash of the
+     wrong theme (default is dark — matches this app's original design). -->
+<script>
+(function(){
+  try{
+    var saved=localStorage.getItem('agrisat_theme');
+    var theme=saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.classList.toggle('dark', theme==='dark');
+  }catch(e){}
+})();
+</script>
 
 <!-- ── PWA Manifest ───────────────────────────────────────── -->
 <link rel="manifest" href="manifest.json"/>
@@ -39,20 +52,80 @@
 /* ── DESIGN TOKENS ── */
 :root{
   --pg:rgba(0,255,65,.4);
-  --gb:rgba(255,255,255,.10);
+  --gb:rgba(var(--overlay-rgb),.10);
   --glow-green:rgba(0,255,65,.15);
   --glow-cyan:rgba(0,219,233,.12);
   /* Apple glass: near-transparent tinted fill */
-  --card-bg:rgba(255,255,255,0.045);
+  --card-bg:rgba(var(--overlay-rgb),0.045);
   /* Apple glass: inset top+left highlight, outer depth shadow */
   --card-shadow:
-    inset 0 1px 0 rgba(255,255,255,.14),
-    inset 1px 0 0 rgba(255,255,255,.06),
+    inset 0 1px 0 rgba(var(--overlay-rgb),.14),
+    inset 1px 0 0 rgba(var(--overlay-rgb),.06),
     inset 0 -1px 0 rgba(0,0,0,.12),
     0 2px 8px rgba(0,0,0,.25),
     0 12px 40px rgba(0,0,0,.35);
   --header-h:64px;
   --transition:all .25s cubic-bezier(.4,0,.2,1);
+
+  /* ══ THEME TOKENS — dark (default) ══
+     A handful of base color values that the whole app's inline styles
+     reuse thousands of times over. Brand accents (green/cyan/coral/
+     amber/red) are intentionally NOT themed here — they stay constant
+     in both modes, only the neutral surface/text/overlay tokens flip.
+
+     Two formats of the same values are kept side by side:
+       --x-rgb    comma-separated  → used in raw inline rgba(var(--x-rgb),a)
+       --x-sp     space-separated  → used in tailwind.config's
+                                      rgb(var(--x-sp) / <alpha-value>) tokens,
+                                      which is what lets Tailwind's /NN
+                                      opacity modifiers (e.g. text-x/60,
+                                      used 100+ times in this file) keep
+                                      working under a themed color. */
+  --overlay-rgb:   255,255,255;  --overlay-sp:   255 255 255;
+  --muted-rgb:     185,204,178;  --muted-sp:     185 204 178;
+  --surface-1-rgb: 10,15,13;     --surface-1-sp: 10 15 13;
+  --surface-2-rgb: 8,12,10;      --surface-2-sp: 8 12 10;
+  --body-bg:       #080c0a;
+  --body-text:     #dfe4e0;      --body-text-sp: 223 228 224;
+
+  --tw-surface-sp:                  15 20 18;
+  --tw-surface-container-lowest-sp: 10 15 13;
+  --tw-surface-container-sp:        28 33 30;
+  --tw-surface-container-low-sp:    24 29 26;
+  --tw-surface-container-high-sp:   38 43 41;
+  --tw-surface-container-highest-sp:49 54 51;
+  --tw-outline-sp:                  132 150 126;
+  --tw-outline-variant-sp:          59 75 55;
+  /* text-primary/secondary/tertiary are headline TEXT colors (meant to sit
+     on a dark surface), not accent colors — near-white in dark mode, so
+     they need a dark, tinted equivalent for light mode or they vanish.
+     The *-container/*-fixed-dim/on-* variants are the true accents and
+     stay constant in both themes (defined literally in tailwind.config,
+     not here). */
+  --tw-primary-sp:   235 255 226;
+  --tw-secondary-sp: 211 251 255;
+  --tw-tertiary-sp:  255 248 246;
+}
+[data-theme="light"]{
+  --overlay-rgb:   15,23,18;     --overlay-sp:   15 23 18;    /* dark tint on light glass, mirrors the dark-mode relationship */
+  --muted-rgb:     74,90,68;     --muted-sp:     74 90 68;    /* darker sage — readable on a light background */
+  --surface-1-rgb: 238,242,236;  --surface-1-sp: 238 242 236;
+  --surface-2-rgb: 226,232,222;  --surface-2-sp: 226 232 222;
+  --body-bg:       #eef2ec;
+  --body-text:     #1a221c;      --body-text-sp: 26 34 28;
+
+  --tw-surface-sp:                  246 249 244;
+  --tw-surface-container-lowest-sp: 255 255 255;
+  --tw-surface-container-sp:        232 238 227;
+  --tw-surface-container-low-sp:    238 242 234;
+  --tw-surface-container-high-sp:   221 229 215;
+  --tw-surface-container-highest-sp:209 219 201;
+  --tw-outline-sp:                  107 120 100;
+  --tw-outline-variant-sp:          195 206 187;
+
+  --tw-primary-sp:   10 61 16;
+  --tw-secondary-sp: 0 60 66;
+  --tw-tertiary-sp:  107 37 16;
 }
 
 /* ── BODY — richer ambient gradients so glass pops ── */
@@ -62,10 +135,19 @@ body{
     radial-gradient(ellipse 50% 40% at 90% 15%, rgba(0,219,233,.06) 0%, transparent 55%),
     radial-gradient(ellipse 70% 55% at 50% 105%,rgba(0,60,25,.55) 0%, transparent 65%),
     radial-gradient(ellipse 40% 30% at 75% 80%, rgba(0,100,60,.08) 0%, transparent 50%),
-    #080c0a;
-  color:#dfe4e0;
+    var(--body-bg);
+  color:var(--body-text);
   overflow:hidden;
   transition:background .4s ease, color .3s ease;
+}
+[data-theme="light"] body{
+  /* Deliberately much subtler than the dark-mode washes — .gp panels run
+     saturate(1.8) in their backdrop-filter, which amplifies whatever
+     color shows through the glass; strong washes here turned muddy. */
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 70%, rgba(0,255,65,.03) 0%, transparent 58%),
+    radial-gradient(ellipse 50% 40% at 90% 15%, rgba(0,219,233,.03) 0%, transparent 55%),
+    var(--body-bg);
 }
 
 /* ── APPLE GLASS PANEL ── */
@@ -75,7 +157,7 @@ body{
   backdrop-filter: blur(40px) saturate(1.8) brightness(1.08);
   -webkit-backdrop-filter: blur(40px) saturate(1.8) brightness(1.08);
   /* crisp, subtle white border */
-  border: 1px solid rgba(255,255,255,.11);
+  border: 1px solid rgba(var(--overlay-rgb),.11);
   box-shadow: var(--card-shadow);
   transition: var(--transition);
   /* rounded corners — overrides any Tailwind rounded-* on the element */
@@ -83,11 +165,11 @@ body{
   /* lock ALL border sides to neutral white — overrides border-primary-container etc.
      Must set every longhand too: Tailwind border-t-{color} sets border-top-color (longhand)
      which can win over border-color (shorthand) in some cascade scenarios. */
-  border-color:        rgba(255,255,255,.11) !important;
-  border-top-color:    rgba(255,255,255,.11) !important;
-  border-right-color:  rgba(255,255,255,.11) !important;
-  border-bottom-color: rgba(255,255,255,.11) !important;
-  border-left-color:   rgba(255,255,255,.11) !important;
+  border-color:        rgba(var(--overlay-rgb),.11) !important;
+  border-top-color:    rgba(var(--overlay-rgb),.11) !important;
+  border-right-color:  rgba(var(--overlay-rgb),.11) !important;
+  border-bottom-color: rgba(var(--overlay-rgb),.11) !important;
+  border-left-color:   rgba(var(--overlay-rgb),.11) !important;
   /* slight top-edge inner gradient for the glass-lip look */
   position: relative;
   overflow: hidden;
@@ -101,22 +183,29 @@ body{
   border-radius:inherit;
   background:linear-gradient(
     160deg,
-    rgba(255,255,255,.08) 0%,
-    rgba(255,255,255,.03) 30%,
+    rgba(var(--overlay-rgb),.08) 0%,
+    rgba(var(--overlay-rgb),.03) 30%,
     transparent 55%
   );
   z-index:0;
 }
 /* ensure card content sits above the pseudo */
 .gp>*{position:relative;z-index:1}
+/* Light mode: the dark-tuned saturate(1.8)/brightness(1.08) combo
+   amplifies whatever shows through the glass into a muddy tint on a
+   light backdrop — drop both back to neutral. */
+[data-theme="light"] .gp{
+  backdrop-filter: blur(40px) saturate(1.05);
+  -webkit-backdrop-filter: blur(40px) saturate(1.05);
+}
 
 /* ── HOVER: brighter fill + lifted shadow ── */
 .gp:hover{
-  background: rgba(255,255,255,.075);
-  border-color: rgba(255,255,255,.16);
+  background: rgba(var(--overlay-rgb),.075);
+  border-color: rgba(var(--overlay-rgb),.16);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.20),
-    inset 1px 0 0 rgba(255,255,255,.08),
+    inset 0 1px 0 rgba(var(--overlay-rgb),.20),
+    inset 1px 0 0 rgba(var(--overlay-rgb),.08),
     inset 0 -1px 0 rgba(0,0,0,.10),
     0 4px 16px rgba(0,0,0,.28),
     0 20px 60px rgba(0,0,0,.45);
@@ -139,10 +228,10 @@ body{
 
 /* ── GRID BACKGROUNDS ── */
 .grid-bg{background-image:linear-gradient(rgba(0,255,65,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.045) 1px,transparent 1px);background-size:40px 40px}
-.tl-grid{background-image:linear-gradient(to right,rgba(255,255,255,.045) 1px,transparent 1px);background-size:80px 100%}
+.tl-grid{background-image:linear-gradient(to right,rgba(var(--overlay-rgb),.045) 1px,transparent 1px);background-size:80px 100%}
 
 /* ── STEP BARS ── */
-.step{height:8px;flex:1;background:rgba(255,255,255,.08);border-radius:1px}
+.step{height:8px;flex:1;background:rgba(var(--overlay-rgb),.08);border-radius:1px}
 .step.sp{background:#00ff41;box-shadow:0 0 6px rgba(0,255,65,.6)}
 .step.ss{background:#00dbe9;box-shadow:0 0 6px rgba(0,219,233,.6)}
 
@@ -170,10 +259,10 @@ body{
 /* ── NAV BUTTON ACTIVE GLOW ── */
 .nav-btn{cursor:pointer}
 .nav-btn.text-primary{background:linear-gradient(90deg,rgba(0,255,65,.12) 0%,rgba(0,255,65,.04) 100%)!important;box-shadow:inset 2px 0 0 #00ff41}
-.nav-btn:not(.text-primary):hover{background:rgba(255,255,255,.04)!important;color:rgba(235,255,226,.7)!important}
+.nav-btn:not(.text-primary):hover{background:rgba(var(--overlay-rgb),.04)!important;color:rgba(235,255,226,.7)!important}
 .wtab{padding:6px 14px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border:1px solid transparent;transition:all .2s;color:#b9ccb2}
 .wtab.on{background:rgba(0,255,65,.12);border-color:rgba(0,255,65,.3);color:#00ff41}
-.wtab:not(.on):hover{background:rgba(255,255,255,.05);color:#dfe4e0}
+.wtab:not(.on):hover{background:rgba(var(--overlay-rgb),.05);color:var(--body-text)}
 .chart-wrap{position:relative;width:100%;flex:1;min-height:0}
 .chart-wrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
 .chart-panel{display:none;flex-direction:column;flex:1;min-height:0}
@@ -182,7 +271,7 @@ body{
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 /* ── MOBILE NAV ── */
 #mob-nav{display:none!important}
-.mob-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:2px;padding:6px 4px;color:rgba(185,204,178,.5);transition:color .2s;cursor:pointer;background:none;border:none;-webkit-tap-highlight-color:transparent}
+.mob-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:2px;padding:6px 4px;color:rgba(var(--muted-rgb),.5);transition:color .2s;cursor:pointer;background:none;border:none;-webkit-tap-highlight-color:transparent}
 .mob-btn.active{color:#00ff41}
 .mob-btn span.material-symbols-outlined{font-size:22px}
 .mob-btn-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
@@ -200,7 +289,7 @@ body{
   #page-map{flex-direction:column!important;padding:0!important;overflow-x:hidden!important}
   #page-map>div:first-child{position:relative!important;height:240px!important;flex-shrink:0;width:100%}
   #sat-map{height:240px!important}
-  #page-map>.relative.z-10{position:relative!important;height:auto!important;display:flex!important;flex-direction:column!important;gap:10px!important;padding:12px!important;background:rgba(10,15,13,.97)!important}
+  #page-map>.relative.z-10{position:relative!important;height:auto!important;display:flex!important;flex-direction:column!important;gap:10px!important;padding:12px!important;background:rgba(var(--surface-1-rgb),.97)!important}
   #page-map .col-span-3,#page-map .col-span-6{grid-column:unset!important;width:100%!important}
   #page-map .col-span-6{display:none!important}
   /* Page 2 — stack sections */
@@ -293,7 +382,7 @@ body{
     display:grid!important;
     grid-template-columns:1fr 1fr!important;
     gap:12px!important;padding:14px!important;
-    background:rgba(10,15,13,.96)!important
+    background:rgba(var(--surface-1-rgb),.96)!important
   }
   /* Hide center bottom KPI bar (redundant on tablet) */
   #page-map .col-span-6{display:none!important}
@@ -404,7 +493,7 @@ body{
   align-items:center;
   gap:10px;
   padding:10px 18px 10px 14px;
-  background:rgba(10,15,13,.92);
+  background:rgba(var(--surface-1-rgb),.92);
   border:1px solid rgba(0,255,65,.25);
   border-radius:40px;
   box-shadow:0 4px 24px rgba(0,0,0,.5),0 0 16px rgba(0,255,65,.08);
@@ -429,7 +518,7 @@ body{
 #rotation-hint .rh-text{
   font-family:'JetBrains Mono',monospace;
   font-size:9px;font-weight:700;letter-spacing:.1em;
-  color:rgba(185,204,178,.8)
+  color:rgba(var(--muted-rgb),.8)
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -473,29 +562,29 @@ header{
   transform:rotateX(15deg) scale(1.3);
   transform-origin:50% 50%;
 }
-.sat-tip{background:rgba(10,15,13,.92)!important;border:1px solid rgba(0,255,65,.35)!important;color:#00ff41!important;font-family:'JetBrains Mono',monospace!important;font-size:10px!important;font-weight:600!important;letter-spacing:.08em!important;border-radius:4px!important;padding:5px 8px!important;box-shadow:0 0 12px rgba(0,255,65,.15)!important;white-space:nowrap!important}
+.sat-tip{background:rgba(var(--surface-1-rgb),.92)!important;border:1px solid rgba(0,255,65,.35)!important;color:#00ff41!important;font-family:'JetBrains Mono',monospace!important;font-size:10px!important;font-weight:600!important;letter-spacing:.08em!important;border-radius:4px!important;padding:5px 8px!important;box-shadow:0 0 12px rgba(0,255,65,.15)!important;white-space:nowrap!important}
 .sat-tip::before{display:none!important}
 /* Mode toggle */
-.mode-toggle{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(185,204,178,.5);transition:all .2s;padding:6px 16px;border-radius:4px;cursor:pointer;border:none;display:flex;align-items:center;gap:5px}
+.mode-toggle{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(var(--muted-rgb),.5);transition:all .2s;padding:6px 16px;border-radius:4px;cursor:pointer;border:none;display:flex;align-items:center;gap:5px}
 .mode-toggle.active{background:rgba(0,255,65,.12);color:#00ff41;box-shadow:0 0 0 1px rgba(0,255,65,.3)}
 /* Valve button open/closed states (JS-applied classes) */
 .valve-open{background:rgba(255,180,50,.1)!important;border-color:rgba(255,180,50,.5)!important;color:#ffb432!important}
 .valve-closed-btn{background:rgba(0,255,65,.08)!important;border-color:rgba(0,255,65,.3)!important;color:#00ff41!important}
 /* Duration presets */
-.dur-btn{color:rgba(185,204,178,.6);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:all .15s;border:1px solid transparent}
+.dur-btn{color:rgba(var(--muted-rgb),.6);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:all .15s;border:1px solid transparent}
 .dur-btn.sel{background:rgba(0,238,252,.12)!important;border-color:rgba(0,238,252,.35)!important;color:#00dbe9!important}
-.crop-search{width:100%;background:rgba(8,12,10,.9);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;color:#00ff41;outline:none;transition:border-color .15s}
-.crop-search::placeholder{color:rgba(185,204,178,.3)}
+.crop-search{width:100%;background:rgba(var(--surface-2-rgb),.9);border:1px solid rgba(var(--overlay-rgb),.1);border-radius:6px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;color:#00ff41;outline:none;transition:border-color .15s}
+.crop-search::placeholder{color:rgba(var(--muted-rgb),.3)}
 .crop-search:focus{border-color:rgba(0,255,65,.3)}
 .crop-drop{position:absolute;z-index:9999;background:rgba(6,10,9,.98);border:1px solid rgba(0,255,65,.15);border-radius:8px;max-height:220px;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.9);scrollbar-width:thin;scrollbar-color:rgba(0,255,65,.2) transparent}
-.gj-filter-btn{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.05em;padding:4px 7px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:rgba(8,12,10,.9);color:rgba(185,204,178,.5);cursor:pointer;transition:all .15s;white-space:nowrap}
+.gj-filter-btn{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.05em;padding:4px 7px;border-radius:5px;border:1px solid rgba(var(--overlay-rgb),.1);background:rgba(var(--surface-2-rgb),.9);color:rgba(var(--muted-rgb),.5);cursor:pointer;transition:all .15s;white-space:nowrap}
 .gj-filter-btn.gj-on{background:rgba(0,255,65,.14);border-color:rgba(0,255,65,.4);color:#00ff41}
-.crop-opt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;padding:5px 10px;cursor:pointer;color:rgba(185,204,178,.75);transition:background .1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crop-opt{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.04em;padding:5px 10px;cursor:pointer;color:rgba(var(--muted-rgb),.75);transition:background .1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .crop-opt:hover{background:rgba(0,255,65,.1);color:#00ff41}
-.crop-cat-hdr{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:800;letter-spacing:.12em;padding:5px 10px 2px;color:rgba(0,238,252,.45);border-top:1px solid rgba(255,255,255,.05);margin-top:2px}
+.crop-cat-hdr{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:800;letter-spacing:.12em;padding:5px 10px 2px;color:rgba(0,238,252,.45);border-top:1px solid rgba(var(--overlay-rgb),.05);margin-top:2px}
 .crop-cat-hdr:first-child{border-top:none;margin-top:0}
 </style>
-<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{"surface":"#0f1412","surface-container-lowest":"#0a0f0d","surface-container":"#1c211e","surface-container-low":"#181d1a","surface-container-high":"#262b29","surface-container-highest":"#313633","on-surface":"#dfe4e0","on-surface-variant":"#b9ccb2","primary":"#ebffe2","primary-fixed":"#72ff70","primary-container":"#00ff41","primary-fixed-dim":"#00e639","on-primary":"#003907","secondary":"#d3fbff","secondary-fixed":"#7df4ff","secondary-fixed-dim":"#00dbe9","secondary-container":"#00eefc","on-secondary":"#00363a","tertiary":"#fff8f6","tertiary-fixed-dim":"#ffb4a2","tertiary-container":"#ffd3c8","on-tertiary":"#611200","error":"#ffb4ab","error-container":"#93000a","on-error":"#690005","outline":"#84967e","outline-variant":"#3b4b37"},borderRadius:{DEFAULT:"12px",lg:"16px",xl:"20px","2xl":"24px",full:"9999px"},spacing:{base:"4px",xs:"8px",sm:"16px",md:"24px",lg:"40px",xl:"64px",gutter:"20px",margin:"32px"},fontFamily:{"data-lg":["JetBrains Mono"],"display-lg":["Inter"],"headline-md":["Inter"],"body-md":["Inter"],"data-sm":["JetBrains Mono"],"label-caps":["JetBrains Mono"]},fontSize:{"data-lg":["20px",{lineHeight:"1.2",letterSpacing:"0.02em",fontWeight:"500"}],"display-lg":["48px",{lineHeight:"1.1",letterSpacing:"-0.02em",fontWeight:"700"}],"headline-md":["24px",{lineHeight:"1.2",letterSpacing:"0.01em",fontWeight:"600"}],"body-md":["16px",{lineHeight:"1.5",letterSpacing:"0",fontWeight:"400"}],"data-sm":["13px",{lineHeight:"1.4",letterSpacing:"0.05em",fontWeight:"400"}],"label-caps":["11px",{lineHeight:"1",letterSpacing:"0.1em",fontWeight:"700"}]}}}}</script>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{"surface":"rgb(var(--tw-surface-sp) / <alpha-value>)","surface-container-lowest":"rgb(var(--tw-surface-container-lowest-sp) / <alpha-value>)","surface-container":"rgb(var(--tw-surface-container-sp) / <alpha-value>)","surface-container-low":"rgb(var(--tw-surface-container-low-sp) / <alpha-value>)","surface-container-high":"rgb(var(--tw-surface-container-high-sp) / <alpha-value>)","surface-container-highest":"rgb(var(--tw-surface-container-highest-sp) / <alpha-value>)","on-surface":"rgb(var(--body-text-sp) / <alpha-value>)","on-surface-variant":"rgb(var(--muted-sp) / <alpha-value>)","primary":"rgb(var(--tw-primary-sp) / <alpha-value>)","primary-fixed":"#72ff70","primary-container":"#00ff41","primary-fixed-dim":"#00e639","on-primary":"#003907","secondary":"rgb(var(--tw-secondary-sp) / <alpha-value>)","secondary-fixed":"#7df4ff","secondary-fixed-dim":"#00dbe9","secondary-container":"#00eefc","on-secondary":"#00363a","tertiary":"rgb(var(--tw-tertiary-sp) / <alpha-value>)","tertiary-fixed-dim":"#ffb4a2","tertiary-container":"#ffd3c8","on-tertiary":"#611200","error":"#ffb4ab","error-container":"#93000a","on-error":"#690005","outline":"rgb(var(--tw-outline-sp) / <alpha-value>)","outline-variant":"rgb(var(--tw-outline-variant-sp) / <alpha-value>)"},borderRadius:{DEFAULT:"12px",lg:"16px",xl:"20px","2xl":"24px",full:"9999px"},spacing:{base:"4px",xs:"8px",sm:"16px",md:"24px",lg:"40px",xl:"64px",gutter:"20px",margin:"32px"},fontFamily:{"data-lg":["JetBrains Mono"],"display-lg":["Inter"],"headline-md":["Inter"],"body-md":["Inter"],"data-sm":["JetBrains Mono"],"label-caps":["JetBrains Mono"]},fontSize:{"data-lg":["20px",{lineHeight:"1.2",letterSpacing:"0.02em",fontWeight:"500"}],"display-lg":["48px",{lineHeight:"1.1",letterSpacing:"-0.02em",fontWeight:"700"}],"headline-md":["24px",{lineHeight:"1.2",letterSpacing:"0.01em",fontWeight:"600"}],"body-md":["16px",{lineHeight:"1.5",letterSpacing:"0",fontWeight:"400"}],"data-sm":["13px",{lineHeight:"1.4",letterSpacing:"0.05em",fontWeight:"400"}],"label-caps":["11px",{lineHeight:"1",letterSpacing:"0.1em",fontWeight:"700"}]}}}}</script>
 </head>
 <body class="font-body-md text-on-surface select-none">
 
@@ -631,11 +720,11 @@ header{
     </svg>
   </div>
 
-  <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(185,204,178,.5);text-align:center;letter-spacing:.06em;margin-bottom:28px;max-width:280px">Enter your ESP32 IP address to connect the dashboard to your field hardware</p>
+  <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(var(--muted-rgb),.5);text-align:center;letter-spacing:.06em;margin-bottom:28px;max-width:280px">Enter your ESP32 IP address to connect the dashboard to your field hardware</p>
 
   <!-- IP Input -->
   <div style="width:100%;max-width:320px;margin-bottom:12px">
-    <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.4);letter-spacing:.08em;margin-bottom:8px">ESP32 IP ADDRESS</p>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(var(--muted-rgb),.4);letter-spacing:.08em;margin-bottom:8px">ESP32 IP ADDRESS</p>
     <input id="setup-ip" type="text" inputmode="decimal" placeholder="192.168.1.42"
       style="width:100%;box-sizing:border-box;background:rgba(8,14,11,.9);border:1.5px solid rgba(0,255,65,.2);border-radius:10px;padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:16px;color:#00ff41;outline:none;letter-spacing:.06em;-webkit-appearance:none"
       onkeydown="if(event.key==='Enter')setupConnect()"
@@ -643,7 +732,7 @@ header{
   </div>
 
   <!-- Status line -->
-  <p id="setup-status" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.35);letter-spacing:.06em;margin-bottom:20px;height:14px;text-align:center;max-width:320px"></p>
+  <p id="setup-status" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(var(--muted-rgb),.35);letter-spacing:.06em;margin-bottom:20px;height:14px;text-align:center;max-width:320px"></p>
 
   <!-- Connect button -->
   <button onclick="setupConnect()" style="width:100%;max-width:320px;background:rgba(0,255,65,.14);border:1.5px solid rgba(0,255,65,.4);border-radius:12px;color:#00ff41;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.12em;padding:16px;cursor:pointer;margin-bottom:12px;-webkit-tap-highlight-color:transparent;transition:all .15s;box-shadow:0 0 20px rgba(0,255,65,.1)" id="setup-connect-btn">
@@ -651,32 +740,32 @@ header{
   </button>
 
   <!-- Skip button -->
-  <button onclick="setupSkip()" style="width:100%;max-width:320px;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:12px;color:rgba(185,204,178,.4);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent">
+  <button onclick="setupSkip()" style="width:100%;max-width:320px;background:transparent;border:1px solid rgba(var(--overlay-rgb),.08);border-radius:12px;color:rgba(var(--muted-rgb),.4);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent">
     SKIP — USE OFFLINE / API MODE
   </button>
 
-  <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.18);text-align:center;margin-top:24px;letter-spacing:.06em">Find IP in Arduino Serial Monitor · 115200 baud · After flashing ESP32</p>
+  <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(var(--muted-rgb),.18);text-align:center;margin-top:24px;letter-spacing:.06em">Find IP in Arduino Serial Monitor · 115200 baud · After flashing ESP32</p>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- PWA INSTALL BANNER (shown when browser supports install)  -->
 <!-- ══════════════════════════════════════════════════════════ -->
-<div id="install-banner" style="display:none;position:fixed;bottom:72px;left:12px;right:12px;z-index:9998;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 2px 8px rgba(0,0,0,.3),0 16px 48px rgba(0,0,0,.55);backdrop-filter:blur(40px) saturate(1.8) brightness(1.06);-webkit-backdrop-filter:blur(40px) saturate(1.8) brightness(1.06)">
+<div id="install-banner" style="display:none;position:fixed;bottom:72px;left:12px;right:12px;z-index:9998;background:rgba(var(--overlay-rgb),.055);border:1px solid rgba(var(--overlay-rgb),.12);border-radius:18px;padding:14px 16px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.15),0 2px 8px rgba(0,0,0,.3),0 16px 48px rgba(0,0,0,.55);backdrop-filter:blur(40px) saturate(1.8) brightness(1.06);-webkit-backdrop-filter:blur(40px) saturate(1.8) brightness(1.06)">
   <div style="display:flex;align-items:center;gap:12px">
     <img src="icons/icon.svg" style="width:40px;height:40px;border-radius:10px;flex-shrink:0">
     <div style="flex:1">
       <p style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#00ff41;letter-spacing:.06em">INSTALL APP</p>
-      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.5);margin-top:2px">Add TERRA-CORE to your home screen</p>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(var(--muted-rgb),.5);margin-top:2px">Add TERRA-CORE to your home screen</p>
     </div>
     <button onclick="installApp()" style="background:rgba(0,255,65,.15);border:1px solid rgba(0,255,65,.35);border-radius:8px;color:#00ff41;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;padding:7px 12px;cursor:pointer;white-space:nowrap">INSTALL</button>
-    <button onclick="document.getElementById('install-banner').style.display='none'" style="background:none;border:none;color:rgba(185,204,178,.4);font-size:16px;cursor:pointer;padding:4px;line-height:1">✕</button>
+    <button onclick="document.getElementById('install-banner').style.display='none'" style="background:none;border:none;color:rgba(var(--muted-rgb),.4);font-size:16px;cursor:pointer;padding:4px;line-height:1">✕</button>
   </div>
 </div>
 
 <!-- SIDEBAR -->
-<aside class="hidden md:flex fixed left-0 top-0 h-full z-50 flex-col w-20 hover:w-64 transition-all duration-300 group" style="background:rgba(255,255,255,.03);backdrop-filter:blur(48px) saturate(1.9) brightness(1.05);-webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.05);border-right:1px solid rgba(255,255,255,.09);box-shadow:inset -1px 0 0 rgba(255,255,255,.05),4px 0 40px rgba(0,0,0,.6),1px 0 0 rgba(0,255,65,.04)">
-  <div class="p-sm flex items-center gap-xs h-16 overflow-hidden shrink-0" style="border-bottom:1px solid rgba(255,255,255,.05)">
-    <div class="min-w-[48px] h-[48px] flex items-center justify-center rounded-lg shrink-0 overflow-hidden" style="background:linear-gradient(135deg,rgba(0,255,65,.15) 0%,rgba(0,255,65,.05) 100%);border:1px solid rgba(0,255,65,.2);box-shadow:0 0 16px rgba(0,255,65,.12),inset 0 1px 0 rgba(255,255,255,.08)">
+<aside class="hidden md:flex fixed left-0 top-0 h-full z-50 flex-col w-20 hover:w-64 transition-all duration-300 group" style="background:rgba(var(--overlay-rgb),.03);backdrop-filter:blur(48px) saturate(1.9) brightness(1.05);-webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.05);border-right:1px solid rgba(var(--overlay-rgb),.09);box-shadow:inset -1px 0 0 rgba(var(--overlay-rgb),.05),4px 0 40px rgba(0,0,0,.6),1px 0 0 rgba(0,255,65,.04)">
+  <div class="p-sm flex items-center gap-xs h-16 overflow-hidden shrink-0" style="border-bottom:1px solid rgba(var(--overlay-rgb),.05)">
+    <div class="min-w-[48px] h-[48px] flex items-center justify-center rounded-lg shrink-0 overflow-hidden" style="background:linear-gradient(135deg,rgba(0,255,65,.15) 0%,rgba(0,255,65,.05) 100%);border:1px solid rgba(0,255,65,.2);box-shadow:0 0 16px rgba(0,255,65,.12),inset 0 1px 0 rgba(var(--overlay-rgb),.08)">
       <img src="icons/icon.svg" alt="TERRA-CORE" style="width:100%;height:100%;object-fit:cover">
     </div>
     <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
@@ -719,7 +808,7 @@ header{
 </aside>
 
 <!-- TOP BAR -->
-<header class="fixed top-0 right-0 left-0 md:left-20 z-40 flex justify-between items-center px-sm h-16" style="background:rgba(255,255,255,.04);backdrop-filter:blur(48px) saturate(2) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.06);border-bottom:1px solid rgba(255,255,255,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 1px 0 rgba(0,255,65,.07),0 8px 32px rgba(0,0,0,.4)">
+<header class="fixed top-0 right-0 left-0 md:left-20 z-40 flex justify-between items-center px-sm h-16" style="background:rgba(var(--overlay-rgb),.04);backdrop-filter:blur(48px) saturate(2) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.06);border-bottom:1px solid rgba(var(--overlay-rgb),.10);box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.12),0 1px 0 rgba(0,255,65,.07),0 8px 32px rgba(0,0,0,.4)">
   <div class="flex items-center gap-md">
     <span id="page-title" class="font-headline-md text-headline-md font-bold text-primary kpi-glow-green">COMMAND CENTER</span>
     <div class="h-4 w-px bg-white/10"></div>
@@ -733,10 +822,12 @@ header{
     <div class="flex items-center gap-sm text-on-surface-variant">
       <span class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">rss_feed</span>
       <span class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">speed</span>
+      <!-- Theme toggle -->
+      <span id="theme-toggle-icon" onclick="toggleTheme()" class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">dark_mode</span>
       <!-- Settings (only entry point on mobile — sidebar w/ Settings is desktop-only) -->
       <span onclick="openSettingsModal()" class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">settings</span>
       <!-- HW Connection button -->
-      <button onclick="openHWModal()" class="flex items-center gap-[5px] px-2 py-[3px] rounded border transition-all font-label-caps text-[9px] font-bold tracking-widest" id="hw-btn" style="border-color:rgba(185,204,178,.2);color:rgba(185,204,178,.5)">
+      <button onclick="openHWModal()" class="flex items-center gap-[5px] px-2 py-[3px] rounded border transition-all font-label-caps text-[9px] font-bold tracking-widest" id="hw-btn" style="border-color:rgba(var(--muted-rgb),.2);color:rgba(var(--muted-rgb),.5)">
         <span id="hw-dot" class="w-[6px] h-[6px] rounded-full bg-white/20 transition-all"></span>
         <span id="hw-label">HW</span>
       </button>
@@ -749,7 +840,7 @@ header{
 <main id="page-map" class="page active ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] relative p-md overflow-hidden grid-bg">
   <div id="map-3d-wrap" class="absolute inset-0 z-0">
     <div id="sat-map"></div>
-    <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at center,transparent 40%,rgba(10,15,13,.8) 100%)"></div>
+    <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at center,transparent 40%,rgba(var(--surface-1-rgb),.8) 100%)"></div>
     <div id="map-rain-fx" class="absolute inset-0 pointer-events-none" style="display:none"></div>
   </div>
   <div class="relative z-10 grid grid-cols-12 h-full gap-gutter">
@@ -1516,162 +1607,162 @@ header{
           <svg width="100%" viewBox="0 0 680 968" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <marker id="pipe-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="rgba(0,238,252,.55)" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></marker>
-              <pattern id="pipe-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="rgba(255,255,255,.035)" stroke-width="0.5"/></pattern>
+              <pattern id="pipe-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="rgba(var(--overlay-rgb),.035)" stroke-width="0.5"/></pattern>
             </defs>
 
             <!-- SHEET: grid background + border + registration marks + title block -->
             <rect x="4" y="4" width="672" height="956" fill="url(#pipe-grid)"/>
-            <rect x="4" y="4" width="672" height="956" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="0.75"/>
+            <rect x="4" y="4" width="672" height="956" fill="none" stroke="rgba(var(--overlay-rgb),.14)" stroke-width="0.75"/>
             <path d="M4 16V4H16" fill="none" stroke="rgba(0,238,252,.4)" stroke-width="1"/>
             <path d="M664 4H676V16" fill="none" stroke="rgba(0,238,252,.4)" stroke-width="1"/>
             <path d="M4 948V960H16" fill="none" stroke="rgba(0,238,252,.4)" stroke-width="1"/>
             <path d="M676 948V960H664" fill="none" stroke="rgba(0,238,252,.4)" stroke-width="1"/>
             <text x="16" y="21" font-family="JetBrains Mono" font-size="9" letter-spacing="1" fill="rgba(220,255,220,.4)">TERRA-CORE / AGRISAT — SATELLITE DATA PIPELINE</text>
-            <text x="16" y="32" font-family="JetBrains Mono" font-size="7" letter-spacing="0.5" fill="rgba(185,204,178,.3)">FIG. 1 · SCHEMATIC · SCALE: NTS · REV A · DEDIAPADA 21.6277N 73.5903E</text>
+            <text x="16" y="32" font-family="JetBrains Mono" font-size="7" letter-spacing="0.5" fill="rgba(var(--muted-rgb),.3)">FIG. 1 · SCHEMATIC · SCALE: NTS · REV A · DEDIAPADA 21.6277N 73.5903E</text>
 
-            <rect x="94" y="40" width="492" height="118" rx="2" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="0.75"/>
-            <text x="110" y="60" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(185,204,178,.65)">STAGE 01 — PHYSICAL SATELLITES</text>
-            <line x1="110" y1="68" x2="570" y2="68" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+            <rect x="94" y="40" width="492" height="118" rx="2" fill="none" stroke="rgba(var(--overlay-rgb),.2)" stroke-width="0.75"/>
+            <text x="110" y="60" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(var(--muted-rgb),.65)">STAGE 01 — PHYSICAL SATELLITES</text>
+            <line x1="110" y1="68" x2="570" y2="68" stroke="rgba(var(--overlay-rgb),.1)" stroke-width="0.5"/>
             <g style="cursor:pointer" onclick="pipeShowDetail('s1')">
               <rect x="110" y="86" width="220" height="56" rx="2" fill="rgba(0,255,65,.05)" stroke="rgba(0,255,65,.5)" stroke-width="0.75"/>
-              <text x="118" y="98" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">01A</text>
+              <text x="118" y="98" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">01A</text>
               <text x="220" y="106" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Sentinel-2A / 2B</text>
               <text x="220" y="123" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">MSI · 10m optical</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('eos04')">
               <rect x="350" y="86" width="220" height="56" rx="2" fill="rgba(255,180,171,.04)" stroke="rgba(255,180,171,.5)" stroke-width="0.75" stroke-dasharray="3 2"/>
-              <text x="358" y="98" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">01B</text>
+              <text x="358" y="98" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">01B</text>
               <text x="460" y="106" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4ab">EOS-04 / RISAT-1A</text>
               <text x="460" y="123" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,171,.65)">SAR · not wired</text>
             </g>
 
-            <line x1="340" y1="158" x2="340" y2="208" stroke="rgba(185,204,178,.5)" stroke-width="0.75" marker-end="url(#pipe-arrow)"/>
-            <line x1="332" y1="158" x2="348" y2="158" stroke="rgba(185,204,178,.4)" stroke-width="0.75"/>
-            <line x1="332" y1="205" x2="348" y2="205" stroke="rgba(185,204,178,.4)" stroke-width="0.75"/>
+            <line x1="340" y1="158" x2="340" y2="208" stroke="rgba(var(--muted-rgb),.5)" stroke-width="0.75" marker-end="url(#pipe-arrow)"/>
+            <line x1="332" y1="158" x2="348" y2="158" stroke="rgba(var(--muted-rgb),.4)" stroke-width="0.75"/>
+            <line x1="332" y1="205" x2="348" y2="205" stroke="rgba(var(--muted-rgb),.4)" stroke-width="0.75"/>
 
-            <rect x="54" y="208" width="572" height="190" rx="2" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="0.75"/>
-            <text x="70" y="228" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(185,204,178,.65)">STAGE 02 — ACQUISITION APIS</text>
-            <line x1="70" y1="236" x2="610" y2="236" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+            <rect x="54" y="208" width="572" height="190" rx="2" fill="none" stroke="rgba(var(--overlay-rgb),.2)" stroke-width="0.75"/>
+            <text x="70" y="228" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(var(--muted-rgb),.65)">STAGE 02 — ACQUISITION APIS</text>
+            <line x1="70" y1="236" x2="610" y2="236" stroke="rgba(var(--overlay-rgb),.1)" stroke-width="0.5"/>
             <g style="cursor:pointer" onclick="pipeShowDetail('gee')">
               <rect x="70" y="254" width="260" height="56" rx="2" fill="rgba(0,255,65,.05)" stroke="rgba(0,255,65,.5)" stroke-width="0.75"/>
-              <text x="78" y="266" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">02A</text>
+              <text x="78" y="266" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">02A</text>
               <text x="200" y="274" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Google Earth Engine</text>
               <text x="200" y="291" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">Primary imagery source</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('pc')">
               <rect x="350" y="254" width="260" height="56" rx="2" fill="rgba(0,255,65,.05)" stroke="rgba(0,255,65,.5)" stroke-width="0.75"/>
-              <text x="358" y="266" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">02B</text>
+              <text x="358" y="266" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">02B</text>
               <text x="480" y="274" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Planetary Computer</text>
               <text x="480" y="291" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">Microsoft STAC API</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('om')">
               <rect x="70" y="326" width="260" height="56" rx="2" fill="rgba(0,255,65,.05)" stroke="rgba(0,255,65,.5)" stroke-width="0.75"/>
-              <text x="78" y="338" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">02C</text>
+              <text x="78" y="338" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">02C</text>
               <text x="200" y="346" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Open-Meteo</text>
               <text x="200" y="363" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">Live weather feed</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('bhoonidhi')">
               <rect x="350" y="326" width="260" height="56" rx="2" fill="rgba(255,180,171,.04)" stroke="rgba(255,180,171,.5)" stroke-width="0.75" stroke-dasharray="3 2"/>
-              <text x="358" y="338" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">02D</text>
+              <text x="358" y="338" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">02D</text>
               <text x="480" y="346" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4ab">Bhoonidhi VEDAS API</text>
               <text x="480" y="363" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,171,.65)">Not integrated yet</text>
             </g>
 
-            <line x1="340" y1="398" x2="340" y2="448" stroke="rgba(185,204,178,.5)" stroke-width="0.75" marker-end="url(#pipe-arrow)"/>
-            <line x1="332" y1="398" x2="348" y2="398" stroke="rgba(185,204,178,.4)" stroke-width="0.75"/>
-            <line x1="332" y1="445" x2="348" y2="445" stroke="rgba(185,204,178,.4)" stroke-width="0.75"/>
+            <line x1="340" y1="398" x2="340" y2="448" stroke="rgba(var(--muted-rgb),.5)" stroke-width="0.75" marker-end="url(#pipe-arrow)"/>
+            <line x1="332" y1="398" x2="348" y2="398" stroke="rgba(var(--muted-rgb),.4)" stroke-width="0.75"/>
+            <line x1="332" y1="445" x2="348" y2="445" stroke="rgba(var(--muted-rgb),.4)" stroke-width="0.75"/>
 
-            <rect x="40" y="448" width="600" height="118" rx="2" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="0.75"/>
-            <text x="56" y="468" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(185,204,178,.65)">STAGE 03 — PROCESSING · NDVI_HARVESTER.PY</text>
-            <text x="56" y="480" font-family="JetBrains Mono" font-size="9" fill="rgba(185,204,178,.4)">launchd daemon · 3-day loop</text>
-            <line x1="56" y1="486" x2="624" y2="486" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+            <rect x="40" y="448" width="600" height="118" rx="2" fill="none" stroke="rgba(var(--overlay-rgb),.2)" stroke-width="0.75"/>
+            <text x="56" y="468" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(var(--muted-rgb),.65)">STAGE 03 — PROCESSING · NDVI_HARVESTER.PY</text>
+            <text x="56" y="480" font-family="JetBrains Mono" font-size="9" fill="rgba(var(--muted-rgb),.4)">launchd daemon · 3-day loop</text>
+            <line x1="56" y1="486" x2="624" y2="486" stroke="rgba(var(--overlay-rgb),.1)" stroke-width="0.5"/>
             <g style="cursor:pointer" onclick="pipeShowDetail('dl')">
               <rect x="56" y="494" width="130" height="56" rx="2" fill="rgba(0,219,233,.05)" stroke="rgba(0,219,233,.5)" stroke-width="0.75"/>
-              <text x="63" y="506" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">03A</text>
+              <text x="63" y="506" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">03A</text>
               <text x="121" y="514" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#7df4ff">Download</text>
               <text x="121" y="530" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="rgba(125,244,255,.65)">EE/GEE imagery</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('cm')">
               <rect x="202" y="494" width="130" height="56" rx="2" fill="rgba(0,219,233,.05)" stroke="rgba(0,219,233,.5)" stroke-width="0.75"/>
-              <text x="209" y="506" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">03B</text>
+              <text x="209" y="506" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">03B</text>
               <text x="267" y="514" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#7df4ff">Cloud mask</text>
               <text x="267" y="530" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="rgba(125,244,255,.65)">SCL filter</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('ndvi')">
               <rect x="348" y="494" width="130" height="56" rx="2" fill="rgba(0,219,233,.05)" stroke="rgba(0,219,233,.5)" stroke-width="0.75"/>
-              <text x="355" y="506" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">03C</text>
+              <text x="355" y="506" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">03C</text>
               <text x="413" y="514" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#7df4ff">NDVI compute</text>
               <text x="413" y="530" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="rgba(125,244,255,.65)">index calc</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('zone')">
               <rect x="494" y="494" width="130" height="56" rx="2" fill="rgba(0,219,233,.05)" stroke="rgba(0,219,233,.5)" stroke-width="0.75"/>
-              <text x="501" y="506" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">03D</text>
+              <text x="501" y="506" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">03D</text>
               <text x="559" y="514" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#7df4ff">Zone analysis</text>
               <text x="559" y="530" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="rgba(125,244,255,.65)">field zones</text>
             </g>
 
-            <line x1="340" y1="566" x2="340" y2="616" stroke="rgba(185,204,178,.5)" stroke-width="0.75" marker-end="url(#pipe-arrow)"/>
-            <line x1="332" y1="566" x2="348" y2="566" stroke="rgba(185,204,178,.4)" stroke-width="0.75"/>
-            <line x1="332" y1="613" x2="348" y2="613" stroke="rgba(185,204,178,.4)" stroke-width="0.75"/>
+            <line x1="340" y1="566" x2="340" y2="616" stroke="rgba(var(--muted-rgb),.5)" stroke-width="0.75" marker-end="url(#pipe-arrow)"/>
+            <line x1="332" y1="566" x2="348" y2="566" stroke="rgba(var(--muted-rgb),.4)" stroke-width="0.75"/>
+            <line x1="332" y1="613" x2="348" y2="613" stroke="rgba(var(--muted-rgb),.4)" stroke-width="0.75"/>
 
-            <rect x="46" y="616" width="589" height="118" rx="2" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="0.75"/>
-            <text x="62" y="636" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(185,204,178,.65)">STAGE 04 — DISTRIBUTION</text>
-            <line x1="62" y1="644" x2="619" y2="644" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+            <rect x="46" y="616" width="589" height="118" rx="2" fill="none" stroke="rgba(var(--overlay-rgb),.2)" stroke-width="0.75"/>
+            <text x="62" y="636" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(var(--muted-rgb),.65)">STAGE 04 — DISTRIBUTION</text>
+            <line x1="62" y1="644" x2="619" y2="644" stroke="rgba(var(--overlay-rgb),.1)" stroke-width="0.5"/>
             <g style="cursor:pointer" onclick="pipeShowDetail('sel')">
               <rect x="62" y="662" width="175" height="56" rx="2" fill="rgba(255,180,162,.05)" stroke="rgba(255,180,162,.5)" stroke-width="0.75"/>
-              <text x="69" y="674" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">04A</text>
+              <text x="69" y="674" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">04A</text>
               <text x="149.5" y="682" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4a2">Selenium sync</text>
               <text x="149.5" y="699" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,162,.65)">incognito Chrome</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('drive')">
               <rect x="253" y="662" width="175" height="56" rx="2" fill="rgba(255,180,162,.05)" stroke="rgba(255,180,162,.5)" stroke-width="0.75"/>
-              <text x="260" y="674" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">04B</text>
+              <text x="260" y="674" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">04B</text>
               <text x="340.5" y="682" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4a2">Drive folder</text>
               <text x="340.5" y="699" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,162,.65)">Google Drive</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('gh')">
               <rect x="444" y="662" width="175" height="56" rx="2" fill="rgba(255,180,162,.05)" stroke="rgba(255,180,162,.5)" stroke-width="0.75"/>
-              <text x="451" y="674" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">04C</text>
+              <text x="451" y="674" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">04C</text>
               <text x="531.5" y="682" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4a2">GitHub push</text>
               <text x="531.5" y="699" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,162,.65)">REST API commit</text>
             </g>
 
-            <line x1="340" y1="734" x2="340" y2="784" stroke="rgba(185,204,178,.5)" stroke-width="0.75" marker-end="url(#pipe-arrow)"/>
-            <line x1="332" y1="734" x2="348" y2="734" stroke="rgba(185,204,178,.4)" stroke-width="0.75"/>
-            <line x1="332" y1="781" x2="348" y2="781" stroke="rgba(185,204,178,.4)" stroke-width="0.75"/>
+            <line x1="340" y1="734" x2="340" y2="784" stroke="rgba(var(--muted-rgb),.5)" stroke-width="0.75" marker-end="url(#pipe-arrow)"/>
+            <line x1="332" y1="734" x2="348" y2="734" stroke="rgba(var(--muted-rgb),.4)" stroke-width="0.75"/>
+            <line x1="332" y1="781" x2="348" y2="781" stroke="rgba(var(--muted-rgb),.4)" stroke-width="0.75"/>
 
-            <rect x="41" y="784" width="598" height="118" rx="2" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="0.75"/>
-            <text x="57" y="804" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(185,204,178,.65)">STAGE 05 — CONSUMPTION</text>
-            <line x1="57" y1="812" x2="623" y2="812" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+            <rect x="41" y="784" width="598" height="118" rx="2" fill="none" stroke="rgba(var(--overlay-rgb),.2)" stroke-width="0.75"/>
+            <text x="57" y="804" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(var(--muted-rgb),.65)">STAGE 05 — CONSUMPTION</text>
+            <line x1="57" y1="812" x2="623" y2="812" stroke="rgba(var(--overlay-rgb),.1)" stroke-width="0.5"/>
             <g style="cursor:pointer" onclick="pipeShowDetail('streamlit')">
               <rect x="57" y="830" width="178" height="56" rx="2" fill="rgba(0,255,65,.05)" stroke="rgba(0,255,65,.5)" stroke-width="0.75"/>
-              <text x="64" y="842" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">05A</text>
+              <text x="64" y="842" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">05A</text>
               <text x="146" y="850" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">Streamlit app.py</text>
               <text x="146" y="867" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">ops dashboard</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('pages')">
               <rect x="251" y="830" width="178" height="56" rx="2" fill="rgba(0,255,65,.05)" stroke="rgba(0,255,65,.5)" stroke-width="0.75"/>
-              <text x="258" y="842" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">05B</text>
+              <text x="258" y="842" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">05B</text>
               <text x="340" y="850" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#72ff70">GitHub Pages site</text>
               <text x="340" y="867" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(114,255,112,.65)">public index.html</text>
             </g>
             <g style="cursor:pointer" onclick="pipeShowDetail('dom')">
               <rect x="445" y="830" width="178" height="56" rx="2" fill="rgba(255,180,171,.04)" stroke="rgba(255,180,171,.5)" stroke-width="0.75" stroke-dasharray="3 2"/>
-              <text x="452" y="842" font-family="JetBrains Mono" font-size="7" fill="rgba(255,255,255,.3)">05C</text>
+              <text x="452" y="842" font-family="JetBrains Mono" font-size="7" fill="rgba(var(--overlay-rgb),.3)">05C</text>
               <text x="534" y="850" text-anchor="middle" font-family="JetBrains Mono" font-size="12" fill="#ffb4ab">DOM live hook</text>
               <text x="534" y="867" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="rgba(255,180,171,.65)">planned, not wired</text>
             </g>
 
-            <rect x="32" y="912" width="616" height="42" rx="2" fill="rgba(255,255,255,.015)" stroke="rgba(255,255,255,.15)" stroke-width="0.5"/>
-            <text x="40" y="924" font-family="JetBrains Mono" font-size="7" letter-spacing="1" fill="rgba(185,204,178,.4)">KEY</text>
+            <rect x="32" y="912" width="616" height="42" rx="2" fill="rgba(var(--overlay-rgb),.015)" stroke="rgba(var(--overlay-rgb),.15)" stroke-width="0.5"/>
+            <text x="40" y="924" font-family="JetBrains Mono" font-size="7" letter-spacing="1" fill="rgba(var(--muted-rgb),.4)">KEY</text>
             <rect x="40" y="936" width="10" height="10" rx="0" fill="#00ff41"/>
-            <text x="56" y="945" font-family="JetBrains Mono" font-size="9" fill="rgba(185,204,178,.6)">Live &amp; wired</text>
+            <text x="56" y="945" font-family="JetBrains Mono" font-size="9" fill="rgba(var(--muted-rgb),.6)">Live &amp; wired</text>
             <rect x="162" y="936" width="10" height="10" rx="0" fill="#00dbe9"/>
-            <text x="178" y="945" font-family="JetBrains Mono" font-size="9" fill="rgba(185,204,178,.6)">Compute step</text>
+            <text x="178" y="945" font-family="JetBrains Mono" font-size="9" fill="rgba(var(--muted-rgb),.6)">Compute step</text>
             <rect x="284" y="936" width="10" height="10" rx="0" fill="#ffb4a2"/>
-            <text x="300" y="945" font-family="JetBrains Mono" font-size="9" fill="rgba(185,204,178,.6)">Distribution target</text>
+            <text x="300" y="945" font-family="JetBrains Mono" font-size="9" fill="rgba(var(--muted-rgb),.6)">Distribution target</text>
             <rect x="455" y="936" width="10" height="10" rx="0" fill="none" stroke="#ffb4ab" stroke-width="1.25" stroke-dasharray="2.5 2"/>
-            <text x="471" y="945" font-family="JetBrains Mono" font-size="9" fill="rgba(185,204,178,.6)">Planned, not wired</text>
+            <text x="471" y="945" font-family="JetBrains Mono" font-size="9" fill="rgba(var(--muted-rgb),.6)">Planned, not wired</text>
           </svg>
         </div>
         <div id="pipe-detail" style="display:none">
@@ -1742,7 +1833,7 @@ function pipeShowTree(){
 </script>
 
 <!-- FOOTER -->
-<footer class="fixed bottom-0 right-0 left-20 z-40 hidden md:flex justify-between items-center px-sm h-8 border-t" style="background:rgba(255,255,255,.035);backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);border-color:rgba(255,255,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 -1px 0 rgba(0,255,65,.05),0 -8px 32px rgba(0,0,0,.3)">
+<footer class="fixed bottom-0 right-0 left-20 z-40 hidden md:flex justify-between items-center px-sm h-8 border-t" style="background:rgba(var(--overlay-rgb),.035);backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);border-color:rgba(var(--overlay-rgb),.09);box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.10),0 -1px 0 rgba(0,255,65,.05),0 -8px 32px rgba(0,0,0,.3)">
   <div class="flex items-center gap-xs">
     <span class="flex h-[5px] w-[5px] rounded-full bg-primary-container" style="box-shadow:0 0 5px rgba(0,255,65,.7)"></span>
     <span class="font-label-caps text-label-caps text-on-surface-variant/40" style="font-size:9px">SYSTEM ACTIVE // NODE 774 OP · DEDIAPADA · GUJARAT</span>
@@ -1923,7 +2014,7 @@ function applyCurrentData(d){
 // ══════════════════════════════════════════════════
 const C_DEFAULTS={
   color:'#dfe4e0',
-  borderColor:'rgba(255,255,255,.08)',
+  borderColor:'rgba(var(--overlay-rgb),.08)',
   interaction:{mode:'index',intersect:false},
   animation:{duration:900,easing:'easeOutQuart'},
   elements:{
@@ -1932,9 +2023,9 @@ const C_DEFAULTS={
   },
   plugins:{
     legend:{labels:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:10},boxWidth:12,usePointStyle:true,pointStyle:'rectRounded'}},
-    tooltip:{backgroundColor:'rgba(10,15,13,.96)',titleColor:'#00ff41',bodyColor:'#dfe4e0',borderColor:'rgba(0,255,65,.3)',borderWidth:1,padding:10,cornerRadius:8,boxPadding:5,displayColors:true,titleFont:{family:'JetBrains Mono',weight:'bold',size:11},bodyFont:{family:'JetBrains Mono',size:10}}
+    tooltip:{backgroundColor:'rgba(var(--surface-1-rgb),.96)',titleColor:'#00ff41',bodyColor:'#dfe4e0',borderColor:'rgba(0,255,65,.3)',borderWidth:1,padding:10,cornerRadius:8,boxPadding:5,displayColors:true,titleFont:{family:'JetBrains Mono',weight:'bold',size:11},bodyFont:{family:'JetBrains Mono',size:10}}
   },
-  scales:{x:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9},maxRotation:0,maxTicksLimit:14},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(255,255,255,.05)'}}}
+  scales:{x:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9},maxRotation:0,maxTicksLimit:14},grid:{color:'rgba(var(--overlay-rgb),.05)'}},y:{ticks:{color:'#b9ccb2',font:{family:'JetBrains Mono',size:9}},grid:{color:'rgba(var(--overlay-rgb),.05)'}}}
 };
 
 // Smooth vertical gradient fill for area/bar datasets — falls back to a
@@ -2033,7 +2124,7 @@ function buildVWCFieldsChart(){
     {label:'Field A VWC (%)',data:hist.A,borderColor:'#00ff41',backgroundColor:c=>vGrad(c,'rgba(0,255,65,.3)','rgba(0,255,65,0)'),borderWidth:2.5,tension:.3,pointRadius:0,fill:true},
     {label:'Field B VWC (%)',data:hist.B,borderColor:'#00eefc',borderWidth:2.5,tension:.3,pointRadius:0,fill:false},
     {label:'Field C VWC (%)',data:hist.C,borderColor:'#f59e0b',borderWidth:2.5,tension:.3,pointRadius:0,fill:false},
-    {label:'Field Capacity',data:hist.A.map(()=>FC),borderColor:'rgba(185,204,178,.4)',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false},
+    {label:'Field Capacity',data:hist.A.map(()=>FC),borderColor:'rgba(var(--muted-rgb),.4)',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false},
     {label:'Wilting Point',data:hist.A.map(()=>WP),borderColor:'rgba(239,68,68,.4)',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false}
   ]},options:{...C_DEFAULTS,scales:{
     x:{...C_DEFAULTS.scales.x},
@@ -3146,7 +3237,7 @@ function renderCropDrop(z,q){
     html+='<div class="crop-cat-hdr">'+cat.toUpperCase()+'</div>';
     items.forEach(c=>{html+='<div class="crop-opt" onmousedown="setCrop('+z+',\''+c.key+'\')">'+c.label.toUpperCase()+'</div>';});
   });
-  if(list.length===0)html='<div class="crop-opt" style="color:rgba(185,204,178,.3)">'+(_gjFilter[z]?'NO MATCH IN GUJARAT CROPS — TRY THE 🌾 FILTER OFF':'NO MATCH FOUND')+'</div>';
+  if(list.length===0)html='<div class="crop-opt" style="color:rgba(var(--muted-rgb),.3)">'+(_gjFilter[z]?'NO MATCH IN GUJARAT CROPS — TRY THE 🌾 FILTER OFF':'NO MATCH FOUND')+'</div>';
   drop.innerHTML=html;
 }
 
@@ -3244,7 +3335,7 @@ updateClock();
 </script>
 
 <!-- MOBILE BOTTOM NAV -->
-<nav id="mob-nav" class="fixed bottom-0 left-0 right-0 z-50 h-14" style="background:rgba(255,255,255,.04);backdrop-filter:blur(48px) saturate(2) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.06);border-top:1px solid rgba(255,255,255,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 -8px 32px rgba(0,0,0,.5);display:none">
+<nav id="mob-nav" class="fixed bottom-0 left-0 right-0 z-50 h-14" style="background:rgba(var(--overlay-rgb),.04);backdrop-filter:blur(48px) saturate(2) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.06);border-top:1px solid rgba(var(--overlay-rgb),.10);box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.12),0 -8px 32px rgba(0,0,0,.5);display:none">
   <button class="mob-btn active" data-page="map" onclick="nav('map')">
     <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24">public</span>
     <span class="mob-btn-lbl">Map</span>
@@ -3280,14 +3371,14 @@ updateClock();
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- ═══════ SETTINGS MODAL ═══════ -->
 <div id="settings-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeSettingsModal()">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px,92vw);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px,92vw);background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:28px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
       <div>
-        <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:rgba(185,204,178,.45);margin-bottom:4px">TERRA-CORE · AGRISAT</p>
-        <p style="font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:#dfe4e0;letter-spacing:-.01em">Settings</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:rgba(var(--muted-rgb),.45);margin-bottom:4px">TERRA-CORE · AGRISAT</p>
+        <p style="font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--body-text);letter-spacing:-.01em">Settings</p>
       </div>
-      <button onclick="closeSettingsModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(185,204,178,.6);width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+      <button onclick="closeSettingsModal()" style="background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.1);border-radius:8px;color:rgba(var(--muted-rgb),.6);width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
 
     <!-- Data & Cache Section -->
@@ -3296,27 +3387,27 @@ updateClock();
       <button id="clear-cache-btn" onclick="clearAppCache()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;border:1.5px solid rgba(0,255,65,.25);background:rgba(0,255,65,.06);cursor:pointer;text-align:left;transition:all .2s">
         <div>
           <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;color:#00ff41;display:block">FORCE REFRESH</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.45);letter-spacing:.04em">Clear cached files &amp; reload the latest deployed version</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(var(--muted-rgb),.45);letter-spacing:.04em">Clear cached files &amp; reload the latest deployed version</span>
         </div>
         <span id="clear-cache-icon" class="material-symbols-outlined" style="font-size:20px;color:#00ff41">refresh</span>
       </button>
     </div>
 
-    <div style="height:1px;background:rgba(255,255,255,.07);margin-bottom:20px"></div>
+    <div style="height:1px;background:rgba(var(--overlay-rgb),.07);margin-bottom:20px"></div>
 
     <!-- Weather Alarms Section -->
     <div style="margin-bottom:20px">
       <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:rgba(0,238,252,.55);margin-bottom:14px;text-transform:uppercase">Rain / Dry Alarms</p>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid rgba(var(--overlay-rgb),.08);background:rgba(var(--overlay-rgb),.03);margin-bottom:10px">
         <div>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;color:#dfe4e0;display:block">PUSH ALERTS</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.45);letter-spacing:.04em">Notify on heavy rain or critical dry soil</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--body-text);display:block">PUSH ALERTS</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(var(--muted-rgb),.45);letter-spacing:.04em">Notify on heavy rain or critical dry soil</span>
         </div>
         <div id="alarm-toggle" onclick="toggleAlarmsUI()" style="width:36px;height:20px;border-radius:10px;position:relative;cursor:pointer;transition:background .2s">
           <div id="alarm-toggle-dot" style="position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s"></div>
         </div>
       </div>
-      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.4);letter-spacing:.04em;line-height:1.6;margin-bottom:10px">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(var(--muted-rgb),.4);letter-spacing:.04em;line-height:1.6;margin-bottom:10px">
         Install the <b style="color:rgba(0,219,233,.8)">ntfy</b> app (iOS/Android) and subscribe to topic
         <span id="ntfy-topic-display" style="color:#00ff41">···</span> (or visit
         <span style="color:rgba(0,219,233,.8)">ntfy.sh/<span id="ntfy-topic-display-2">···</span></span> in a browser) to receive these on your phone/laptop, even when this dashboard is closed.
@@ -3327,11 +3418,11 @@ updateClock();
       </button>
     </div>
 
-    <div style="height:1px;background:rgba(255,255,255,.07);margin-bottom:20px"></div>
+    <div style="height:1px;background:rgba(var(--overlay-rgb),.07);margin-bottom:20px"></div>
 
     <!-- Version info -->
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.3);letter-spacing:.06em">TERRA-CORE AgriSat · v2.4.1 · Dediapada Farm</p>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(var(--muted-rgb),.3);letter-spacing:.06em">TERRA-CORE AgriSat · v2.4.1 · Dediapada Farm</p>
       <button onclick="closeSettingsModal()" style="padding:8px 18px;background:rgba(0,255,65,.12);border:1px solid rgba(0,255,65,.25);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;color:#00ff41;cursor:pointer">DONE</button>
     </div>
   </div>
@@ -3340,22 +3431,22 @@ updateClock();
 <!-- HARDWARE SETTINGS MODAL                                   -->
 <!-- ══════════════════════════════════════════════════════════ -->
 <div id="hw-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeHWModal()">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,92vw);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,92vw);background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:24px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <div>
         <p style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.12em;color:rgba(0,255,65,.7)">HARDWARE CONNECTION</p>
-        <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.4);margin-top:2px">ESP32 + Raspberry Pi Pico Bridge</p>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(var(--muted-rgb),.4);margin-top:2px">ESP32 + Raspberry Pi Pico Bridge</p>
       </div>
-      <button onclick="closeHWModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(185,204,178,.6);width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
+      <button onclick="closeHWModal()" style="background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.1);border-radius:8px;color:rgba(var(--muted-rgb),.6);width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
     </div>
 
     <!-- Status badge -->
-    <div id="hw-status-bar" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
-      <span id="hw-status-dot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;transition:all .3s"></span>
+    <div id="hw-status-bar" style="background:rgba(var(--overlay-rgb),.04);border:1px solid rgba(var(--overlay-rgb),.08);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <span id="hw-status-dot" style="width:8px;height:8px;border-radius:50%;background:rgba(var(--overlay-rgb),.2);flex-shrink:0;transition:all .3s"></span>
       <div>
-        <p id="hw-status-txt" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;color:rgba(185,204,178,.5)">DISCONNECTED</p>
-        <p id="hw-status-sub" style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.3);margin-top:1px">Select LOCAL or CLOUD ☁ tab to connect</p>
+        <p id="hw-status-txt" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;color:rgba(var(--muted-rgb),.5)">DISCONNECTED</p>
+        <p id="hw-status-sub" style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(var(--muted-rgb),.3);margin-top:1px">Select LOCAL or CLOUD ☁ tab to connect</p>
       </div>
     </div>
 
@@ -3364,31 +3455,31 @@ updateClock();
       <button id="hw-tab-local" onclick="switchHWTab('local')" style="flex:1;background:rgba(0,255,65,.12);border:1px solid rgba(0,255,65,.35);border-radius:8px;color:#00ff41;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:8px 4px;cursor:pointer;transition:all .15s">
         📶 LOCAL WiFi
       </button>
-      <button id="hw-tab-cloud" onclick="switchHWTab('cloud')" style="flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(185,204,178,.45);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:8px 4px;cursor:pointer;transition:all .15s">
+      <button id="hw-tab-cloud" onclick="switchHWTab('cloud')" style="flex:1;background:rgba(var(--overlay-rgb),.04);border:1px solid rgba(var(--overlay-rgb),.1);border-radius:8px;color:rgba(var(--muted-rgb),.45);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:8px 4px;cursor:pointer;transition:all .15s">
         ☁ CLOUD MQTT
       </button>
     </div>
 
     <!-- LOCAL WiFi tab content -->
     <div id="hw-tab-local-body">
-      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.4);margin-bottom:6px;letter-spacing:.06em">ESP32 IP ADDRESS</p>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(var(--muted-rgb),.4);margin-bottom:6px;letter-spacing:.06em">ESP32 IP ADDRESS</p>
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input id="hw-ip-input" type="text" placeholder="192.168.1.42" style="flex:1;background:rgba(8,12,10,.9);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00ff41;outline:none;transition:border-color .15s" oninput="this.style.borderColor='rgba(255,255,255,.12)'" onkeydown="if(event.key==='Enter')connectESP32HW()">
+        <input id="hw-ip-input" type="text" placeholder="192.168.1.42" style="flex:1;background:rgba(var(--surface-2-rgb),.9);border:1px solid rgba(var(--overlay-rgb),.12);border-radius:8px;padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00ff41;outline:none;transition:border-color .15s" oninput="this.style.borderColor='rgba(var(--overlay-rgb),.12)'" onkeydown="if(event.key==='Enter')connectESP32HW()">
         <button onclick="connectESP32HW()" style="background:rgba(0,255,65,.12);border:1px solid rgba(0,255,65,.3);border-radius:8px;color:#00ff41;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:0 14px;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(0,255,65,.2)'" onmouseout="this.style.background='rgba(0,255,65,.12)'">CONNECT</button>
       </div>
-      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.3);margin-bottom:18px">✓ Same WiFi network required · Find IP in Arduino Serial Monitor (115200 baud)</p>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(var(--muted-rgb),.3);margin-bottom:18px">✓ Same WiFi network required · Find IP in Arduino Serial Monitor (115200 baud)</p>
     </div>
 
     <!-- CLOUD MQTT tab content (hidden by default) -->
     <div id="hw-tab-cloud-body" style="display:none">
-      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(185,204,178,.4);margin-bottom:6px;letter-spacing:.06em">FARM ID <span style="color:rgba(0,219,233,.5)">(unique name for your farm)</span></p>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(var(--muted-rgb),.4);margin-bottom:6px;letter-spacing:.06em">FARM ID <span style="color:rgba(0,219,233,.5)">(unique name for your farm)</span></p>
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input id="hw-farm-id" type="text" placeholder="dediapada-farm-01" style="flex:1;background:rgba(8,12,10,.9);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00dbe9;outline:none;transition:border-color .15s" oninput="this.style.borderColor='rgba(255,255,255,.12)'" onkeydown="if(event.key==='Enter')connectMQTT()">
+        <input id="hw-farm-id" type="text" placeholder="dediapada-farm-01" style="flex:1;background:rgba(var(--surface-2-rgb),.9);border:1px solid rgba(var(--overlay-rgb),.12);border-radius:8px;padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00dbe9;outline:none;transition:border-color .15s" oninput="this.style.borderColor='rgba(var(--overlay-rgb),.12)'" onkeydown="if(event.key==='Enter')connectMQTT()">
         <button onclick="connectMQTT()" style="background:rgba(0,219,233,.1);border:1px solid rgba(0,219,233,.35);border-radius:8px;color:#00dbe9;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:0 10px;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(0,219,233,.2)'" onmouseout="this.style.background='rgba(0,219,233,.1)'">CONNECT</button>
       </div>
       <div style="background:rgba(0,219,233,.06);border:1px solid rgba(0,219,233,.15);border-radius:8px;padding:10px 12px;margin-bottom:18px">
         <p style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:rgba(0,219,233,.7);margin-bottom:4px;letter-spacing:.08em">☁ HOW CLOUD WORKS</p>
-        <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4);line-height:1.7">ESP32 + dashboard both connect to HiveMQ public MQTT broker<br>
+        <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(var(--muted-rgb),.4);line-height:1.7">ESP32 + dashboard both connect to HiveMQ public MQTT broker<br>
         Dashboard subscribes: <span style="color:rgba(0,219,233,.6)">agrisat/{farmId}/data</span><br>
         Commands published: <span style="color:rgba(0,255,65,.6)">agrisat/{farmId}/cmd</span><br>
         Works from <span style="color:#00ff41">anywhere in the world</span> — no VPN needed</p>
@@ -3399,31 +3490,31 @@ updateClock();
     <div id="hw-live-box" style="display:none;background:rgba(0,255,65,.04);border:1px solid rgba(0,255,65,.15);border-radius:10px;padding:14px;margin-bottom:16px">
       <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:rgba(0,255,65,.6);margin-bottom:10px">LIVE SENSOR FEED</p>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-        <div style="background:rgba(255,255,255,.04);border-radius:6px;padding:8px;text-align:center">
-          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4);letter-spacing:.08em">FIELD-A</p>
+        <div style="background:rgba(var(--overlay-rgb),.04);border-radius:6px;padding:8px;text-align:center">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(var(--muted-rgb),.4);letter-spacing:.08em">FIELD-A</p>
           <p id="hw-m1" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#00ff41">—%</p>
         </div>
-        <div style="background:rgba(255,255,255,.04);border-radius:6px;padding:8px;text-align:center">
-          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4);letter-spacing:.08em">FIELD-B</p>
+        <div style="background:rgba(var(--overlay-rgb),.04);border-radius:6px;padding:8px;text-align:center">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(var(--muted-rgb),.4);letter-spacing:.08em">FIELD-B</p>
           <p id="hw-m2" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#00dbe9">—%</p>
         </div>
-        <div style="background:rgba(255,255,255,.04);border-radius:6px;padding:8px;text-align:center">
-          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4);letter-spacing:.08em">FIELD-C</p>
+        <div style="background:rgba(var(--overlay-rgb),.04);border-radius:6px;padding:8px;text-align:center">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(var(--muted-rgb),.4);letter-spacing:.08em">FIELD-C</p>
           <p id="hw-m3" style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#ffb432">—%</p>
         </div>
       </div>
       <div style="display:flex;gap:8px">
-        <div style="flex:1;background:rgba(255,255,255,.04);border-radius:6px;padding:6px 8px">
-          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4)">TEMP</p>
+        <div style="flex:1;background:rgba(var(--overlay-rgb),.04);border-radius:6px;padding:6px 8px">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(var(--muted-rgb),.4)">TEMP</p>
           <p id="hw-temp" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#00dbe9;font-weight:700">—°C</p>
         </div>
-        <div style="flex:1;background:rgba(255,255,255,.04);border-radius:6px;padding:6px 8px">
-          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4)">HUMIDITY</p>
+        <div style="flex:1;background:rgba(var(--overlay-rgb),.04);border-radius:6px;padding:6px 8px">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(var(--muted-rgb),.4)">HUMIDITY</p>
           <p id="hw-hum" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#00dbe9;font-weight:700">—%</p>
         </div>
-        <div style="flex:1;background:rgba(255,255,255,.04);border-radius:6px;padding:6px 8px">
-          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.4)">PICO</p>
-          <p id="hw-pico" style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:rgba(185,204,178,.4)">OFFLINE</p>
+        <div style="flex:1;background:rgba(var(--overlay-rgb),.04);border-radius:6px;padding:6px 8px">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(var(--muted-rgb),.4)">PICO</p>
+          <p id="hw-pico" style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:rgba(var(--muted-rgb),.4)">OFFLINE</p>
         </div>
       </div>
     </div>
@@ -3431,16 +3522,16 @@ updateClock();
     <!-- Disconnect button -->
     <div style="display:flex;gap:8px">
       <button id="hw-disconnect-btn" onclick="disconnectAllHW()" style="display:none;flex:1;background:rgba(255,100,100,.08);border:1px solid rgba(255,100,100,.25);border-radius:8px;color:rgba(255,100,100,.7);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:10px;cursor:pointer">DISCONNECT</button>
-      <button onclick="closeHWModal()" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(185,204,178,.6);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:10px;cursor:pointer">CLOSE</button>
+      <button onclick="closeHWModal()" style="flex:1;background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.1);border-radius:8px;color:rgba(var(--muted-rgb),.6);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:10px;cursor:pointer">CLOSE</button>
     </div>
-    <p id="hw-footer-txt" style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(185,204,178,.2);text-align:center;margin-top:12px">TERRA-CORE · LOCAL: WebSocket ws://IP:81 · CLOUD: HiveMQ MQTT</p>
+    <p id="hw-footer-txt" style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(var(--muted-rgb),.2);text-align:center;margin-top:12px">TERRA-CORE · LOCAL: WebSocket ws://IP:81 · CLOUD: HiveMQ MQTT</p>
   </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- SATELLITE LOADING SCREEN                                  -->
 <!-- ══════════════════════════════════════════════════════════ -->
-<div id="sat-loader" style="display:none;position:fixed;inset:0;z-index:99999;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:#080c0a">
+<div id="sat-loader" style="display:none;position:fixed;inset:0;z-index:99999;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:var(--body-bg)">
 
   <!-- grid background -->
   <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,65,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.02) 1px,transparent 1px);background-size:36px 36px;pointer-events:none"></div>
@@ -3458,7 +3549,7 @@ updateClock();
   <div style="position:absolute;top:26px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.2em;color:rgba(0,255,65,.35);white-space:nowrap">TERRA-CORE · AGRISAT · SATELLITE UPLINK</div>
 
   <!-- bottom coordinates -->
-  <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.1em;color:rgba(185,204,178,.18);white-space:nowrap">21.6277°N · 73.5903°E · DEDIAPADA FARM · GUJARAT</div>
+  <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.1em;color:rgba(var(--muted-rgb),.18);white-space:nowrap">21.6277°N · 73.5903°E · DEDIAPADA FARM · GUJARAT</div>
 
   <!-- ── MAIN SVG ANIMATION ── -->
   <div style="position:relative;flex-shrink:0">
@@ -3574,11 +3665,11 @@ updateClock();
           <path d="M120,191 L220,191 L215,198 L125,198 Z"
                 fill="rgba(228,242,254,0.62)"/>
           <!-- cloud streaks -->
-          <ellipse cx="162" cy="144" rx="12" ry="3.2" fill="rgba(255,255,255,0.12)" transform="rotate(-15,162,144)"/>
-          <ellipse cx="181" cy="167" rx="9" ry="2.6" fill="rgba(255,255,255,0.10)" transform="rotate(12,181,167)"/>
-          <ellipse cx="151" cy="160" rx="8" ry="2.1" fill="rgba(255,255,255,0.09)"/>
-          <ellipse cx="176" cy="125" rx="11" ry="2.6" fill="rgba(255,255,255,0.08)" transform="rotate(-8,176,125)"/>
-          <ellipse cx="197" cy="136" rx="7" ry="2" fill="rgba(255,255,255,0.07)" transform="rotate(5,197,136)"/>
+          <ellipse cx="162" cy="144" rx="12" ry="3.2" fill="rgba(var(--overlay-rgb),0.12)" transform="rotate(-15,162,144)"/>
+          <ellipse cx="181" cy="167" rx="9" ry="2.6" fill="rgba(var(--overlay-rgb),0.10)" transform="rotate(12,181,167)"/>
+          <ellipse cx="151" cy="160" rx="8" ry="2.1" fill="rgba(var(--overlay-rgb),0.09)"/>
+          <ellipse cx="176" cy="125" rx="11" ry="2.6" fill="rgba(var(--overlay-rgb),0.08)" transform="rotate(-8,176,125)"/>
+          <ellipse cx="197" cy="136" rx="7" ry="2" fill="rgba(var(--overlay-rgb),0.07)" transform="rotate(5,197,136)"/>
         </g>
       </g>
 
@@ -3599,7 +3690,7 @@ updateClock();
       <!-- night-side shadow -->
       <circle cx="170" cy="148" r="50" fill="url(#earth-shadow)"/>
       <!-- specular highlight (sunlit top-left) -->
-      <ellipse cx="152" cy="132" rx="18" ry="13" fill="rgba(255,255,255,0.042)" transform="rotate(-25,152,132)"/>
+      <ellipse cx="152" cy="132" rx="18" ry="13" fill="rgba(var(--overlay-rgb),0.042)" transform="rotate(-25,152,132)"/>
 
       <!-- ════════════════════════════════════ -->
       <!--  REALISTIC SATELLITE                 -->
@@ -3623,7 +3714,7 @@ updateClock();
         <line x1="-43" y1="-9.5" x2="-43" y2="9.5"  stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
         <line x1="-37" y1="-9.5" x2="-37" y2="9.5"  stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
         <line x1="-31" y1="-9.5" x2="-31" y2="9.5"  stroke="rgba(0,200,240,0.18)" stroke-width="0.4"/>
-        <rect x="-49" y="-9.5" width="21" height="5" rx="1.5" fill="rgba(255,255,255,0.06)"/>
+        <rect x="-49" y="-9.5" width="21" height="5" rx="1.5" fill="rgba(var(--overlay-rgb),0.06)"/>
 
         <!-- ── RIGHT SOLAR PANEL ── -->
         <rect x="12" y="-1.2" width="18" height="2.4" fill="rgba(190,195,205,0.85)"/>
@@ -3634,7 +3725,7 @@ updateClock();
         <line x1="34"  y1="-9.5" x2="34"  y2="9.5"  stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
         <line x1="40"  y1="-9.5" x2="40"  y2="9.5"  stroke="rgba(0,200,240,0.22)" stroke-width="0.5"/>
         <line x1="46"  y1="-9.5" x2="46"  y2="9.5"  stroke="rgba(0,200,240,0.18)" stroke-width="0.4"/>
-        <rect x="28"  y="-9.5" width="21" height="5" rx="1.5" fill="rgba(255,255,255,0.06)"/>
+        <rect x="28"  y="-9.5" width="21" height="5" rx="1.5" fill="rgba(var(--overlay-rgb),0.06)"/>
 
         <!-- ── MAIN BODY (gold thermal blanket) ── -->
         <rect x="-12" y="-10" width="24" height="20" rx="2.5"
@@ -3702,7 +3793,7 @@ updateClock();
       <rect x="267" y="199" width="5" height="15" rx="1" fill="rgba(0,255,65,.8)"/>
       <rect x="274" y="192" width="5" height="22" rx="1" fill="rgba(0,255,65,.8)"/>
       <rect x="281" y="184" width="5" height="30" rx="1" fill="rgba(0,255,65,.55)"/>
-      <rect x="288" y="209" width="5" height="5"  rx="1" fill="rgba(255,255,255,.12)"/>
+      <rect x="288" y="209" width="5" height="5"  rx="1" fill="rgba(var(--overlay-rgb),.12)"/>
       <text x="260" y="220" font-family="JetBrains Mono,monospace" font-size="6" fill="rgba(0,255,65,.25)" letter-spacing="0.5">SIG·STR</text>
 
       <!-- bottom-left data tick -->
@@ -3718,13 +3809,13 @@ updateClock();
   </div>
 
   <!-- status line -->
-  <div id="sat-loader-status" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.13em;color:rgba(185,204,178,.4);text-align:center;min-height:14px;margin-bottom:14px;transition:color .3s ease">INITIALIZING...</div>
+  <div id="sat-loader-status" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.13em;color:rgba(var(--muted-rgb),.4);text-align:center;min-height:14px;margin-bottom:14px;transition:color .3s ease">INITIALIZING...</div>
 
   <!-- progress bar -->
-  <div style="width:230px;height:1.5px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;margin-bottom:7px">
+  <div style="width:230px;height:1.5px;background:rgba(var(--overlay-rgb),.07);border-radius:2px;overflow:hidden;margin-bottom:7px">
     <div id="sat-loader-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#00ff41 0%,#00dbe9 100%);border-radius:2px;box-shadow:0 0 8px rgba(0,255,65,.55)"></div>
   </div>
-  <div id="sat-loader-pct" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.13em;color:rgba(185,204,178,.22)">0%</div>
+  <div id="sat-loader-pct" style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.13em;color:rgba(var(--muted-rgb),.22)">0%</div>
 </div>
 
 <script>
@@ -3783,18 +3874,18 @@ function switchHWTab(tab, silent) {
   const bc = document.getElementById('hw-tab-cloud-body');
   if (!tl || !tc || !bl || !bc) return;
   if (tab === 'cloud') {
-    tl.style.background = 'rgba(255,255,255,.04)';
-    tl.style.borderColor = 'rgba(255,255,255,.1)';
-    tl.style.color = 'rgba(185,204,178,.45)';
+    tl.style.background = 'rgba(var(--overlay-rgb),.04)';
+    tl.style.borderColor = 'rgba(var(--overlay-rgb),.1)';
+    tl.style.color = 'rgba(var(--muted-rgb),.45)';
     tc.style.background = 'rgba(0,219,233,.1)';
     tc.style.borderColor = 'rgba(0,219,233,.4)';
     tc.style.color = '#00dbe9';
     bl.style.display = 'none';
     bc.style.display = 'block';
   } else {
-    tc.style.background = 'rgba(255,255,255,.04)';
-    tc.style.borderColor = 'rgba(255,255,255,.1)';
-    tc.style.color = 'rgba(185,204,178,.45)';
+    tc.style.background = 'rgba(var(--overlay-rgb),.04)';
+    tc.style.borderColor = 'rgba(var(--overlay-rgb),.1)';
+    tc.style.color = 'rgba(var(--muted-rgb),.45)';
     tl.style.background = 'rgba(0,255,65,.12)';
     tl.style.borderColor = 'rgba(0,255,65,.35)';
     tl.style.color = '#00ff41';
@@ -3815,7 +3906,7 @@ function _hwSetStatus(state, sub) {
   const liveBox = document.getElementById('hw-live-box');
 
   const states = {
-    disconnected: { color:'rgba(255,255,255,.2)', label:'DISCONNECTED', btnColor:'rgba(185,204,178,.2)', btnTxt:'rgba(185,204,178,.5)' },
+    disconnected: { color:'rgba(var(--overlay-rgb),.2)', label:'DISCONNECTED', btnColor:'rgba(var(--muted-rgb),.2)', btnTxt:'rgba(var(--muted-rgb),.5)' },
     connecting:   { color:'rgba(255,200,50,.8)',  label:'CONNECTING…',  btnColor:'rgba(255,200,50,.3)',  btnTxt:'rgba(255,200,50,.9)' },
     online:       { color:'#00ff41',              label:'CONNECTED',    btnColor:'rgba(0,255,65,.35)',    btnTxt:'#00ff41' },
     // Socket to the broker/ESP32 is still up, but no data has arrived in
@@ -4234,7 +4325,7 @@ function showSatLoader(onComplete) {
   barEl.style.width = '0%';
   pctEl.textContent = '0%';
   statusEl.textContent = 'INITIALIZING...';
-  statusEl.style.color = 'rgba(185,204,178,.4)';
+  statusEl.style.color = 'rgba(var(--muted-rgb),.4)';
 
   // Fade in
   loader.style.opacity = '0';
@@ -4249,11 +4340,11 @@ function showSatLoader(onComplete) {
 
   // Cycling status messages
   const msgs = [
-    { t:   0, txt:'INITIALIZING TERRA-CORE...',    col:'rgba(185,204,178,.45)' },
-    { t: 520, txt:'SATELLITE NODE HANDSHAKE...',   col:'rgba(185,204,178,.45)' },
+    { t:   0, txt:'INITIALIZING TERRA-CORE...',    col:'rgba(var(--muted-rgb),.45)' },
+    { t: 520, txt:'SATELLITE NODE HANDSHAKE...',   col:'rgba(var(--muted-rgb),.45)' },
     { t:1080, txt:'FETCHING NDVI DATA STREAM...',  col:'rgba(0,219,233,.65)'   },
     { t:1640, txt:'SYNCING WEATHER API...',        col:'rgba(0,219,233,.65)'   },
-    { t:2200, txt:'COMPUTING SOIL WATER BALANCE...', col:'rgba(185,204,178,.45)' },
+    { t:2200, txt:'COMPUTING SOIL WATER BALANCE...', col:'rgba(var(--muted-rgb),.45)' },
     { t:2680, txt:'ALL SYSTEMS NOMINAL ✓',         col:'#00ff41'               },
   ];
   const timers = msgs.map(({ t, txt, col }) =>
@@ -4382,7 +4473,7 @@ function renderAlarmToggle(){
   const on=alarmsEnabled();
   const track=document.getElementById('alarm-toggle');
   const dot=document.getElementById('alarm-toggle-dot');
-  if(track) track.style.background=on?'rgba(0,255,65,.5)':'rgba(255,255,255,.12)';
+  if(track) track.style.background=on?'rgba(0,255,65,.5)':'rgba(var(--overlay-rgb),.12)';
   if(dot) dot.style.left=on?'18px':'2px';
   const t1=document.getElementById('ntfy-topic-display');
   const t2=document.getElementById('ntfy-topic-display-2');
@@ -4393,6 +4484,24 @@ function toggleAlarmsUI(){
   setAlarmsEnabled(!alarmsEnabled());
   renderAlarmToggle();
 }
+// ── LIGHT / DARK THEME ────────────────────────────────────────
+function currentTheme(){
+  return document.documentElement.getAttribute('data-theme')==='light' ? 'light' : 'dark';
+}
+function renderThemeIcon(){
+  const icon=document.getElementById('theme-toggle-icon');
+  if(icon) icon.textContent = currentTheme()==='dark' ? 'dark_mode' : 'light_mode';
+}
+function toggleTheme(){
+  const next = currentTheme()==='dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  document.documentElement.classList.toggle('dark', next==='dark');
+  try{ localStorage.setItem('agrisat_theme', next); }catch(e){}
+  renderThemeIcon();
+  logValve('THEME → '+next.toUpperCase());
+}
+renderThemeIcon();
+
 function openSettingsModal(){
   document.getElementById('settings-modal').style.display='block';
   renderAlarmToggle();
