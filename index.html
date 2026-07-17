@@ -458,12 +458,12 @@ body{
 
   /* ── PAGE 2: Asset Analytics ──
      Stack left + right panels, centre NDVI full-width in between */
-  #page-ndvi{display:flex!important;flex-direction:column!important;grid-template-columns:none!important;height:auto!important;overflow-y:auto!important}
+  #page-ndvi.active{display:flex!important;flex-direction:column!important;grid-template-columns:none!important;height:auto!important;overflow-y:auto!important}
   #page-ndvi section{grid-column:unset!important;width:100%!important;flex-shrink:0}
   #page-ndvi section.col-span-6 .gp.flex-1{min-height:320px}
 
   /* ── PAGE 3: Climate ── */
-  #page-climate{display:flex!important;flex-direction:column!important;height:auto!important;overflow-y:auto!important}
+  #page-climate.active{display:flex!important;flex-direction:column!important;height:auto!important;overflow-y:auto!important}
   /* Metric card row: 3-col */
   #page-climate>div:first-child{grid-template-columns:repeat(3,1fr)!important}
   #page-climate .flex-1.gp{min-height:360px!important}
