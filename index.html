@@ -1867,6 +1867,20 @@ function applyCurrentData(d){
   }
   S.hours_since_rain=hoursSince;
 
+  // ── Too-much-rain alarm — same constants Rain Guard uses, just
+  // narrowed to genuinely active/heavy rain rather than the broader
+  // post-rain hold window (which stays "true" for RAIN_HOLD_HOURS and
+  // would otherwise re-fire alarms for residual wetness, not rain itself).
+  if(S.rain_mm>=RAIN_ACTIVE_MIN_MM || S.rain_next24h_mm>=RAIN_FORECAST_24H_MM){
+    sendAlarm('rain','⛈ TOO MUCH RAIN — Dediapada',
+      S.rain_mm>=RAIN_ACTIVE_MIN_MM
+        ? `Active rainfall ${S.rain_mm.toFixed(1)}mm/hr right now.`
+        : `${S.rain_next24h_mm.toFixed(0)}mm rain forecast in the next 24h.`,
+      'cloud_with_rain');
+  } else {
+    clearAlarm('rain');
+  }
+
   S.is_day=c.is_day===1;
   const isDay=S.is_day?'DAY ☀':'NIGHT 🌙';
   // Map page
@@ -2053,6 +2067,14 @@ function updateVWC(){
   _recordVWCHistory(parseFloat(avg));
   const minVWC=Math.min(S.vA,S.vB,S.vC);
   set('vwc-alert',minVWC<20?'CRITICAL':minVWC<22?'WATCH':'NORMAL');
+  // Too-dry alarm — same CRITICAL cutoff already used for vwc-alert above.
+  if(minVWC<20){
+    sendAlarm('dry','🌵 SOIL TOO DRY — Dediapada',
+      `VWC critical at ${minVWC.toFixed(1)}% (below 20%). Irrigation may be needed.`,
+      'warning');
+  } else {
+    clearAlarm('dry');
+  }
   set('ndvi-vwc',avg+'%');
   set('ndvi-vwc-status',parseFloat(avg)>25?'OPTIMAL':parseFloat(avg)>20?'ADEQUATE':'LOW — IRRIGATING');
   const dep=((clamp(23-S.vA,0,10)/100)*.4*1000/.9).toFixed(0);
@@ -2237,6 +2259,63 @@ function renderTimelineHeader(now){
 const RAIN_FORECAST_24H_MM=10;   // meaningful rain expected in the next 24h
 const RAIN_HOLD_HOURS=48;        // hold irrigation this long after significant rain
 const RAIN_ACTIVE_MIN_MM=1;      // below this is trace/mist noise, not "actively raining"
+
+// ══════════════════════════════════════════════════
+// WEATHER ALARM — pushes a real phone/laptop notification (via ntfy.sh,
+// free, no account) when conditions cross the SAME thresholds Rain Guard
+// and the VWC critical alert already use elsewhere in this file. No new
+// numeric cutoffs invented here — this only surfaces what the app already
+// considers an alarm-worthy state.
+//
+// Install the ntfy app (iOS/Android) or open https://ntfy.sh/<topic> in a
+// browser and subscribe to the topic below to receive these.
+// ══════════════════════════════════════════════════
+const NTFY_TOPIC='agrisat-dediapada-farm01-x7k2m9';
+const ALARM_STATE_KEY='agrisat_alarm_state_v1';
+const ALARM_RENOTIFY_MS=6*3600*1000; // re-remind at most every 6h while a condition persists
+
+function alarmsEnabled(){ return localStorage.getItem('agrisat_alarms_enabled')!=='0'; }
+function setAlarmsEnabled(on){ localStorage.setItem('agrisat_alarms_enabled', on?'1':'0'); }
+function loadAlarmState(){
+  try{ return JSON.parse(localStorage.getItem(ALARM_STATE_KEY))||{}; }catch(e){ return {}; }
+}
+function saveAlarmState(s){ try{ localStorage.setItem(ALARM_STATE_KEY, JSON.stringify(s)); }catch(e){} }
+
+async function sendAlarm(kind, title, body, tags, bypassCooldown){
+  if(!bypassCooldown){
+    if(!alarmsEnabled()) return;
+    const state=loadAlarmState();
+    const now=Date.now();
+    if(state[kind] && (now-state[kind])<ALARM_RENOTIFY_MS) return; // already alerted recently
+    state[kind]=now;
+    saveAlarmState(state);
+  }
+  logValve(`⚠ ALARM [${kind.toUpperCase()}] ${title} — ${body}`);
+  try{
+    // HTTP header values must be Latin-1 — strip emoji/smart-punctuation so
+    // the fetch doesn't throw (Tags below already renders an emoji icon in
+    // the ntfy app, so the header title doesn't need one of its own).
+    const safeTitle=title.replace(/[^\x00-\xFF]/g,'').replace(/\s+/g,' ').trim();
+    await fetch('https://ntfy.sh/'+NTFY_TOPIC, {
+      method:'POST',
+      headers:{'Title':safeTitle, 'Priority':'urgent', 'Tags':tags||'warning'},
+      body
+    });
+  }catch(e){ console.warn('[Alarm] ntfy push failed:', e); }
+  if(typeof Notification==='function' && Notification.permission==='granted'){
+    try{ new Notification(title,{body, icon:'icons/icon.svg'}); }catch(e){}
+  }
+}
+function clearAlarm(kind){
+  const state=loadAlarmState();
+  if(state[kind]){ delete state[kind]; saveAlarmState(state); }
+}
+function testAlarm(){
+  sendAlarm('test','🔔 TEST ALERT — TERRA-CORE', 'If you can see this, alerts are wired up correctly.', 'bell', true);
+}
+if(typeof Notification==='function' && Notification.permission==='default'){
+  Notification.requestPermission().catch(()=>{});
+}
 
 // ══════════════════════════════════════════════════
 // AUTO_OPT — DRIP_CONTROL_A / ET0_COMPENSATION / RAIN_GUARD_MODE toggles.
@@ -3220,6 +3299,31 @@ updateClock();
           <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.45);letter-spacing:.04em">Clear cached files &amp; reload the latest deployed version</span>
         </div>
         <span id="clear-cache-icon" class="material-symbols-outlined" style="font-size:20px;color:#00ff41">refresh</span>
+      </button>
+    </div>
+
+    <div style="height:1px;background:rgba(255,255,255,.07);margin-bottom:20px"></div>
+
+    <!-- Weather Alarms Section -->
+    <div style="margin-bottom:20px">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:rgba(0,238,252,.55);margin-bottom:14px;text-transform:uppercase">Rain / Dry Alarms</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);margin-bottom:10px">
+        <div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;color:#dfe4e0;display:block">PUSH ALERTS</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.45);letter-spacing:.04em">Notify on heavy rain or critical dry soil</span>
+        </div>
+        <div id="alarm-toggle" onclick="toggleAlarmsUI()" style="width:36px;height:20px;border-radius:10px;position:relative;cursor:pointer;transition:background .2s">
+          <div id="alarm-toggle-dot" style="position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s"></div>
+        </div>
+      </div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(185,204,178,.4);letter-spacing:.04em;line-height:1.6;margin-bottom:10px">
+        Install the <b style="color:rgba(0,219,233,.8)">ntfy</b> app (iOS/Android) and subscribe to topic
+        <span id="ntfy-topic-display" style="color:#00ff41">···</span> (or visit
+        <span style="color:rgba(0,219,233,.8)">ntfy.sh/<span id="ntfy-topic-display-2">···</span></span> in a browser) to receive these on your phone/laptop, even when this dashboard is closed.
+      </p>
+      <button onclick="testAlarm()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-radius:12px;border:1.5px solid rgba(0,219,233,.25);background:rgba(0,219,233,.06);cursor:pointer;text-align:left;transition:all .2s">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;color:#00dbe9">SEND TEST ALERT</span>
+        <span class="material-symbols-outlined" style="font-size:18px;color:#00dbe9">notifications_active</span>
       </button>
     </div>
 
@@ -4260,8 +4364,24 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── SETTINGS MODAL ──────────────────────────────────────────
+function renderAlarmToggle(){
+  const on=alarmsEnabled();
+  const track=document.getElementById('alarm-toggle');
+  const dot=document.getElementById('alarm-toggle-dot');
+  if(track) track.style.background=on?'rgba(0,255,65,.5)':'rgba(255,255,255,.12)';
+  if(dot) dot.style.left=on?'18px':'2px';
+  const t1=document.getElementById('ntfy-topic-display');
+  const t2=document.getElementById('ntfy-topic-display-2');
+  if(t1) t1.textContent=NTFY_TOPIC;
+  if(t2) t2.textContent=NTFY_TOPIC;
+}
+function toggleAlarmsUI(){
+  setAlarmsEnabled(!alarmsEnabled());
+  renderAlarmToggle();
+}
 function openSettingsModal(){
   document.getElementById('settings-modal').style.display='block';
+  renderAlarmToggle();
 }
 function closeSettingsModal(){
   document.getElementById('settings-modal').style.display='none';
