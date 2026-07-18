@@ -772,12 +772,41 @@ header{
   </svg>
 
   <!-- Floating astronaut, drifting slowly upper-right -->
-  <!-- NASA public-domain photo — astronaut's helmet-cam self-portrait
-       during an ISS spacewalk, visor reflecting the station. U.S.
-       government work, not copyrighted. Framed as a photo card. -->
-  <div class="cine-astronaut" style="position:absolute;right:4%;top:4%;width:104px;z-index:0;pointer-events:none;border-radius:12px;overflow:hidden;border:1.5px solid rgba(0,255,65,.3);box-shadow:0 0 20px rgba(0,255,65,.15),0 8px 24px rgba(0,0,0,.5)">
-    <img src="https://www.nasa.gov/wp-content/uploads/2023/03/157684main_image_feature_656_ys_full.jpg?w=1024" alt="Astronaut" style="display:block;width:100%;height:100%;object-fit:cover;object-position:center 55%">
-  </div>
+  <svg class="cine-astronaut" viewBox="0 0 140 180" xmlns="http://www.w3.org/2000/svg" style="position:absolute;right:2%;top:9%;width:96px;height:auto;z-index:0;pointer-events:none;filter:drop-shadow(0 0 14px rgba(0,255,65,.18))">
+    <!-- Tether -->
+    <path d="M70,120 C40,140 20,110 -10,150" fill="none" stroke="#5a7a68" stroke-width="1.5" stroke-dasharray="3 4" opacity=".5"/>
+    <!-- Backpack -->
+    <rect x="52" y="70" width="36" height="46" rx="8" fill="#c9d4cc"/>
+    <!-- Legs -->
+    <path d="M58,140 Q50,162 40,172" fill="none" stroke="#e8ede9" stroke-width="16" stroke-linecap="round"/>
+    <path d="M82,140 Q92,160 100,168" fill="none" stroke="#e8ede9" stroke-width="16" stroke-linecap="round"/>
+    <ellipse cx="37" cy="175" rx="10" ry="7" fill="#8a9a90"/>
+    <ellipse cx="103" cy="171" rx="10" ry="7" fill="#8a9a90"/>
+    <!-- Torso (suit) -->
+    <rect x="42" y="78" width="56" height="66" rx="24" fill="#f2f5f2"/>
+    <!-- Chest control panel -->
+    <rect x="56" y="98" width="28" height="18" rx="3" fill="#2a3a30"/>
+    <circle cx="62" cy="107" r="2.4" fill="#00ff41"/>
+    <circle cx="70" cy="107" r="2.4" fill="#00dbe9"/>
+    <circle cx="78" cy="107" r="2.4" fill="#ffb432"/>
+    <!-- Arms -->
+    <path d="M44,90 Q14,96 10,128" fill="none" stroke="#f2f5f2" stroke-width="17" stroke-linecap="round"/>
+    <circle cx="9" cy="131" r="10" fill="#c9d4cc"/>
+    <path d="M96,90 Q120,84 118,58" fill="none" stroke="#f2f5f2" stroke-width="17" stroke-linecap="round"/>
+    <circle cx="119" cy="55" r="10" fill="#c9d4cc"/>
+    <!-- Helmet -->
+    <circle cx="70" cy="52" r="34" fill="#eef2ef"/>
+    <ellipse cx="70" cy="52" rx="26" ry="27" fill="#0a1f14"/>
+    <ellipse cx="70" cy="52" rx="26" ry="27" fill="url(#visorSheen)"/>
+    <path d="M52,38 Q70,26 88,38" fill="none" stroke="#00ff41" stroke-width="2" opacity=".55"/>
+    <defs>
+      <linearGradient id="visorSheen" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#4dffb0" stop-opacity=".55"/>
+        <stop offset="45%" stop-color="#0a1f14" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#0a1f14" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+  </svg>
 
   <div class="cine-vignette"></div>
 
