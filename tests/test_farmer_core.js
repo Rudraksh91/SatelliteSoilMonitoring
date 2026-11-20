@@ -79,4 +79,11 @@ const shallow = C.advise({ today, weather: w0, soil, ndvi: [], crop: C.cropParam
 check('deeper-rooted crop has a bigger water store (TAW) than vegetables', deepRoot.taw > 2.5 * shallow.taw);
 check('reason carries a translation key and parameters', typeof a1.reasonKey === 'string' && a1.rp && a1.rp.dr !== undefined);
 check('Kc and NDVI are reported even when the start is today (no days balanced)', anch.kc != null && anch.ndvi === null && anch.ndviStale === true && C.advise({ today, weather: w0, soil, ndvi: [{ date: '2026-11-17', ndvi: 0.5 }], start: { date: today, fracRaw: 0.5 } }).ndvi > 0.4);
+// ── NDVI map support ──
+const [E2, N2] = C.toUTM(21.6280, 73.5834, 43), [la2, ln2] = C.fromUTM(E2, N2, 43);
+check('inverse UTM round trip is exact to < 1 cm', Math.hypot((la2 - 21.6280) * 110574, (ln2 - 73.5834) * 103600) < 0.01);
+const fpAll = C.farmPixels(C.squareFromArea(21.6277, 73.5854, 1.0), 43);
+check('farmPixels returns every pixel inside the outline (all) and the used subset', fpAll.all.length >= fpAll.pixels.length && fpAll.all.length > 90 && fpAll.shrunk);
+const cell = C.fromUTM(fpAll.all[0][0] - 5, fpAll.all[0][1] - 5, 43), cell2 = C.fromUTM(fpAll.all[0][0] + 5, fpAll.all[0][1] + 5, 43);
+check('a pixel corner pair maps to a ~10 m square on the ground', Math.abs((cell2[0] - cell[0]) * 110574 - 10) < 0.2 && Math.abs((cell2[1] - cell[1]) * 111320 * Math.cos(21.6 * Math.PI / 180) - 10) < 0.2);
 console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);

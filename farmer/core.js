@@ -65,6 +65,20 @@
     return [500000 + k0 * A * E, (lat < 0 ? 1e7 : 0) + k0 * A * N];
   }
 
+  function fromUTM(E, N, zone) {                     // inverse of toUTM (northern hemisphere), returns [lat, lng]
+    const a = 6378137, f = 1 / 298.257223563, k0 = 0.9996, n = f / (2 - f);
+    const A = a / (1 + n) * (1 + n * n / 4 + n ** 4 / 64);
+    const be = [0, n / 2 - 2 * n * n / 3 + 37 * n ** 3 / 96, n * n / 48 + n ** 3 / 15, 17 * n ** 3 / 480];
+    const de = [0, 2 * n - 2 * n * n / 3 - 2 * n ** 3, 7 * n * n / 3 - 8 * n ** 3 / 5, 56 * n ** 3 / 15];
+    const xi = N / (k0 * A), eta = (E - 500000) / (k0 * A);
+    let xi0 = xi, eta0 = eta;
+    for (let j = 1; j <= 3; j++) { xi0 -= be[j] * Math.sin(2 * j * xi) * Math.cosh(2 * j * eta); eta0 -= be[j] * Math.cos(2 * j * xi) * Math.sinh(2 * j * eta); }
+    const chi = Math.asin(Math.sin(xi0) / Math.cosh(eta0));
+    let phi = chi; for (let j = 1; j <= 3; j++) phi += de[j] * Math.sin(2 * j * chi);
+    const lam0 = ((zone - 1) * 6 - 180 + 3) * DEG, lam = lam0 + Math.atan2(Math.sinh(eta0), Math.cos(xi0));
+    return [phi / DEG, lam / DEG];
+  }
+
   /** 10 m pixel centres (in UTM metres) inside the farm, >= shrinkM from the boundary (headland/road pixels).
    *  Falls back to no shrink when too few pixels remain. Returns {pixels, shrunk, zone}. */
   function farmPixels(pts, zone, opts) {
@@ -78,8 +92,8 @@
       all.push([x, y]);
       if (distToEdges(x, y, poly) >= o.shrink) inner.push([x, y]);
     }
-    if (inner.length >= o.minPixels) return { pixels: inner, shrunk: true, zone, total: all.length };
-    return { pixels: all, shrunk: false, zone, total: all.length };
+    if (inner.length >= o.minPixels) return { pixels: inner, all, shrunk: true, zone, total: all.length };
+    return { pixels: all, all, shrunk: false, zone, total: all.length };
   }
 
   // ───────────────────────── Sentinel-2 via STAC + COG ─────────────────────────
@@ -108,7 +122,8 @@
     if (!px.length) return null;
     const open = async (asset) => { const t = await GeoTIFF.fromUrl(asset.href); const img = await t.getImage(); return img; };
     const [red, nir, scl] = await Promise.all([open(a.red), open(a.nir), open(a.scl)]);
-    const xs = px.map(p => p[0]), ys = px.map(p => p[1]);
+    const allPx = fp.all, used = new Set(px.map(p => p[0] + ',' + p[1]));
+    const xs = allPx.map(p => p[0]), ys = allPx.map(p => p[1]);
     const bb = [Math.min(...xs) - 10, Math.min(...ys) - 10, Math.max(...xs) + 10, Math.max(...ys) + 10];
     const win = (img) => {
       const [ox, oy] = img.getOrigin(), [rx, ry] = img.getResolution();
@@ -130,22 +145,30 @@
     const offR = applied ? 0 : (rb && rb.offset !== undefined ? rb.offset : (feature.properties.datetime >= '2022-01-25' ? -0.1 : 0)), sclR = rb && rb.scale ? rb.scale : 1e-4;
     const offN = applied ? 0 : (nb && nb.offset !== undefined ? nb.offset : offR), sclN = nb && nb.scale ? nb.scale : sclR;
     const at = (arr, w, i, j) => arr[0][j * (w.x1 - w.x0) + i];
+    // dense grid over the farm's bounding box: v = NDVI*100 (int), null outside the farm; f: 0 clear+used, 1 clear but edge pixel (not used), 2 cloud/no data
+    const cx0 = Math.min(...xs), cy0 = Math.max(...ys), cols = Math.round((Math.max(...xs) - cx0) / 10) + 1, rows = Math.round((cy0 - Math.min(...ys)) / 10) + 1;
+    const gv = new Array(cols * rows).fill(null), gf = new Array(cols * rows).fill(0);
     const vals = []; let cloudy = 0;
-    for (const [x, y] of px) {
+    for (const [x, y] of allPx) {
       const i = Math.floor((x - wr.ox) / wr.rx) - wr.x0, j = Math.floor((y - wr.oy) / wr.ry) - wr.y0;
       const k = Math.floor((x - wn.ox) / wn.rx) - wn.x0, l = Math.floor((y - wn.oy) / wn.ry) - wn.y0;
       const m = Math.floor((x - ws.ox) / ws.rx) - ws.x0, n = Math.floor((y - ws.oy) / ws.ry) - ws.y0;
+      const gi = Math.round((cy0 - y) / 10) * cols + Math.round((x - cx0) / 10), isUsed = used.has(x + ',' + y);
       const sc = at(S, ws, m, n);
-      if (sc === 3 || sc === 8 || sc === 9 || sc === 10 || sc === 11 || sc === 0) { cloudy++; continue; }   // shadow, cloud, cirrus, snow, no data
+      if (sc === 3 || sc === 8 || sc === 9 || sc === 10 || sc === 11 || sc === 0) { cloudy++; gf[gi] = 2; continue; }   // shadow, cloud, cirrus, snow, no data
       const dr = at(R, wr, i, j), dn = at(N, wn, k, l);
-      if (!dr || !dn) continue;
+      if (!dr || !dn) { gf[gi] = 2; continue; }
       const r1 = Math.max(0, dr * sclR + offR), n1 = Math.max(0, dn * sclN + offN);   // like EE HARMONIZED: reflectance never below 0
-      if (r1 + n1 <= 0) continue;
-      vals.push(Math.max(-1, Math.min(1, (n1 - r1) / (n1 + r1))));
+      if (r1 + n1 <= 0) { gf[gi] = 2; continue; }
+      const nd = Math.max(-1, Math.min(1, (n1 - r1) / (n1 + r1)));
+      gv[gi] = Math.round(nd * 100); gf[gi] = isUsed ? 0 : 1;
+      if (isUsed) vals.push(nd);
     }
-    if (!vals.length) return { date: feature.properties.datetime.slice(0, 10), ndvi: null, n: 0, cloudy, total: px.length };
+    const grid = { zone, x0: cx0, y0: cy0, cols, rows, v: gv, f: gf };
+    const date = feature.properties.datetime.slice(0, 10);
+    if (!vals.length) return { date, ndvi: null, n: 0, cloudy, total: px.length, grid };
     vals.sort((p, q) => p - q);
-    return { date: feature.properties.datetime.slice(0, 10), ndvi: vals[Math.floor(vals.length / 2)], n: vals.length, cloudy, total: px.length, shrunk: fp.shrunk };
+    return { date, ndvi: vals[Math.floor(vals.length / 2)], n: vals.length, cloudy, total: px.length, shrunk: fp.shrunk, grid };
   }
 
   /** Clean-scene NDVI series (newest first, one value per date). Only tiles that fully cover the farm are read, and
@@ -293,6 +316,6 @@
   }
 
   return { centroid, bbox, polygonAreaM2, squareFromArea, pointInPolygon, distToEdges, utmZone, toUTM, farmPixels,
-           searchScenes, sceneNdvi, ndviSeries, saxtonRawls, depthWeighted, soilFromSoilGrids, fetchSoil,
+           fromUTM, searchScenes, sceneNdvi, ndviSeries, saxtonRawls, depthWeighted, soilFromSoilGrids, fetchSoil,
            tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP, CROPS, cropParams, stageKc };
 });
