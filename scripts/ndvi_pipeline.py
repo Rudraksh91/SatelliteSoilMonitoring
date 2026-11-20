@@ -35,7 +35,7 @@ BUFFER_DEG  = 0.018          # ~2 km around the farm point
 WINDOW_DAYS = 30             # look-back window for the cloud-masked composite
 MAX_SCENE_CLOUD = 85         # whole-scene ceiling; pixels are masked via SCL anyway
 IST         = timezone(timedelta(hours=5, minutes=30))
-REPO_RAW    = "https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main"
+REPO_RAW    = "https://raw.githubusercontent.com/Rudraksh91/SatelliteSoilMonitoring/main"
 
 # mean NDVI -> (status, action)
 THRESHOLDS = [

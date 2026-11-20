@@ -145,7 +145,7 @@ DHT_TYPE = Adafruit_DHT.DHT22 if HAS_DHT else None
 # (scripts/run_daily.py -> data/decision.json). It makes no hydrological decisions of its own.
 IST = timezone(timedelta(hours=5, minutes=30))
 FARM_LAT, FARM_LNG = 21.62707, 73.5854
-DECISION_URL        = "https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main/data/decision.json"
+DECISION_URL        = "https://raw.githubusercontent.com/Rudraksh91/SatelliteSoilMonitoring/main/data/decision.json"
 DECISION_REFRESH_S  = 1800            # pull the decision file every 30 min
 DECISION_MAX_AGE_H  = 48              # H2: older than this -> stop model-based decisions, use the default below
 START_HOUR_IST      = int(os.environ.get("AGRISAT_START_HOUR", "8"))   # earliest hour the day's run may start

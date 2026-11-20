@@ -2425,7 +2425,7 @@ _loadIrrigLog();
 // The daily GitHub Actions job (scripts/run_daily.py) computes depletion, the decision and run times and
 // publishes data/decision.json. The dashboard shows THAT; the in-browser balance below is only a fallback
 // when the file is missing or older than 48 h.
-const CENTRAL_URL='https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main/data/decision.json';
+const CENTRAL_URL='https://raw.githubusercontent.com/Rudraksh91/SatelliteSoilMonitoring/main/data/decision.json';
 window._central=null;
 function centralFresh(){const c=window._central;return !!(c&&c._ageH<=48);}
 function centralZone(key){const c=window._central;return c&&c.zones?c.zones[['vA','vB','vC'].indexOf(key)]:null;}
@@ -2916,7 +2916,7 @@ function renderTimeline(){
 // NDVI STATUS — live satellite data from GitHub raw
 // ══════════════════════════════════════════════════
 (function fetchNdviStatus(){
-  const URL='https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main/ndvi_status.json';
+  const URL='https://raw.githubusercontent.com/Rudraksh91/SatelliteSoilMonitoring/main/ndvi_status.json';
   const STATUS_COLOR={STRESSED:'#ffb432',MODERATE:'#00dbe9',HEALTHY:'#00ff41',THRIVING:'#7fff7f',HOLD:'#8888ff'};
   const REFRESH_MS=15*60*1000; // re-check every 15 min so an open tab picks up new harvest cycles without a manual reload
   function poll(){
