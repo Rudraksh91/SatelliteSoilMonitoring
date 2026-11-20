@@ -18,7 +18,7 @@
     if (!scenes.length) return { scenes: [], scene: null, map: null };
     const s = scenes[Math.min(idx || 0, scenes.length - 1)], g = s.grid;
     const map = L.map(box, { zoomControl: false, dragging: false, scrollWheelZoom: false, touchZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false });
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Imagery © Esri · Sentinel-2' }).addTo(map);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 19, maxZoom: 21, attribution: 'Imagery © Esri · Sentinel-2' }).addTo(map);
     for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) {
       const v = g.v[r * g.cols + c], fl = g.f[r * g.cols + c];
       if (v === null && fl !== 2) continue;                                   // outside the farm outline

@@ -63,7 +63,8 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
       <button class="sec" id="btnClear" data-i="clear"></button>
     </div>
     <label for="placeIn" data-i="findLabel"></label>
-    <div class="row" style="flex-wrap:nowrap"><input id="placeIn" type="text" maxlength="60" data-ph="findPh" style="flex:1 1 auto"><button class="sec" id="btnFind" data-i="find" style="flex:0 0 auto"></button></div>
+    <div class="row" style="flex-wrap:nowrap"><input id="placeIn" type="text" maxlength="200" data-ph="findPh" style="flex:1 1 auto"><button class="sec" id="btnFind" data-i="find" style="flex:0 0 auto"></button></div>
+    <label for="stateIn" data-i="stateLabel"></label><select id="stateIn"></select>
     <div id="placeRes" class="list" style="margin-top:8px"></div>
     <div id="areaBox" class="note" style="margin:10px 0 0"></div>
     <label><input type="checkbox" id="pinMode"> <span data-i="pinOnly"></span></label>
@@ -97,9 +98,9 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261120h"></script>
-<script src="farmer/i18n.js?v=20261120h"></script>
-<script src="farmer/ndvimap.js?v=20261120h"></script>
+<script src="farmer/core.js?v=20261120i"></script>
+<script src="farmer/i18n.js?v=20261120i"></script>
+<script src="farmer/ndvimap.js?v=20261120i"></script>
 <script>
 (function(){
 'use strict';
@@ -140,7 +141,7 @@ function applyStatic(){
   sel.innerHTML=Object.keys(C.CROPS).map(k=>`<option value="${k}">${esc(T('crop_'+k))}</option>`).join('');sel.value=cur;
   $('editTitle').textContent=editing?T('editFarm'):T('selectFarm');
 }
-function setLang(l){lang=l;try{localStorage.setItem(LKEY,l);}catch(e){}applyStatic();
+function setLang(l){lang=l;try{localStorage.setItem(LKEY,l);}catch(e){}applyStatic();fillStates();buildLayerControl();
   if(view==='home')renderHome();else if(view==='edit')redraw();else if(view==='farm'&&last)renderAdvice(last.f,last.a,last.w,last.warn);}
 
 // ── consent (P3) ──
@@ -159,10 +160,26 @@ function renderHome(){
 $('btnAdd').onclick=()=>{if(needConsent())return askConsent();startEdit(null);};
 
 // ── map / edit (P4: area, small-farm warning) ──
+let layerCtl=null,baseLayers=null;
+const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
+function buildLayerControl(){
+  if(!map||!baseLayers)return;
+  if(layerCtl){map.removeControl(layerCtl);}
+  const names={};names[T('layerHybrid')]=baseLayers.hybrid;names[T('layerSat')]=baseLayers.sat;names[T('layerStreet')]=baseLayers.street;
+  layerCtl=L.control.layers(names,null,{collapsed:true,position:'topright'}).addTo(map);
+}
 function ensureMap(center){
   if(map)return;
-  map=L.map('map',{zoomControl:true}).setView(center||[22.5,79],center?17:5);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'}).addTo(map);
+  map=L.map('map',{zoomControl:true,maxZoom:21}).setView(center||[22.5,79],center?17:5);
+  const z={maxNativeZoom:19,maxZoom:21};   // Esri imagery is real up to z19 (≈0.3 m/pixel); z20-21 are enlarged so corners can be tapped precisely
+  const sat=L.tileLayer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',Object.assign({attribution:'Imagery © Esri, Maxar, Earthstar Geographics'},z));
+  const names=L.tileLayer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',Object.assign({attribution:'Labels © Esri'},z));
+  const roads=L.tileLayer(ESRI+'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',z);
+  const street=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',Object.assign({attribution:'© OpenStreetMap contributors'},z));
+  baseLayers={sat,street,hybrid:L.layerGroup([sat,roads,names])};
+  baseLayers.hybrid.addTo(map);                      // satellite with village / road names: easiest to find your own field
+  L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
+  buildLayerControl();
   map.on('click',e=>{if($('pinMode').checked){pin=[e.latlng.lat,e.latlng.lng];}else{pts.push([e.latlng.lat,e.latlng.lng]);}redraw();});
 }
 function currentShape(){
@@ -190,7 +207,7 @@ function startEdit(f){
   $('nameIn').value=f?f.name:'';$('flowIn').value=f&&f.flowLph?f.flowLph:'';$('plantIn').value=f&&f.plantingDate?f.plantingDate:'';
   $('cropIn').value=f&&f.cropId?f.cropId:'general';
   $('pinMode').checked=!!(f&&f.pinOnly);$('pinArea').hidden=!$('pinMode').checked;$('haIn').value=f&&f.pinOnly?fmt(f.areaM2/10000,2):'0.5';
-  applyStatic();show('edit');
+  applyStatic();fillStates();show('edit');
   ensureMap(f?C.centroid(f.latlngs):null);
   setTimeout(()=>{map.invalidateSize();if(f)map.fitBounds(L.latLngBounds(f.latlngs).pad(.3));redraw();},60);
 }
@@ -211,15 +228,42 @@ $('btnGps').onclick=async()=>{
   alert(T(err&&err.code===1?'gpsDenied':err&&err.code===3?'gpsTimeout':'gpsOff'));
   $('placeIn').focus();
 };
+const STATES=['Andaman and Nicobar Islands','Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chandigarh','Chhattisgarh','Dadra and Nagar Haveli and Daman and Diu','Delhi','Goa','Gujarat','Haryana','Himachal Pradesh','Jammu and Kashmir','Jharkhand','Karnataka','Kerala','Ladakh','Lakshadweep','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Puducherry','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal'];
+function fillStates(){const sel=$('stateIn'),cur=sel.value;sel.innerHTML=`<option value="">${esc(T('allStates'))}</option>`+STATES.map(x=>`<option>${esc(x)}</option>`).join('');sel.value=cur;}
+// coordinates ("21.6277, 73.5903"), or a Google Maps link containing @lat,lng / !3dLAT!4dLNG / ?q=lat,lng
+function parseCoords(q){
+  let m=/@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/.exec(q)||/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/.exec(q)||/[?&](?:q|ll|query)=(-?\d{1,2}\.\d+)[, ]+(-?\d{1,3}\.\d+)/.exec(q)||/^\s*(-?\d{1,2}\.\d+)\s*[,;\s]\s*(-?\d{1,3}\.\d+)\s*$/.exec(q);
+  return m?[parseFloat(m[1]),parseFloat(m[2])]:null;
+}
+const inIndia=(la,ln)=>la>=6&&la<=37.5&&ln>=68&&ln<=98;
 async function findPlace(){
   const q=$('placeIn').value.trim();if(q.length<2)return;
-  const box=$('placeRes');box.innerHTML=`<p class="note">${esc(T('searching'))}</p>`;
-  const go=async l=>{const r=await tfetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${l}&countryCode=IN&format=json`);if(!r.ok)throw new Error('HTTP '+r.status);return (await r.json()).results||[];};
+  const box=$('placeRes');
+  const xy=parseCoords(q);
+  if(xy){if(!inIndia(xy[0],xy[1])){box.innerHTML=`<p class="note">${esc(T('coordOut'))}</p>`;return;}map.setView(xy,19);box.innerHTML='';return;}
+  box.innerHTML=`<p class="note">${esc(T('searching'))}</p>`;
+  const st=$('stateIn').value,full=st?q+', '+st:q;
   let res=[];
-  try{res=await go(lang);if(!res.length&&lang!=='en')res=await go('en');}catch(e){res=[];}
+  const nominatim=async text=>{   // OpenStreetMap Nominatim: villages, hamlets, towns, districts all over India (sequential, ≥1 s apart, as its usage policy asks)
+    const r=await tfetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=jsonv2&countrycodes=in&limit=8&addressdetails=1&accept-language=${lang==='en'?'en':lang+',en'}`,undefined,15000);
+    return r.ok?(await r.json()).map(x=>({name:(x.name||x.display_name.split(',')[0]),detail:x.display_name.split(',').slice(1,5).join(',').trim(),lat:+x.lat,lng:+x.lon,bb:x.boundingbox&&x.boundingbox.map(Number),type:x.type})):[];
+  };
+  try{
+    res=await nominatim(full);
+    if(!res.length&&!/,/.test(q)&&/\s/.test(q)){await new Promise(r=>setTimeout(r,1100));res=await nominatim(q.split(/\s+/).join(', ')+(st?', '+st:''));}   // "Rajpipla Narmada" -> "Rajpipla, Narmada"
+  }catch(e){res=[];}
+  if(!res.length){   // fallback geocoder
+    const go=async l=>{const r=await tfetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${l}&countryCode=IN&format=json`);if(!r.ok)throw new Error('HTTP '+r.status);return (await r.json()).results||[];};
+    try{let g=await go(lang);if(!g.length&&lang!=='en')g=await go('en');res=g.map(r=>({name:r.name,detail:[r.admin3,r.admin2,r.admin1].filter(Boolean).join(', '),lat:r.latitude,lng:r.longitude,type:'place'}));}catch(e){res=[];}
+  }
   if(!res.length){box.innerHTML=`<p class="note">${esc(T('noPlace'))}</p>`;return;}
-  box.innerHTML=res.map((r,i)=>`<button data-i="${i}">${esc(r.name)}<small>${esc([r.admin3,r.admin2,r.admin1].filter(Boolean).join(', '))}</small></button>`).join('');
-  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const r=res[+b.dataset.i];map.setView([r.latitude,r.longitude],16);box.innerHTML='';});
+  box.innerHTML=res.map((r,i)=>`<button data-i="${i}">${esc(r.name)}<small>${esc(r.detail)}</small></button>`).join('');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const r=res[+b.dataset.i];
+    if(r.bb&&r.bb.length===4&&(r.bb[1]-r.bb[0])>0.0002){map.fitBounds([[r.bb[0],r.bb[2]],[r.bb[1],r.bb[3]]],{maxZoom:17,padding:[20,20]});}
+    else map.setView([r.lat,r.lng],17);
+    box.innerHTML='';
+  });
 }
 $('btnFind').onclick=findPlace;
 $('placeIn').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();findPlace();}};

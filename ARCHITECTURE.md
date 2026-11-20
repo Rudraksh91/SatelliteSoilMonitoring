@@ -311,3 +311,15 @@ three zone rows (west / centre / east bands of the farm's own Sentinel-2 pixels)
 central decision, campus NDVI poll and the Pi valves are not used, and valve commands are blocked (emergency stop always passes).
 NDVI for farmer farms comes from Sentinel-2 read in the browser (validated against Earth Engine, mean |dNDVI| ~0.02-0.03); Earth
 Engine itself cannot be called from a browser without a server-held key.
+
+## Farmer mode (default) and project mode
+The site opens in **farmer mode**: there is no campus anywhere — no campus selector option, no campus NDVI/decision/weather fetches, the
+Automation / Health / Pipeline pages (campus hardware and project internals) are hidden, and the ESP32 splash is skipped. A farmer sees only
+their own farm; with no farm yet the dashboard shows "SELECT YOUR FARM" and opens the Farmers page. The project team switches the campus
+view on with `?campus=1` (remembered in that browser) and off with `?campus=0`.
+
+Farmer app map: Esri World Imagery (real to zoom 19, enlarged to 21 for precise corners) with a layer switch — satellite + village/road
+names, satellite only, OpenStreetMap streets — and a scale bar. Place search covers India: OpenStreetMap Nominatim (villages, hamlets,
+towns, districts; optional state filter; comma-retry for "village district"), Open-Meteo geocoding as fallback, plus pasted coordinates or a
+Google Maps link. Note: Nominatim's usage policy allows light, user-initiated searches only (one request per tap) — use a hosted geocoder
+if traffic grows.
