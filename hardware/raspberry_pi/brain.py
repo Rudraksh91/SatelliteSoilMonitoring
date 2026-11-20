@@ -155,6 +155,12 @@ RAIN_HOLD_HOURS      = 48      # ...or within this many hours of a significant (
 RAIN_ACTIVE_MIN_MM   = 1.0     # mm/h that counts as "raining now"
 BALANCE_REFRESH_S    = 1800    # rebuild the balance from Open-Meteo every 30 min
 BALANCE_MAX_AGE_S    = 3 * 3600  # no fresh balance for this long -> NO automatic decisions (fail safe)
+# Optional starting point from a real soil sample (M4): AGRISAT_ANCHOR="YYYY-MM-DD:VWC%", e.g. "2026-11-20:24"
+_anchor_env = os.environ.get("AGRISAT_ANCHOR", "").strip()
+try:
+    ANCHOR = (_anchor_env.split(":")[0], float(_anchor_env.split(":")[1])) if _anchor_env else None
+except (IndexError, ValueError):
+    ANCHOR = None
 STATE_FILE           = Path.home() / ".agrisat_balance.json"   # irrigation applied per day (survives restarts)
 MIN_IRRIGATE_SECS = 300     # minimum run time: 5 minutes
 MAX_IRRIGATE_SECS = 3600    # safety cap per run: 1 hour (enforced by enforce_valve_limits watchdog)
@@ -204,8 +210,10 @@ weather = {"temp": None, "humidity": None}   # None = no sensor reading yet
 # NDVI state
 ndvi_state = {"ndvi_avg": 0.5, "date": "", "stressed": False, "zones": [], "age_days": None}
 
-# Auto mode flag (can be toggled from dashboard)
-auto_mode = True
+# Auto mode flag. SAFE DEFAULT = MANUAL: after every start/reboot the Pi does NOT irrigate on its own
+# until someone enables it (signed "auto_mode: true" from the dashboard) or AGRISAT_AUTO_START=1 is set.
+# The water balance starts from an assumption (soil full 30 days ago) and can read far too dry on day one.
+auto_mode = os.environ.get("AGRISAT_AUTO_START", "0").strip() == "1"
 
 # MQTT client
 mqtt_conn = None
@@ -587,6 +595,8 @@ def refresh_balance():
             kc = ndvi_to_kc(nz[zid - 1] if len(nz) >= zid else None, ndvi_state.get("age_days"))
             dr = 0.0
             for i, day in enumerate(days):
+                if ANCHOR and day == ANCHOR[0]:     # restart the balance from a measured soil moisture
+                    dr = max(0.0, (FAO["FC"] - ANCHOR[1]) / 100.0 * FAO["root"] * 1000.0)
                 irrig = _applied.get(day, {}).get(str(zid), 0.0)
                 dr = fao56_step(dr, et0s[i] or 0.0, rains[i] or 0.0, irrig, kc)
             balance["dr"][zid] = dr
@@ -815,6 +825,12 @@ def main():
     init_valve_gpio()
     init_mqtt()
     load_state()
+    if auto_mode:
+        log.warning("[Safety] AGRISAT_AUTO_START=1 — starting in AUTO mode")
+    else:
+        log.info("[Safety] Starting in MANUAL mode — no automatic irrigation until auto mode is enabled "
+                 "from the dashboard (or AGRISAT_AUTO_START=1). Optionally set AGRISAT_ANCHOR=YYYY-MM-DD:VWC "
+                 "from a soil sample first.")
 
     last_ndvi_load    = 0
     last_balance      = 0

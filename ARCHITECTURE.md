@@ -242,3 +242,13 @@ trusted to keep strangers out. Valve commands are therefore authenticated at the
   dashboard's **CMD KEY** button (kept in that browser's localStorage only — never in the repo).
 - Not covered: the `.../data` topic is still readable by anyone, and `hardware/esp32/esp32_agrisat_cloud.ino`
   still acts on **unsigned** commands. Do not deploy that firmware against the public broker as-is.
+
+## Pi start-up safety and configuration (`brain.py`)
+
+- **Starts in MANUAL mode** after every start or reboot. Automatic irrigation begins only when auto mode is
+  switched on from the dashboard (signed command) or `AGRISAT_AUTO_START=1` is set.
+- `AGRISAT_ANCHOR="YYYY-MM-DD:VWC"` (e.g. `2026-11-20:24`) restarts the water balance from a measured soil
+  moisture instead of the "full 30 days ago" assumption.
+- `AGRISAT_CMD_KEY` is the shared secret that authenticates dashboard commands (see above).
+- Decisions use the FAO-56 water balance (same parameters as the dashboard's `FAO56_PARAMS`); soil-moisture
+  sensors are not used. Tests: `python3 tests/test_balance.py` and `node tests/test_fao56.js`.

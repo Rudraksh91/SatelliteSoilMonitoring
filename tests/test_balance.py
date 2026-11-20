@@ -11,6 +11,8 @@ b.lora_send = lambda s: None
 b.EVENT_LOG_FILE = pathlib.Path("/nonexistent/irrigation_log.csv")   # log_event swallows the write error
 b.STATE_FILE = pathlib.Path("/nonexistent/state.json")
 
+check_start_manual = b.auto_mode is False      # evaluated before any test flips it
+
 def close(x, y, t=1e-6): return abs(x - y) < t
 n = 0
 def check(name, cond):
@@ -81,4 +83,9 @@ fresh(); b.daily_run_secs.update({1: b.MAX_DAILY_SECS, 2: b.MAX_DAILY_SECS - 60,
 check("daily cap: zone 1 blocked, zone 2 (<5 min left) skipped, zone 3 runs", sent == ["CMD:Z3:OPEN"])
 fresh(); b.balance["dr"] = {1: 5.0, 2: 5.0, 3: 5.0}; b.decide_irrigation()
 check("well-watered soil -> no irrigation", sent == [])
+check("Pi starts in MANUAL mode by default (first-run safety)", check_start_manual)
+fresh(); b.ANCHOR = ("2026-11-30", 25.0); b.refresh_balance(); b.ANCHOR = None
+check("soil-sample anchor (25% on the last day) resets the balance -> not due", max(b.balance["dr"].values()) < b.trigger_depletion_mm())
+b.decide_irrigation()
+check("...and nothing opens", sent == [])
 print(f"\n{n} checks passed")
