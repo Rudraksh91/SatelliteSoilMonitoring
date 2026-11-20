@@ -441,6 +441,7 @@ body{
   /* Page base */
   main.page{margin-left:0!important;height:auto!important;overflow-y:auto!important;padding-bottom:56px!important}
   main.page.active{display:flex!important}
+  #ndvi-center.mf-on{min-height:460px}
   /* Farmers page = embedded app: fill the screen between the header and the bottom nav, scroll inside the frame */
   #page-farmers{height:calc(100vh - 64px - 56px)!important;height:calc(100dvh - 64px - 56px)!important;overflow:hidden!important;padding:0!important}
   /* Page 1 — satellite map stacks above panels */
@@ -1181,7 +1182,7 @@ header{
     </div>
   </section>
   <section class="col-span-6 flex flex-col gap-gutter relative">
-    <div class="gp flex-1 rounded-lg relative overflow-hidden">
+    <div id="ndvi-center" class="gp flex-1 rounded-lg relative overflow-hidden">
       <!-- CAMPUS (automatic daily NDVI) / MY FARM (the farmer's own outline from the Farmers page) -->
       <div class="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex gap-1 p-1 rounded-full" style="background:rgba(var(--overlay-rgb),.18);backdrop-filter:blur(10px)">
         <button id="ndm-campus" onclick="setNdviMode('campus')" class="px-3 py-1 rounded-full font-label-caps text-[10px] bg-primary-container text-on-primary">CAMPUS</button>
@@ -3039,6 +3040,7 @@ function setNdviMode(m){
   document.getElementById('ndm-campus').className='px-3 py-1 rounded-full font-label-caps text-[10px] '+(m==='campus'?on:off);
   document.getElementById('ndm-farm').className='px-3 py-1 rounded-full font-label-caps text-[10px] '+(m==='farm'?on:off);
   document.getElementById('myfarm-ndvi').style.display=m==='farm'?'flex':'none';
+  document.getElementById('ndvi-center').classList.toggle('mf-on',m==='farm');   // taller panel on phones so the farm map is usable
   if(m==='farm')mfRender();
 }
 function mfPick(id){mfFarmId=id;mfIdx=0;mfRender();}
