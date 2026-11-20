@@ -40,6 +40,15 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
 .leg{height:12px;border-radius:6px;margin:10px 0 2px;background:linear-gradient(90deg,#a50026,#f46d43,#fee08b,#ffffbf,#a6d96a,#1a9850,#006837)}.legl{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.chips button{min-height:34px;padding:4px 12px;font-size:13px;background:transparent;color:var(--g);border:1.5px solid var(--g)}.chips button.on{background:var(--g);color:var(--btnink)}
 .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+/* field list with tick boxes, status chips, overview table */
+.frow{display:flex;gap:8px;align-items:stretch;margin-bottom:8px}.frow input{width:22px;height:auto;flex:0 0 22px;accent-color:var(--g)}
+.frow .list-btn{flex:1 1 auto;margin:0;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.frow .list-btn small{display:block;font-weight:400;color:var(--mut)}
+.chip{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}.chip.go{background:var(--blue);color:#fff}.chip.ok{background:var(--g);color:var(--btnink)}.chip.wait{background:#5b6f8a;color:#fff}.chip.set{background:#fff3d6;color:#7a4e00}
+table.mt{width:100%;border-collapse:collapse;font-size:14px}table.mt th{font-size:12px;color:var(--mut);text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}table.mt td{padding:9px 6px;border-bottom:1px solid var(--line);cursor:pointer}table.mt td.n{text-align:right;white-space:nowrap}
+.sw2{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#multiMapBox{height:300px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.fld-tip{background:rgba(0,0,0,.55);color:#fff;border:0;box-shadow:none;font-weight:700;font-size:12px;padding:2px 6px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -48,8 +57,12 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
 <main>
 
 <section id="v-home">
-  <div class="card"><h2 data-i="myFarms">My farms</h2><div id="farmList" class="list"></div>
-    <button id="btnAdd" style="width:100%" data-i="addFarm">＋ Add my farm</button></div>
+  <div class="card"><h2 data-i="myFarms">My fields</h2>
+    <p class="note" style="margin-top:0" data-i="pickHint"></p>
+    <div id="farmList" class="list"></div>
+    <div class="row" id="selRow" style="margin-bottom:8px" hidden><button class="sec" id="btnSelAll" data-i="selectAll"></button><button class="sec" id="btnSelNone" data-i="selectNone"></button></div>
+    <button id="btnOpenSel" style="width:100%;margin-bottom:8px" hidden></button>
+    <button id="btnAdd" class="sec" style="width:100%" data-i="addFarm">＋ Add a field</button></div>
   <p class="note" data-h="homeNote"></p>
 </section>
 
@@ -74,7 +87,17 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
     <label for="plantIn"><span data-i="plantDate"></span> <span class="note" data-i="plantHint"></span></label><input id="plantIn" type="date">
     <label for="flowIn"><span data-i="flowLabel"></span> <span class="note" data-i="flowOpt"></span></label><input id="flowIn" type="number" min="0" step="10" placeholder="3000">
     <div class="row" style="margin-top:14px"><button id="btnSave" data-i="save"></button><button class="sec" id="btnCancel" data-i="cancel"></button></div>
+    <button class="sec" id="btnSaveMore" data-i="saveMore" style="width:100%;margin-top:8px"></button>
   </div>
+</section>
+
+<section id="v-multi" hidden>
+  <div class="row" style="margin-bottom:12px"><button class="sec" id="mBack" data-i="back"></button><button class="sec" id="mRefresh" data-i="refresh"></button></div>
+  <div id="mLoad" class="card steps" hidden></div>
+  <div class="card"><h2 data-i="multiTitle"></h2><div id="multiMapBox"></div>
+    <div class="leg"></div><div class="legl"><span>−0.2</span><span>0.3</span><span>0.8</span></div>
+    <p class="note" id="multiNote" style="margin-bottom:0"></p></div>
+  <div class="card"><div style="overflow-x:auto"><table class="mt" id="multiTable"></table></div><p class="note" id="multiTot" style="margin-bottom:4px"></p><p class="note" data-i="tapRow" style="margin:0"></p></div>
 </section>
 
 <section id="v-farm" hidden>
@@ -98,9 +121,9 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261120i"></script>
-<script src="farmer/i18n.js?v=20261120i"></script>
-<script src="farmer/ndvimap.js?v=20261120i"></script>
+<script src="farmer/core.js?v=20261120j"></script>
+<script src="farmer/i18n.js?v=20261120j"></script>
+<script src="farmer/ndvimap.js?v=20261120j"></script>
 <script>
 (function(){
 'use strict';
@@ -126,7 +149,7 @@ const T=(k,p)=>I.t(lang,k,p);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=(n,d=0)=>Number(n).toFixed(d);
 const thousands=n=>fmt(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-function show(v){view=v;['home','edit','farm'].forEach(x=>$('v-'+x).hidden=(x!==v));window.scrollTo(0,0);}
+function show(v){view=v;['home','edit','farm','multi'].forEach(x=>$('v-'+x).hidden=(x!==v));window.scrollTo(0,0);}
 
 // ── language ──
 function applyStatic(){
@@ -142,7 +165,7 @@ function applyStatic(){
   $('editTitle').textContent=editing?T('editFarm'):T('selectFarm');
 }
 function setLang(l){lang=l;try{localStorage.setItem(LKEY,l);}catch(e){}applyStatic();fillStates();buildLayerControl();
-  if(view==='home')renderHome();else if(view==='edit')redraw();else if(view==='farm'&&last)renderAdvice(last.f,last.a,last.w,last.warn);}
+  if(view==='home')renderHome();else if(view==='edit')redraw();else if(view==='farm'&&last)renderAdvice(last.f,last.a,last.w,last.warn);else if(view==='multi')renderMulti();}
 
 // ── consent (P3) ──
 const needConsent=()=>!db.consent;
@@ -151,16 +174,25 @@ $('consentChk').onchange=()=>{$('consentBtn').disabled=!$('consentChk').checked;
 $('consentBtn').onclick=()=>{db.consent={at:new Date().toISOString(),v:1};save();$('consent').close&&$('consent').close();$('consent').removeAttribute('open');};
 
 // ── home ──
+const picked=new Set();
+const chipFor=l=>!l?'':l.needsSetup?`<span class="chip set">${esc(T('mSetup'))}</span>`:`<span class="chip ${({IRRIGATE:'go',OK:'ok',WAIT_RAIN:'wait'})[l.decision]||'ok'}">${esc(T(({IRRIGATE:'mIrrigate',OK:'mOk',WAIT_RAIN:'mWait'})[l.decision]||'mOk'))}</span>`;
 function renderHome(){
   const el=$('farmList');
-  el.innerHTML=db.farms.length?db.farms.map(f=>`<button data-id="${f.id}">${esc(f.name)}<small>${fmt(f.areaM2/10000,2)} ha · ${esc(T('crop_'+(f.cropId||'general')))}</small></button>`).join(''):`<p class="note">${esc(T('noFarm'))}</p>`;
-  el.querySelectorAll('button').forEach(b=>b.onclick=()=>openFarm(b.dataset.id));
+  for(const id of [...picked])if(!db.farms.some(f=>f.id===id))picked.delete(id);
+  el.innerHTML=db.farms.length?db.farms.map((f,i)=>`<div class="frow"><input type="checkbox" data-sel="${f.id}" ${picked.has(f.id)?'checked':''} aria-label="${esc(f.name)}"><button class="list-btn" data-id="${f.id}"><span><span class="sw2" style="background:${window.AgriNdviMap.FIELD_COLOURS[i%8]}"></span>${esc(f.name)}<small>${fmt(f.areaM2/10000,2)} ha · ${esc(T('crop_'+(f.cropId||'general')))}</small></span>${chipFor(f.last)}</button></div>`).join(''):`<p class="note">${esc(T('noFarm'))}</p>`;
+  el.querySelectorAll('.list-btn').forEach(b=>b.onclick=()=>openFarm(b.dataset.id));
+  el.querySelectorAll('input[data-sel]').forEach(c=>c.onchange=()=>{c.checked?picked.add(c.dataset.sel):picked.delete(c.dataset.sel);syncSel();});
+  $('selRow').hidden=db.farms.length<2;syncSel();
   show('home');
 }
-$('btnAdd').onclick=()=>{if(needConsent())return askConsent();startEdit(null);};
+function syncSel(){const n=picked.size,b=$('btnOpenSel');b.hidden=n===0;b.textContent=T('openSelected',{n});}
+$('btnSelAll').onclick=()=>{db.farms.forEach(f=>picked.add(f.id));renderHome();};
+$('btnSelNone').onclick=()=>{picked.clear();renderHome();};
+$('btnOpenSel').onclick=()=>{const ids=[...picked];if(ids.length===1)openFarm(ids[0]);else openMulti(ids);};
+$('btnAdd').onclick=()=>{if(needConsent())return askConsent();flash=null;startEdit(null);};
 
 // ── map / edit (P4: area, small-farm warning) ──
-let layerCtl=null,baseLayers=null;
+let layerCtl=null,baseLayers=null,others=[],flash=null;
 const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
 function buildLayerControl(){
   if(!map||!baseLayers)return;
@@ -190,6 +222,8 @@ function redraw(){
   if(!map)return;
   if(layer){map.removeLayer(layer);layer=null;}markers.forEach(m=>map.removeLayer(m));markers=[];
   const shape=currentShape();
+  others.forEach(l=>map.removeLayer(l));others=[];
+  db.farms.filter(f=>!editing||f.id!==editing.id).forEach(f=>{others.push(L.polygon(f.latlngs,{color:'#ffffff',weight:2,dashArray:'5 4',fillOpacity:.05,interactive:false}).addTo(map));});
   if($('pinMode').checked&&pin)markers.push(L.marker(pin).addTo(map));
   else pts.forEach(p=>markers.push(L.circleMarker(p,{radius:7,color:'#fff',weight:2,fillColor:'#1b7f4b',fillOpacity:1}).addTo(map)));
   const line=shape||(pts.length>=2?pts:null);
@@ -200,11 +234,13 @@ function redraw(){
     let msg=T('area',{ha:fmt(ha,2),m2:thousands(a)});
     if(ha<0.1)msg+=`<br><span style="color:var(--red)">${esc(T('smallVery'))}</span>`;else if(ha<0.2)msg+=`<br><span style="color:var(--amber)">${esc(T('smallSome'))}</span>`;
     box.innerHTML=msg;
-  }else box.textContent=$('pinMode').checked?T('tapCentre'):T('corners',{n:pts.length});
+  }else box.textContent=(flash&&!pts.length&&!pin)?T(flash):($('pinMode').checked?T('tapCentre'):T('corners',{n:pts.length}));
 }
 function startEdit(f){
+  if(f)flash=null;
   editing=f;pts=f&&!f.pinOnly?f.latlngs.slice():[];pin=f&&f.pinOnly?f.pin:null;
-  $('nameIn').value=f?f.name:'';$('flowIn').value=f&&f.flowLph?f.flowLph:'';$('plantIn').value=f&&f.plantingDate?f.plantingDate:'';
+  $('nameIn').value=f?f.name:'';
+  $('btnSaveMore').hidden=!!f;$('flowIn').value=f&&f.flowLph?f.flowLph:'';$('plantIn').value=f&&f.plantingDate?f.plantingDate:'';
   $('cropIn').value=f&&f.cropId?f.cropId:'general';
   $('pinMode').checked=!!(f&&f.pinOnly);$('pinArea').hidden=!$('pinMode').checked;$('haIn').value=f&&f.pinOnly?fmt(f.areaM2/10000,2):'0.5';
   applyStatic();fillStates();show('edit');
@@ -267,16 +303,23 @@ async function findPlace(){
 }
 $('btnFind').onclick=findPlace;
 $('placeIn').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();findPlace();}};
-$('btnSave').onclick=()=>{
+function saveField(){
   const shape=currentShape();
-  if(!shape)return alert(T('alertCorners'));
+  if(!shape){alert(T('alertCorners'));return null;}
   const area=C.polygonAreaM2(shape);
-  if(area<200)return alert(T('alertSmall'));
-  const f=editing||{id:'f'+Date.now().toString(36),events:[],cache:null,start:null};
+  if(area<200){alert(T('alertSmall'));return null;}
+  const f=editing||{id:'f'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36),events:[],cache:null,start:null};
   f.name=($('nameIn').value||T('defaultName')).trim();f.latlngs=shape;f.areaM2=area;f.pinOnly=$('pinMode').checked;f.pin=f.pinOnly?pin:null;
   f.flowLph=parseFloat($('flowIn').value)||null;f.cropId=$('cropIn').value||'general';f.plantingDate=$('plantIn').value||null;
-  f.cache=null;                                                              // geometry/crop changed -> drop cached satellite & soil
-  if(!editing)db.farms.push(f);db.selected=f.id;save();openFarm(f.id);
+  f.cache=null;f.last=null;                                                  // geometry/crop changed -> drop cached satellite, soil and the old summary
+  if(!editing)db.farms.push(f);db.selected=f.id;save();
+  return f;
+}
+$('btnSave').onclick=()=>{const f=saveField();if(f)openFarm(f.id);};
+$('btnSaveMore').onclick=()=>{
+  const f=saveField();if(!f)return;
+  flash='savedMore';startEdit(null);                                         // a fresh blank field; the map stays where it is, saved fields show as white outlines
+  $('nameIn').value=T('fieldN',{n:db.farms.length+1});
 };
 
 // ── farm view ──
@@ -296,34 +339,79 @@ async function jget(url,tries=3){   // flaky rural networks / rate limits: retry
   throw err;
 }
 
+const wxMem={};   // weather shared by fields in the same ~10 km cell (Open-Meteo's grid) so many fields cost one request
+async function fetchWeatherFor(la,ln,force){
+  const key=la.toFixed(1)+','+ln.toFixed(1),m=wxMem[key];
+  if(!force&&m&&Date.now()-m.at<3*3600e3)return m.p;
+  const p=jget(`https://api.open-meteo.com/v1/forecast?latitude=${la.toFixed(4)}&longitude=${ln.toFixed(4)}&daily=precipitation_sum,et0_fao_evapotranspiration&past_days=30&forecast_days=7&timezone=Asia%2FKolkata`)
+    .then(w=>({time:w.daily.time,rain:w.daily.precipitation_sum.map(v=>v||0),et0:w.daily.et0_fao_evapotranspiration.map(v=>v||0)}));
+  wxMem[key]={at:Date.now(),p};p.catch(()=>{delete wxMem[key];});
+  return p;
+}
+/** Everything one field needs (weather, soil, satellite NDVI) — cached; tick(step,state) lets the caller show progress. */
+async function gatherInputs(f,force,tick){
+  tick=tick||(()=>{});
+  const crop=C.cropParams(f.cropId||'general',f.plantingDate),cache=f.cache||{},now=Date.now();
+  let weather=null,soil=cache.soil||null,ndvi=cache.ndvi||[];const warn=[];
+  const [la,ln]=C.centroid(f.latlngs);
+  if(!force&&cache.weather&&cache.weatherAt&&now-cache.weatherAt<3*3600e3){weather=cache.weather;tick(0,'done');}      // fresh enough: no request at all
+  else try{weather=await fetchWeatherFor(la,ln,force);cache.weatherAt=now;tick(0,'done');}catch(e){tick(0,'fail');weather=cache.weather||null;if(weather)warn.push('wWeatherOld');}
+  if(!soil||cache.soilZr!==crop.root_depth_m||(now-(cache.soilAt||0))>60*864e5){
+    try{soil=await withTimeout(C.fetchSoil(la,ln,crop.root_depth_m,(u,o)=>tfetch(u,o,30000)),35000,'soil');cache.soilAt=now;cache.soilZr=crop.root_depth_m;tick(1,'done');}catch(e){tick(1,'fail');soil=soil||null;if(!soil)warn.push('wSoilFail');}
+  }else tick(1,'done');
+  if(force||!cache.ndviAt||(now-cache.ndviAt)>24*3600e3||!ndvi.length){
+    try{const sr=await withTimeout(C.ndviSeries(f.latlngs,window.GeoTIFF,(u,o)=>tfetch(u,o,25000),{days:45,maxScenes:3,minPixels:Math.min(8,Math.max(1,Math.floor(f.areaM2/100/4)))}),75000,'satellite');
+        ndvi=sr.map((x,i)=>({date:x.date,ndvi:x.ndvi,n:x.n,shrunk:x.shrunk,grid:(x.grid&&x.grid.cols*x.grid.rows<=2500)||i===0?x.grid:null}));cache.ndviAt=now;tick(2,'done');}
+    catch(e){tick(2,'fail');warn.push('wSatFail');}
+  }else tick(2,'done');
+  if(weather){Object.assign(cache,{weather,soil,ndvi});f.cache=cache;save();}
+  return {weather,soil,ndvi,warn,crop};
+}
+async function analyseField(f,force,tick){
+  const g=await gatherInputs(f,force,tick);
+  if(!g.weather)return null;
+  const adv=C.advise({today:today(),weather:g.weather,soil:g.soil||undefined,ndvi:g.ndvi,crop:g.crop,start:f.start||undefined,events:f.events,areaM2:f.areaM2,flowLph:f.flowLph});
+  f.last={date:today(),decision:adv.decision,litres:adv.litres,hours:adv.hours,ndvi:adv.ndvi,needsSetup:adv.needsSetup};save();
+  return {f,adv,weather:g.weather,warn:g.warn};
+}
 async function refreshFarm(force){
   const f=farm();if(!f||busy)return;busy=true;
   const st=[['stWeather',''],['stSoil',''],['stSat',''],['stAdvice','']];steps(st);
-  const crop=C.cropParams(f.cropId||'general',f.plantingDate);
-  const cache=f.cache||{};const now=Date.now();let weather=null,soil=cache.soil||null,ndvi=cache.ndvi||[],warn=[];
-  const [la,ln]=C.centroid(f.latlngs);
-  try{
-    const w=await jget(`https://api.open-meteo.com/v1/forecast?latitude=${la.toFixed(4)}&longitude=${ln.toFixed(4)}&daily=precipitation_sum,et0_fao_evapotranspiration&past_days=30&forecast_days=7&timezone=Asia%2FKolkata`);
-    weather={time:w.daily.time,rain:w.daily.precipitation_sum.map(v=>v||0),et0:w.daily.et0_fao_evapotranspiration.map(v=>v||0)};
-    st[0][1]='done';
-  }catch(e){st[0][1]='fail';weather=cache.weather||null;if(weather)warn.push('wWeatherOld');}
-  steps(st);
-  if(!soil||cache.soilZr!==crop.root_depth_m||(now-(cache.soilAt||0))>60*864e5){
-    try{soil=await withTimeout(C.fetchSoil(la,ln,crop.root_depth_m,(u,o)=>tfetch(u,o,30000)),35000,'soil');cache.soilAt=now;cache.soilZr=crop.root_depth_m;st[1][1]='done';}catch(e){st[1][1]='fail';soil=soil||null;warn.push('wSoilFail');}
-  }else st[1][1]='done';
-  steps(st);
-  if(force||!cache.ndviAt||(now-cache.ndviAt)>24*3600e3||!ndvi.length){
-    try{const s=await withTimeout(C.ndviSeries(f.latlngs,window.GeoTIFF,(u,o)=>tfetch(u,o,25000),{days:45,maxScenes:3,minPixels:Math.min(8,Math.max(1,Math.floor(f.areaM2/100/4)))}),75000,'satellite');
-        ndvi=s.map((x,i)=>({date:x.date,ndvi:x.ndvi,n:x.n,shrunk:x.shrunk,grid:(x.grid&&x.grid.cols*x.grid.rows<=2500)||i===0?x.grid:null}));cache.ndviAt=now;st[2][1]='done';}
-    catch(e){st[2][1]='fail';warn.push('wSatFail');}
-  }else st[2][1]='done';
-  steps(st);
-  if(!weather){busy=false;$('loadCard').hidden=true;$('advice').innerHTML=`<div class="big err"><div class="t">${esc(T('noData'))}</div><div class="h">${esc(T('noNet'))}</div><div class="r">${esc(T('connect'))}</div></div>`;return;}
-  Object.assign(cache,{weather,soil,ndvi});f.cache=cache;save();
+  const r=await analyseField(f,force,(i,state)=>{st[i][1]=state;steps(st);});
+  if(!r){busy=false;$('loadCard').hidden=true;$('advice').innerHTML=`<div class="big err"><div class="t">${esc(T('noData'))}</div><div class="h">${esc(T('noNet'))}</div><div class="r">${esc(T('connect'))}</div></div>`;return;}
   st[3][1]='done';steps(st);$('loadCard').hidden=true;
-  const adv=C.advise({today:today(),weather,soil:soil||undefined,ndvi,crop,start:f.start||undefined,events:f.events,areaM2:f.areaM2,flowLph:f.flowLph});
-  last={f,a:adv,w:weather,warn};renderAdvice(f,adv,weather,warn);busy=false;
+  last={f,a:r.adv,w:r.weather,warn:r.warn};renderAdvice(f,r.adv,r.weather,r.warn);busy=false;
 }
+
+// ── several fields at once: one map + one table ──
+let multiIds=[],multiRes={};
+async function openMulti(ids,force){
+  if(ids)multiIds=ids.slice();
+  const fields=multiIds.map(id=>db.farms.find(f=>f.id===id)).filter(Boolean);
+  if(!fields.length)return renderHome();
+  show('multi');
+  const el=$('mLoad');el.hidden=false;
+  const state=fields.map(f=>[f.name,'']);const paint=()=>{el.innerHTML=state.map(x=>`<div class="${x[1]}">${x[1]==='done'?'✓':x[1]==='fail'?'✕':'…'} ${esc(T('loadingField',{name:x[0]}))}</div>`).join('');};paint();
+  multiRes={};
+  let next=0;const worker=async()=>{while(next<fields.length){const i=next++;const f=fields[i];
+    try{const r=await analyseField(f,!!force);if(r){multiRes[f.id]=r;state[i][1]='done';}else state[i][1]='fail';}catch(e){state[i][1]='fail';}paint();}};
+  await Promise.all([worker(),worker()]);                      // two at a time: fast, but gentle on the public services
+  el.hidden=true;renderMulti();
+}
+function renderMulti(){
+  const fields=multiIds.map(id=>db.farms.find(f=>f.id===id)).filter(Boolean);if(!fields.length)return;
+  const r=window.AgriNdviMap.renderMulti($('multiMapBox'),fields,L,C,f=>f.name);
+  $('multiNote').textContent=r.drawn?'':T('multiNone');
+  const rows=fields.map((f,i)=>{const res=multiRes[f.id],l=res?f.last:f.last;
+    const nd=l&&l.ndvi!=null?fmt(l.ndvi,2):'—',lit=l&&l.decision==='IRRIGATE'&&!l.needsSetup?thousands(l.litres):'—';
+    return `<tr data-id="${f.id}"><td><span class="sw2" style="background:${window.AgriNdviMap.FIELD_COLOURS[i%8]}"></span>${esc(f.name)}<br><span class="note">${esc(T('crop_'+(f.cropId||'general')))}</span></td><td class="n">${fmt(f.areaM2/10000,2)}</td><td class="n">${nd}</td><td>${chipFor(l)}</td><td class="n">${lit}</td></tr>`;}).join('');
+  $('multiTable').innerHTML=`<thead><tr><th>${esc(T('colField'))}</th><th>${esc(T('colArea'))}</th><th>${esc(T('colNdvi'))}</th><th>${esc(T('colAdvice'))}</th><th>${esc(T('colWater'))}</th></tr></thead><tbody>${rows}</tbody>`;
+  $('multiTable').querySelectorAll('tbody tr').forEach(tr=>tr.onclick=()=>openFarm(tr.dataset.id));
+  const need=fields.filter(f=>f.last&&f.last.decision==='IRRIGATE'&&!f.last.needsSetup),litres=need.reduce((a,f)=>a+(f.last.litres||0),0),ha=fields.reduce((a,f)=>a+f.areaM2,0)/10000;
+  $('multiTot').innerHTML=esc(T('totArea',{ha:fmt(ha,2),n:fields.length}))+'<br>'+esc(need.length?T('totNeed',{n:need.length,m:fields.length,litres:thousands(litres)}):T('totNone'));
+}
+$('mBack').onclick=renderHome;
+$('mRefresh').onclick=()=>openMulti(null,true);
 
 // ── NDVI map of THIS farm: one coloured square per 10 m pixel inside the outline (same RdYlGn scale as the dashboard, -0.2..0.8) ──
 let ndviIdx=0;
@@ -392,7 +480,7 @@ $('btnRain').onclick=()=>{const v=parseFloat(prompt(T('pRain'),'10'));if(v>0&&v<
 $('btnFull').onclick=()=>{if(confirm(T('cFull'))){const f=farm();f.start={date:today(),frac:0};save();refreshFarm(false);}};
 
 // boot
-window.AgriApp={_map:()=>map,_state:()=>({pts,pin}),db:()=>db,lang:()=>lang,setLang,refreshFarm,renderHome,openFarm,renderAdvice};
+window.AgriApp={openMulti,_map:()=>map,_picked:()=>[...picked],_state:()=>({pts,pin}),db:()=>db,lang:()=>lang,setLang,refreshFarm,renderHome,openFarm,renderAdvice};
 applyStatic();
 if(db.farms.length===1&&db.selected&&!needConsent())openFarm(db.selected);else renderHome();
 })();

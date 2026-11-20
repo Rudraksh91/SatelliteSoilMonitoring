@@ -323,3 +323,11 @@ names, satellite only, OpenStreetMap streets — and a scale bar. Place search c
 towns, districts; optional state filter; comma-retry for "village district"), Open-Meteo geocoding as fallback, plus pasted coordinates or a
 Google Maps link. Note: Nominatim's usage policy allows light, user-initiated searches only (one request per tap) — use a hosted geocoder
 if traffic grows.
+
+## Multiple fields
+A farmer can save any number of fields (each its own outline, crop, planting date and notes). The Fields list shows a status chip per
+field (irrigate / OK / wait for rain / soil check needed) and tick boxes; **Open selected** puts the ticked fields on **one map**
+(newest NDVI squares of each, coloured labelled outlines) with a table — area, NDVI, advice, litres — and totals ("2 of 3 fields need
+irrigation today — about N litres"). **Save & add another field** keeps the map in place and shows the other fields as white outlines.
+Weather is shared by fields in the same ~10 km cell (one request) and cached for 3 h; fields are analysed two at a time. The dashboard's
+Analytics NDVI panel has an **ALL MY FIELDS** option that draws every field the same way.

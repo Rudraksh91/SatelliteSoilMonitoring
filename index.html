@@ -54,8 +54,8 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261120i"></script>
-<script src="farmer/ndvimap.js?v=20261120i"></script>
+<script src="farmer/core.js?v=20261120j"></script>
+<script src="farmer/ndvimap.js?v=20261120j"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -3227,10 +3227,18 @@ function mfRender(){
   const db=mfDb(),sel=document.getElementById('mf-select'),note=document.getElementById('mf-note'),dates=document.getElementById('mf-dates'),box=document.getElementById('mf-map');
   if(!db.farms.length){sel.innerHTML='';dates.innerHTML='';box.innerHTML='';if(box._agriMap){try{box._agriMap.remove();}catch(e){}box._agriMap=null;}
     note.textContent='NO FARM SET YET — OPEN FARMERS, MARK YOUR FARM OUTLINE, THEN COME BACK.';return;}
-  if(!mfFarmId||!db.farms.some(f=>f.id===mfFarmId))mfFarmId=db.selected&&db.farms.some(f=>f.id===db.selected)?db.selected:db.farms[0].id;
-  sel.innerHTML=db.farms.map(f=>`<option value="${f.id}"${f.id===mfFarmId?' selected':''}>${String(f.name).replace(/[<>&"]/g,'')} · ${(f.areaM2/10000).toFixed(2)} ha</option>`).join('');
-  const farm=db.farms.find(f=>f.id===mfFarmId);
+  if(mfFarmId!=='__all'&&(!mfFarmId||!db.farms.some(f=>f.id===mfFarmId)))mfFarmId=db.selected&&db.farms.some(f=>f.id===db.selected)?db.selected:db.farms[0].id;
+  if(mfFarmId==='__all'&&db.farms.length<2)mfFarmId=db.farms[0].id;
+  sel.innerHTML=(db.farms.length>1?`<option value="__all"${mfFarmId==='__all'?' selected':''}>ALL MY FIELDS (${db.farms.length})</option>`:'')+db.farms.map(f=>`<option value="${f.id}"${f.id===mfFarmId?' selected':''}>${_cleanName(f.name)} · ${(f.areaM2/10000).toFixed(2)} ha</option>`).join('');
   if(typeof AgriNdviMap==='undefined'||typeof AgriCore==='undefined'){note.textContent='FARMER MODULE NOT LOADED';return;}
+  if(mfFarmId==='__all'){   // every field on one map
+    const rm=AgriNdviMap.renderMulti(box,db.farms,L,AgriCore,f=>_cleanName(f.name));
+    dates.innerHTML='';
+    const ha=db.farms.reduce((a,f)=>a+f.areaM2,0)/10000;
+    note.textContent=db.farms.length+' FIELDS · '+ha.toFixed(2)+' HA · '+(rm.drawn?rm.drawn+' WITH SATELLITE NDVI (NEWEST SCENE EACH)':'NO SATELLITE NDVI YET — OPEN FARMERS TO LOAD IT');
+    return;
+  }
+  const farm=db.farms.find(f=>f.id===mfFarmId);
   const r=AgriNdviMap.render(box,farm,mfIdx,L,AgriCore);
   if(!r.scene){dates.innerHTML='';note.textContent='NO SATELLITE NDVI FOR THIS FARM YET — OPEN FARMERS AND LET IT LOAD (ABOUT 20 SECONDS).';return;}
   dates.innerHTML=r.scenes.map((x,i)=>`<button data-k="${i}" class="px-2 py-0.5 rounded font-data-sm text-[10px] border ${x===r.scene?'border-primary text-primary bg-primary/10':'border-white/20 text-on-surface-variant'}">${x.date}</button>`).join('');
