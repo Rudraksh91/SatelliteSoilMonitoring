@@ -2187,7 +2187,6 @@ function bootActiveFarm(){
   let id='campus';try{id=localStorage.getItem('agrisat_active_farm')||'campus';}catch(e){}
   _afLastSel=_farmerDb().selected;
   if(!window.CAMPUS_MODE){   // FARMER MODE: skip the ESP32 / campus splash and go straight to the farmer's own farm
-    if(typeof setupSkip==='function')try{setupSkip();}catch(e){}
     const fid=_farmerDb().farms.some(f=>f.id===id)?id:_firstFarmId();
     refreshFarmSelector();
     if(fid){setActiveFarm(fid);}else{window.NOFARM=true;window.ACTIVE=CAMPUS;updateNoFarm();setTimeout(()=>{if(typeof nav==='function')nav('farmers');},300);}
@@ -5119,7 +5118,7 @@ function setupSkip() {
 // ── Show setup screen on first launch (no saved IP)
 window.addEventListener('DOMContentLoaded', () => {
   const savedIP = localStorage.getItem('agrisat_esp32_ip');
-  if (!savedIP) {
+  if (!savedIP && window.CAMPUS_MODE) {   // the ESP32 / campus hardware setup is for the project team only; farmers never see it
     // First time — show setup screen
     setTimeout(_showSetupScreen, 300);
   }
