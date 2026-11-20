@@ -97,8 +97,9 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261120f"></script>
-<script src="farmer/i18n.js?v=20261120f"></script>
+<script src="farmer/core.js?v=20261120g"></script>
+<script src="farmer/i18n.js?v=20261120g"></script>
+<script src="farmer/ndvimap.js?v=20261120g"></script>
 <script>
 (function(){
 'use strict';
@@ -281,34 +282,14 @@ async function refreshFarm(force){
 }
 
 // ── NDVI map of THIS farm: one coloured square per 10 m pixel inside the outline (same RdYlGn scale as the dashboard, -0.2..0.8) ──
-let ndviMap=null,ndviIdx=0;
-const RDYLGN=['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837'];
-function ndviColour(v){  // v = NDVI*100
-  const t=Math.max(0,Math.min(1,(v/100+0.2)/1.0))*(RDYLGN.length-1),i=Math.min(RDYLGN.length-2,Math.floor(t)),f=t-i;
-  const a=RDYLGN[i],b=RDYLGN[i+1],h=x=>[1,3,5].map(k=>parseInt(x.substr(k,2),16));
-  const A=h(a),B=h(b);return 'rgb('+A.map((c,k)=>Math.round(c+(B[k]-c)*f)).join(',')+')';
-}
+let ndviIdx=0;
 function drawNdvi(f){
   const box=$('ndviMapBox');if(!box)return;
-  if(ndviMap){try{ndviMap.remove();}catch(e){}ndviMap=null;}
-  const scenes=((f.cache&&f.cache.ndvi)||[]).filter(s=>s.grid&&s.ndvi!=null);
-  if(!scenes.length){box.style.display='none';$('ndviNote').textContent=T('ndviNone');return;}
-  const s=scenes[Math.min(ndviIdx,scenes.length-1)],g=s.grid;
-  $('ndviDates').innerHTML=scenes.map((x,i)=>`<button data-k="${i}" class="${x===s?'on':''}">${esc(x.date)}</button>`).join('');
+  const r=window.AgriNdviMap.render(box,f,ndviIdx,L,C);
+  if(!r.scene){box.style.display='none';$('ndviNote').textContent=T('ndviNone');$('ndviDates').innerHTML='';return;}
+  $('ndviDates').innerHTML=r.scenes.map((x,i)=>`<button data-k="${i}" class="${x===r.scene?'on':''}">${esc(x.date)}</button>`).join('');
   $('ndviDates').querySelectorAll('button').forEach(b=>b.onclick=()=>{ndviIdx=+b.dataset.k;drawNdvi(f);});
-  $('ndviNote').textContent=T('ndviMean',{v:fmt(s.ndvi,2),date:s.date});
-  ndviMap=L.map(box,{zoomControl:false,dragging:false,scrollWheelZoom:false,touchZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false});
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagery © Esri · Sentinel-2'}).addTo(ndviMap);
-  for(let r=0;r<g.rows;r++)for(let c=0;c<g.cols;c++){
-    const v=g.v[r*g.cols+c],fl=g.f[r*g.cols+c];
-    const x=g.x0+c*10,y=g.y0-r*10;
-    if(v===null&&fl!==2)continue;                                   // outside the farm outline
-    const p1=C.fromUTM(x-5,y-5,g.zone),p2=C.fromUTM(x+5,y+5,g.zone);
-    L.rectangle([p1,p2],{stroke:false,fillColor:fl===2?'#9aa0a6':ndviColour(v),fillOpacity:fl===2?0.55:(fl===1?0.35:0.82),interactive:false}).addTo(ndviMap);
-  }
-  const poly=L.polygon(f.latlngs,{color:'#ffd54a',weight:2.5,fill:false,interactive:false}).addTo(ndviMap);
-  ndviMap.fitBounds(poly.getBounds(),{padding:[12,12]});
-  setTimeout(()=>{if(ndviMap){ndviMap.invalidateSize();ndviMap.fitBounds(poly.getBounds(),{padding:[12,12]});}},120);
+  $('ndviNote').textContent=T('ndviMean',{v:fmt(r.scene.ndvi,2),date:r.scene.date});
 }
 
 function renderAdvice(f,a,w,warn){

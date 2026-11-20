@@ -46,6 +46,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+<script src="farmer/core.js?v=20261120g"></script>
+<script src="farmer/ndvimap.js?v=20261120g"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -1180,6 +1182,22 @@ header{
   </section>
   <section class="col-span-6 flex flex-col gap-gutter relative">
     <div class="gp flex-1 rounded-lg relative overflow-hidden">
+      <!-- CAMPUS (automatic daily NDVI) / MY FARM (the farmer's own outline from the Farmers page) -->
+      <div class="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex gap-1 p-1 rounded-full" style="background:rgba(var(--overlay-rgb),.18);backdrop-filter:blur(10px)">
+        <button id="ndm-campus" onclick="setNdviMode('campus')" class="px-3 py-1 rounded-full font-label-caps text-[10px] bg-primary-container text-on-primary">CAMPUS</button>
+        <button id="ndm-farm" onclick="setNdviMode('farm')" class="px-3 py-1 rounded-full font-label-caps text-[10px] text-on-surface-variant">MY FARM</button>
+      </div>
+      <div id="myfarm-ndvi" class="absolute inset-0 z-20 flex-col bg-surface-container-low pt-12 pb-2 px-3 gap-2" style="display:none">
+        <div class="flex items-center gap-2 flex-wrap">
+          <select id="mf-select" onchange="mfPick(this.value)" class="font-data-sm text-[11px] bg-transparent border border-white/20 rounded px-2 py-1 text-primary max-w-[60%]"></select>
+          <div id="mf-dates" class="flex gap-1 flex-wrap"></div>
+        </div>
+        <div id="mf-map" class="flex-1 rounded border border-white/10 min-h-[120px]"></div>
+        <div style="height:10px;border-radius:5px;background:linear-gradient(90deg,#a50026,#f46d43,#fee08b,#ffffbf,#a6d96a,#1a9850,#006837)"></div>
+        <div class="flex justify-between font-label-caps text-[9px] text-on-surface-variant/70"><span>−0.2 BARE</span><span>0.3</span><span>0.8 DENSE GREEN</span></div>
+        <div class="flex items-center justify-between gap-2"><span id="mf-note" class="font-data-sm text-[10px] text-on-surface-variant"></span>
+          <button onclick="nav('farmers')" class="font-label-caps text-[10px] px-2 py-1 rounded border border-primary/40 text-primary whitespace-nowrap">OPEN FARMERS</button></div>
+      </div>
       <div class="absolute inset-0 bg-surface-container-low flex items-center justify-center">
         <canvas id="field-map" class="w-full h-full"></canvas>
         <img id="ndvi-sat-img" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700" alt="NDVI Satellite — Dediapada Campus" loading="lazy">
@@ -3012,6 +3030,34 @@ function renderTimeline(){
 // ══════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════
+// ── ANALYTICS · MY FARM: the NDVI map of the farm a farmer outlined on the Farmers page (shared via localStorage, same origin) ──
+let mfMode='campus',mfIdx=0,mfFarmId=null;
+function mfDb(){try{const d=JSON.parse(localStorage.getItem('agrisat_farmer_v1'));return d&&Array.isArray(d.farms)?d:{farms:[],selected:null};}catch(e){return {farms:[],selected:null};}}
+function setNdviMode(m){
+  mfMode=m;
+  const on='bg-primary-container text-on-primary',off='text-on-surface-variant';
+  document.getElementById('ndm-campus').className='px-3 py-1 rounded-full font-label-caps text-[10px] '+(m==='campus'?on:off);
+  document.getElementById('ndm-farm').className='px-3 py-1 rounded-full font-label-caps text-[10px] '+(m==='farm'?on:off);
+  document.getElementById('myfarm-ndvi').style.display=m==='farm'?'flex':'none';
+  if(m==='farm')mfRender();
+}
+function mfPick(id){mfFarmId=id;mfIdx=0;mfRender();}
+function mfRender(){
+  const db=mfDb(),sel=document.getElementById('mf-select'),note=document.getElementById('mf-note'),dates=document.getElementById('mf-dates'),box=document.getElementById('mf-map');
+  if(!db.farms.length){sel.innerHTML='';dates.innerHTML='';box.innerHTML='';if(box._agriMap){try{box._agriMap.remove();}catch(e){}box._agriMap=null;}
+    note.textContent='NO FARM SET YET — OPEN FARMERS, MARK YOUR FARM OUTLINE, THEN COME BACK.';return;}
+  if(!mfFarmId||!db.farms.some(f=>f.id===mfFarmId))mfFarmId=db.selected&&db.farms.some(f=>f.id===db.selected)?db.selected:db.farms[0].id;
+  sel.innerHTML=db.farms.map(f=>`<option value="${f.id}"${f.id===mfFarmId?' selected':''}>${String(f.name).replace(/[<>&"]/g,'')} · ${(f.areaM2/10000).toFixed(2)} ha</option>`).join('');
+  const farm=db.farms.find(f=>f.id===mfFarmId);
+  if(typeof AgriNdviMap==='undefined'||typeof AgriCore==='undefined'){note.textContent='FARMER MODULE NOT LOADED';return;}
+  const r=AgriNdviMap.render(box,farm,mfIdx,L,AgriCore);
+  if(!r.scene){dates.innerHTML='';note.textContent='NO SATELLITE NDVI FOR THIS FARM YET — OPEN FARMERS AND LET IT LOAD (ABOUT 20 SECONDS).';return;}
+  dates.innerHTML=r.scenes.map((x,i)=>`<button data-k="${i}" class="px-2 py-0.5 rounded font-data-sm text-[10px] border ${x===r.scene?'border-primary text-primary bg-primary/10':'border-white/20 text-on-surface-variant'}">${x.date}</button>`).join('');
+  dates.querySelectorAll('button').forEach(b=>b.onclick=()=>{mfIdx=+b.dataset.k;mfRender();});
+  note.textContent='AVG NDVI '+r.scene.ndvi.toFixed(2)+' · '+r.scene.date+' · '+r.scene.n+' PIXELS (10 M) INSIDE YOUR OUTLINE';
+}
+window.addEventListener('storage',e=>{if(e.key==='agrisat_farmer_v1'&&mfMode==='farm'&&document.getElementById('page-ndvi').classList.contains('active'))mfRender();});
+
 const pageMap={map:'COMMAND CENTER',ndvi:'ASSET ANALYTICS & NDVI',climate:'CLIMATE & WEATHER ANALYTICS',auto:'AUTOMATION & LOGIC HUB',health:'SYSTEM HEALTH',pipeline:'SATELLITE DATA PIPELINE',farmers:'FARMER APP'};
 function nav(id){
   document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none'});
@@ -3031,6 +3077,7 @@ function nav(id){
   const mob=document.querySelector(`.mob-btn[data-page="${id}"]`);
   if(mob)mob.classList.add('active');
   set('page-title',pageMap[id]||'COMMAND CENTER');
+  if(id==='ndvi'&&mfMode==='farm')setTimeout(mfRender,60);
   if(id==='farmers'){const fr=document.getElementById('farmers-frame');if(fr&&!fr.getAttribute('src'))fr.setAttribute('src','farmer.html?embed=1');}   // load the farmer app on first visit only
   // Scroll to top on mobile
   window.scrollTo({top:0,behavior:'smooth'});
