@@ -40,13 +40,15 @@ Run:
 
 import collections
 import csv
+import urllib.parse
+import urllib.request
 import hashlib
 import hmac
 import json
 import os
 import time
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 
 # ── Third-party (install with pip3) ──────────────────────────────────
@@ -139,8 +141,21 @@ DHT_PIN  = 4   # GPIO4 on Pi
 DHT_TYPE = Adafruit_DHT.DHT22 if HAS_DHT else None
 
 # ── Irrigation decision thresholds ───────────────────────────────────
-MOISTURE_DRY      = 30.0    # % — start irrigation below this
-MOISTURE_ADEQUATE = 65.0    # % — stop irrigation above this
+# Decisions use the same FAO-56 water balance as the dashboard (see FAO56_PARAMS in index.html —
+# keep these two blocks identical). Soil-moisture sensor readings are NOT used for decisions.
+IST = timezone(timedelta(hours=5, minutes=30))
+FARM_LAT, FARM_LNG = 21.62707, 73.5854
+FAO = dict(FC=28.0, WP=13.0, root=0.4, p=0.5,          # TODO: replace FC/WP with soil-sample values
+           rain_min=5.0, runoff=0.10,                   # daily rain <5 mm = 0; 10% runoff above that
+           kc_min=0.30, kc_max=1.15, kc_fallback=0.60, ndvi_stale_days=20,
+           rate_mm_hr=3.0, eff=0.90)                    # drip rate x application efficiency
+TRIGGER_VWC          = 22.0    # irrigation DUE below this % (just above the ~20.5% FAO-56 stress point)
+RAIN_FORECAST_24H_MM = 10.0    # hold irrigation if this much rain is forecast in the next 24 h
+RAIN_HOLD_HOURS      = 48      # ...or within this many hours of a significant (>=4 mm/h) rain
+RAIN_ACTIVE_MIN_MM   = 1.0     # mm/h that counts as "raining now"
+BALANCE_REFRESH_S    = 1800    # rebuild the balance from Open-Meteo every 30 min
+BALANCE_MAX_AGE_S    = 3 * 3600  # no fresh balance for this long -> NO automatic decisions (fail safe)
+STATE_FILE           = Path.home() / ".agrisat_balance.json"   # irrigation applied per day (survives restarts)
 MIN_IRRIGATE_SECS = 300     # minimum run time: 5 minutes
 MAX_IRRIGATE_SECS = 3600    # safety cap per run: 1 hour (enforced by enforce_valve_limits watchdog)
 MAX_DAILY_SECS    = 7200    # safety cap per zone per day: 2 hours (blocks further AUTO opens)
@@ -187,7 +202,7 @@ node_data = {
 weather = {"temp": None, "humidity": None}   # None = no sensor reading yet
 
 # NDVI state
-ndvi_state = {"ndvi_avg": 0.5, "date": "", "stressed": False}
+ndvi_state = {"ndvi_avg": 0.5, "date": "", "stressed": False, "zones": [], "age_days": None}
 
 # Auto mode flag (can be toggled from dashboard)
 auto_mode = True
@@ -299,6 +314,7 @@ def command_valve(zone_id, state: bool, source: str = "auto") -> bool:
             log.info(f"[Safety] Zone {zone_id}: min run {MIN_IRRIGATE_SECS}s not reached — AUTO close deferred")
             return False
         _record_close(zone_id)
+        valve_planned_secs.pop(zone_id, None)
     lora_send(build_valve_cmd(zone_id, state))
     pending_confirm[zone_id] = (state, now)
     log_event("OPEN" if state else "CLOSE", zone_id, source)
@@ -312,6 +328,7 @@ def stop_all_valves():
         _record_close(zid)
     lora_send(build_stop_cmd())
     set_physical_valve(False)
+    valve_planned_secs.clear()
     pending_confirm.clear()
     log_event("EMERGENCY_STOP", None, "manual")
 
@@ -329,6 +346,14 @@ def enforce_valve_limits():
             log.warning(f"[Safety] Zone {zid} node silent {now - nd['last_seen']:.0f}s — FAIL-SAFE CLOSE")
             command_valve(zid, False, "watchdog")
             log_event("FAILSAFE_STALE_NODE", zid, "watchdog")
+    for zid, planned in list(valve_planned_secs.items()):
+        t0 = valve_open_since.get(zid)
+        if t0 is not None and now - t0 >= planned:
+            log.info(f"[AI] Zone {zid}: planned {planned/60:.0f} min complete → CLOSE")
+            if command_valve(zid, False, "auto"):
+                if mqtt_conn:
+                    mqtt_conn.publish(TOPIC_DATA, json.dumps({"ai_action": f"ZONE_{zid}_CLOSE",
+                                                              "reason": "planned run complete"}))
     for zid, (want, sent) in list(pending_confirm.items()):
         nd = node_data.get(_node_for_zone(zid))
         if not nd or nd["last_seen"] == 0:
@@ -457,74 +482,191 @@ def load_ndvi():
         scene = data.get("scene_date", "")
         age = (date.today() - date.fromisoformat(scene)).days if scene else 999
         ndvi_state["ndvi_avg"] = sum(zones) / len(zones)
+        ndvi_state["zones"]    = zones
+        ndvi_state["age_days"] = age
         ndvi_state["date"]     = scene
         ndvi_state["stressed"] = age <= NDVI_MAX_AGE_DAYS and ndvi_state["ndvi_avg"] < NDVI_THRESHOLD
         log.info(f"[NDVI] scene {scene} ({age} d old): avg={ndvi_state['ndvi_avg']:.3f}, stressed={ndvi_state['stressed']}")
     except Exception as e:
         ndvi_state["stressed"] = False
-        log.warning(f"[NDVI] load failed ({e}) — NDVI not used for decisions")
+        ndvi_state["zones"] = []          # missing NDVI -> stage-Kc fallback in ndvi_to_kc()
+        ndvi_state["age_days"] = None
+        log.warning(f"[NDVI] load failed ({e}) — using fallback Kc")
 
 # ══════════════════════════════════════════════════════════════════════
 # IRRIGATION DECISION ENGINE
 # ══════════════════════════════════════════════════════════════════════
 
+# ── FAO-56 water balance (Python twin of fao56Step() in index.html; tests/test_balance.py checks parity) ──
+def fao_taw():
+    return (FAO["FC"] - FAO["WP"]) / 100.0 * FAO["root"] * 1000.0          # mm
+
+def fao56_step(dr, et0=0.0, rain=0.0, irrig=0.0, kc=0.6):
+    taw = fao_taw(); raw = FAO["p"] * taw
+    pe = 0.0 if rain < FAO["rain_min"] else rain * (1.0 - FAO["runoff"])
+    ks = 1.0 if dr <= raw else max(0.0, (taw - dr) / (taw - raw))
+    return max(0.0, min(taw, dr - pe - irrig + ks * kc * et0))
+
+def ndvi_to_kc(ndvi, age_days):
+    if ndvi is None or (age_days is not None and age_days > FAO["ndvi_stale_days"]):
+        return FAO["kc_fallback"]
+    return max(FAO["kc_min"], min(FAO["kc_max"], 0.2 + 1.25 * ndvi))
+
+def trigger_depletion_mm():
+    """Depletion (mm) at which VWC falls to TRIGGER_VWC."""
+    return (FAO["FC"] - TRIGGER_VWC) / 100.0 * FAO["root"] * 1000.0
+
+balance = {"dr": {z["id"]: 0.0 for z in ZONES}, "updated": 0.0}
+rain_guard_state = {"now": 0.0, "prob": 0.0, "next24": 0.0, "hours_since": float("inf"), "updated": 0.0}
+valve_planned_secs = {}          # zone_id -> run length chosen when the cycle started
+_applied = {}                    # "YYYY-MM-DD" -> {zone_id(str): mm applied}
+_state_dirty = False
+_last_credit = time.time()
+
+def _today_ist():
+    return datetime.now(IST).strftime("%Y-%m-%d")
+
+def load_state():
+    global _applied
+    try:
+        _applied = json.loads(STATE_FILE.read_text()).get("applied", {})
+    except Exception:
+        _applied = {}
+
+def save_state(force=False):
+    global _state_dirty
+    if not (_state_dirty or force):
+        return
+    try:
+        cutoff = (datetime.now(IST) - timedelta(days=60)).strftime("%Y-%m-%d")
+        for d in [d for d in _applied if d < cutoff]:
+            del _applied[d]
+        STATE_FILE.write_text(json.dumps({"applied": _applied}))
+        _state_dirty = False
+    except Exception as e:
+        log.warning(f"[Balance] state save failed: {e}")
+
+def valve_confirmed(zid):
+    """True only when the hardware itself shows water flowing: the field node reports the valve open
+    (fresh), or — in single-relay bring-up with no node — the relay GPIO is energised."""
+    nd = node_data.get(_node_for_zone(zid))
+    if nd and nd["last_seen"] > 0:
+        return bool(nd["valve"]) and time.time() - nd["last_seen"] <= NODE_STALE_SECS
+    return bool(physical_valve_open)
+
+def credit_open_valves():
+    """Called every loop tick: water delivered while a valve is confirmed open goes into the balance."""
+    global _last_credit, _state_dirty
+    now = time.time(); dt = now - _last_credit; _last_credit = now
+    if dt <= 0 or dt > 30:
+        return
+    mm = FAO["rate_mm_hr"] * FAO["eff"] * dt / 3600.0
+    for zid in list(valve_open_since):
+        if valve_confirmed(zid):
+            day = _applied.setdefault(_today_ist(), {})
+            day[str(zid)] = day.get(str(zid), 0.0) + mm
+            balance["dr"][zid] = max(0.0, balance["dr"].get(zid, 0.0) - mm)
+            _state_dirty = True
+
+def _open_meteo(params):
+    url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(params, safe=",")
+    with urllib.request.urlopen(url, timeout=20) as r:
+        return json.load(r)
+
+def refresh_balance():
+    """Rebuild each zone's depletion from 30 days of Open-Meteo ET0 + rain, NDVI-based Kc and the
+    irrigation actually applied (same method as initFAO56VWC in index.html)."""
+    try:
+        d = _open_meteo({"latitude": FARM_LAT, "longitude": FARM_LNG,
+                         "daily": "et0_fao_evapotranspiration,precipitation_sum",
+                         "past_days": 30, "forecast_days": 0, "timezone": "Asia/Kolkata"})
+        days, et0s, rains = d["daily"]["time"], d["daily"]["et0_fao_evapotranspiration"], d["daily"]["precipitation_sum"]
+        for z in ZONES:
+            zid = z["id"]
+            nz = ndvi_state.get("zones") or []
+            kc = ndvi_to_kc(nz[zid - 1] if len(nz) >= zid else None, ndvi_state.get("age_days"))
+            dr = 0.0
+            for i, day in enumerate(days):
+                irrig = _applied.get(day, {}).get(str(zid), 0.0)
+                dr = fao56_step(dr, et0s[i] or 0.0, rains[i] or 0.0, irrig, kc)
+            balance["dr"][zid] = dr
+        balance["updated"] = time.time()
+        vwc = {zid: FAO["FC"] - dr / (FAO["root"] * 1000.0) * 100.0 for zid, dr in balance["dr"].items()}
+        log.info("[Balance] VWC " + "  ".join(f"Z{k}:{v:.1f}%" for k, v in vwc.items()) +
+                 f"  (trigger {TRIGGER_VWC}%)")
+    except Exception as e:
+        log.warning(f"[Balance] refresh failed: {e} — keeping previous values (decisions stop if older than {BALANCE_MAX_AGE_S//3600} h)")
+
+def refresh_rain_guard():
+    try:
+        d = _open_meteo({"latitude": FARM_LAT, "longitude": FARM_LNG,
+                         "hourly": "precipitation,precipitation_probability",
+                         "current": "precipitation", "past_days": 2, "forecast_days": 2,
+                         "timezone": "Asia/Kolkata"})
+        times = d["hourly"]["time"]; prec = d["hourly"]["precipitation"]; prob = d["hourly"]["precipitation_probability"]
+        now_s = datetime.now(IST).strftime("%Y-%m-%dT%H:00")
+        idx = times.index(now_s) if now_s in times else max(0, len(times) // 2)
+        hours_since = float("inf")
+        for i in range(idx, max(-1, idx - 49), -1):
+            if (prec[i] or 0) >= 4.0:
+                hours_since = idx - i
+                break
+        rain_guard_state.update(now=(d.get("current", {}).get("precipitation") or prec[idx] or 0.0),
+                                prob=prob[idx] or 0.0,
+                                next24=sum((prec[i] or 0.0) for i in range(idx, min(idx + 24, len(prec)))),
+                                hours_since=hours_since, updated=time.time())
+    except Exception as e:
+        log.warning(f"[RainGuard] refresh failed: {e}")
+
+def rain_guard_active():
+    g = rain_guard_state
+    if time.time() - g["updated"] > BALANCE_MAX_AGE_S:
+        return True          # no recent forecast -> be conservative and hold automatic irrigation
+    return (g["now"] >= RAIN_ACTIVE_MIN_MM or g["prob"] > 60 or
+            g["next24"] >= RAIN_FORECAST_24H_MM or g["hours_since"] < RAIN_HOLD_HOURS)
+
+def drip_plan_secs(zid):
+    """Run length for a zone: refill depth / (rate x efficiency), capped by the per-run and per-day limits."""
+    need_mm = balance["dr"].get(zid, 0.0)
+    secs = need_mm / (FAO["rate_mm_hr"] * FAO["eff"]) * 3600.0
+    return max(0.0, min(secs, MAX_IRRIGATE_SECS, MAX_DAILY_SECS - daily_run_secs.get(zid, 0.0)))
+
 def decide_irrigation():
     """
-    Core logic: check each zone and decide open/close.
-
-    Rules (in priority order):
-      1. Manual override from dashboard → respect it (auto_mode=False)
-      2. Moisture < MOISTURE_DRY → open valve
-      3. Moisture > MOISTURE_ADEQUATE → close valve
-      4. NDVI stressed crop → lower the DRY threshold by 5% (irrigate sooner)
-      5. High temperature (>35°C) → lower DRY threshold by 3%
+    Water-balance irrigation decision (replaces the old moisture-sensor thresholds, which had no sensors):
+      • auto_mode off                      -> do nothing (farmer has priority)
+      • balance older than BALANCE_MAX_AGE_S -> do nothing (stale-data fail-safe, H2)
+      • rain guard active                  -> hold
+      • zone depleted past TRIGGER_VWC     -> open for drip_plan_secs(); enforce_valve_limits() closes it on time
     """
     if not auto_mode:
         return
-
-    # Adaptive thresholds
-    dry_threshold = MOISTURE_DRY
-    if ndvi_state["stressed"]:
-        dry_threshold -= 5.0   # stressed crops need more water
-        log.debug(f"[AI] NDVI stressed → dry threshold lowered to {dry_threshold}%")
-    if weather["temp"] is not None and weather["temp"] > 35.0:
-        dry_threshold -= 3.0   # hot day → irrigate sooner
-        log.debug(f"[AI] Hot day {weather['temp']}°C → dry threshold lowered to {dry_threshold}%")
-    dry_threshold = max(15.0, dry_threshold)   # never below 15%
-
-    now = time.time()
+    if time.time() - balance["updated"] > BALANCE_MAX_AGE_S:
+        log.warning("[AI] Water balance is stale — no automatic decisions")
+        return
+    if rain_guard_active():
+        log.debug("[AI] Rain guard active — holding irrigation")
+        return
+    trigger = trigger_depletion_mm()
     for zone in ZONES:
-        zid  = zone["id"]
-        addr = zone["node_id"]
-        nd   = node_data[addr]
-
-        # Skip if node hasn't reported recently (offline > 30s)
-        if now - nd["last_seen"] > 30:
-            log.debug(f"[AI] Zone {zid} ({zone['name']}) — node offline, skipping")
+        zid = zone["id"]
+        if zid in valve_open_since:
             continue
-
-        m = nd["moisture"]
-        v = nd["valve"]
-
-        if not v and m < dry_threshold:
-            log.info(f"[AI] Zone {zid} {zone['name']}: moisture {m:.1f}% < {dry_threshold:.1f}% → OPEN valve")
-            if not command_valve(zid, True, "auto"):
-                continue
+        dr = balance["dr"].get(zid, 0.0)
+        if dr < trigger:
+            continue
+        secs = drip_plan_secs(zid)
+        if secs < MIN_IRRIGATE_SECS:
+            log.info(f"[AI] Zone {zid} {zone['name']} due but only {secs:.0f}s of allowance left today — skipped")
+            continue
+        vwc = FAO["FC"] - dr / (FAO["root"] * 1000.0) * 100.0
+        log.info(f"[AI] Zone {zid} {zone['name']}: VWC {vwc:.1f}% < {TRIGGER_VWC}% → OPEN for {secs/60:.0f} min")
+        if command_valve(zid, True, "auto"):
+            valve_planned_secs[zid] = secs
             if mqtt_conn:
                 mqtt_conn.publish(TOPIC_DATA, json.dumps({
                     "ai_action": f"ZONE_{zid}_OPEN",
-                    "reason": f"moisture {m:.1f}% below threshold {dry_threshold:.1f}%",
-                    "ndvi_stressed": ndvi_state["stressed"],
-                }))
-
-        elif v and m > MOISTURE_ADEQUATE:
-            log.info(f"[AI] Zone {zid} {zone['name']}: moisture {m:.1f}% > {MOISTURE_ADEQUATE}% → CLOSE valve")
-            if not command_valve(zid, False, "auto"):
-                continue
-            if mqtt_conn:
-                mqtt_conn.publish(TOPIC_DATA, json.dumps({
-                    "ai_action": f"ZONE_{zid}_CLOSE",
-                    "reason": f"moisture {m:.1f}% above {MOISTURE_ADEQUATE}%",
+                    "reason": f"VWC {vwc:.1f}% below {TRIGGER_VWC}% — planned {secs/60:.0f} min",
                 }))
 
 # ══════════════════════════════════════════════════════════════════════
@@ -672,8 +814,10 @@ def main():
     init_lora()
     init_valve_gpio()
     init_mqtt()
+    load_state()
 
     last_ndvi_load    = 0
+    last_balance      = 0
     last_weather_read = 0
     last_decision     = 0
     last_publish      = 0
@@ -690,6 +834,16 @@ def main():
         if now - last_ndvi_load > 3600:
             load_ndvi()
             last_ndvi_load = now
+
+        # Rebuild water balance + rain guard every 30 min (after NDVI so Kc is current)
+        if now - last_balance > BALANCE_REFRESH_S:
+            refresh_balance()
+            refresh_rain_guard()
+            last_balance = now
+
+        # Credit water delivered by confirmed-open valves; persist applied amounts
+        credit_open_valves()
+        save_state()
 
         # Run irrigation decisions every 60s
         if now - last_decision > 60:
