@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T21:18:35.955699",
+  "updated": "2026-11-20T22:04:29.130131",
   "scene_date": "2026-11-17",
   "scene_age_days": 3,
   "scenes_in_composite": 14,
@@ -30,8 +30,8 @@
     }
   ],
   "weather": {
-    "et0_mm_day": 0,
+    "et0_mm_day": 3.1,
     "rain_3d_mm": 0,
-    "vpd_kpa": 0
+    "vpd_kpa": 1.35
   }
 }
