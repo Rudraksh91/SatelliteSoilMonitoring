@@ -1,11 +1,11 @@
 {
-  "updated": "2026-11-20T22:04:29.130131",
+  "updated": "2026-11-20T22:15:42.416157",
   "scene_date": "2026-11-17",
   "scene_age_days": 3,
   "scenes_in_composite": 14,
   "jpeg_name": "NDVI_Dediapada_2026-11-20.jpeg",
   "jpeg_id": "2026-11-20_2026-11-17",
-  "jpeg_url": "https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main/ndvi_latest.jpeg",
+  "jpeg_url": "https://raw.githubusercontent.com/Rudraksh91/SatelliteSoilMonitoring/main/ndvi_latest.jpeg",
   "zones": [
     {
       "zone": "Zone 1 – Boys Hostel",

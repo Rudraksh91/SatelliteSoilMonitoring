@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T16:34:38+00:00",
+  "updated": "2026-11-20T16:46:04+00:00",
   "date": "2026-11-19",
   "dr": {
     "1": 3.215,
@@ -28,5 +28,14 @@
   "last_decision": {
     "date": "2026-11-20",
     "runs": {}
+  },
+  "soil_estimate": {
+    "theta_fc": 0.371,
+    "theta_wp": 0.239,
+    "sand": 0.308,
+    "clay": 0.394,
+    "om_pct": 1.34,
+    "source": "ESTIMATE: SoilGrids 250 m + Saxton-Rawls 2006 (replace with core/lab values)",
+    "fetched": "2026-11-20"
   }
 }

@@ -1,17 +1,16 @@
 {
-  "generated_at": "2026-11-20T16:34:38+00:00",
-  "valid_until": "2026-11-22T16:34:38+00:00",
+  "generated_at": "2026-11-20T16:46:04+00:00",
+  "valid_until": "2026-11-22T16:46:04+00:00",
   "date": "2026-11-20",
   "calibrated": false,
   "missing_inputs": [
-    "soil.calibrated (theta_fc/theta_wp are estimates)",
+    "soil.calibrated (theta_fc/theta_wp are SoilGrids+Saxton-Rawls estimates)",
     "crop.confirmed (Kcb/p/Zr are estimates)",
-    "start (no soil-sample anchor: depletion assumed 0 at first run)",
     "zones.area_m2 + flow_lph (using the 3 mm/h rate estimate)"
   ],
   "farm": {
-    "ndvi": 0.416,
-    "kc": 0.623,
+    "ndvi": null,
+    "kc": null,
     "ndvi_stale": false,
     "ndvi_age_days": 3,
     "stress_flag": false,
@@ -24,43 +23,44 @@
     "max_daily_min": 240
   },
   "soil": {
-    "theta_fc": 0.28,
-    "theta_wp": 0.13,
+    "theta_fc": 0.371,
+    "theta_wp": 0.239,
     "root_depth_m": 0.4,
-    "p": 0.5
+    "p": 0.5,
+    "source": "ESTIMATE: SoilGrids 250 m + Saxton-Rawls 2006 (replace with core/lab values)"
   },
   "zones": [
     {
       "id": 1,
       "name": "Zone 1 \u2013 Boys Hostel",
       "dr_mm": 3.21,
-      "raw_mm": 30.0,
-      "taw_mm": 60.0,
-      "dr_pct": 5.4,
+      "raw_mm": 26.4,
+      "taw_mm": 52.8,
+      "dr_pct": 6.1,
       "decision": "NO_RUN",
-      "reason": "soil water ample (depletion 3.2 mm < RAW 30.0 mm)",
+      "reason": "soil water ample (depletion 3.2 mm < RAW 26.4 mm)",
       "run_minutes": 0.0
     },
     {
       "id": 2,
       "name": "Zone 2 \u2013 Main College",
       "dr_mm": 3.21,
-      "raw_mm": 30.0,
-      "taw_mm": 60.0,
-      "dr_pct": 5.4,
+      "raw_mm": 26.4,
+      "taw_mm": 52.8,
+      "dr_pct": 6.1,
       "decision": "NO_RUN",
-      "reason": "soil water ample (depletion 3.2 mm < RAW 30.0 mm)",
+      "reason": "soil water ample (depletion 3.2 mm < RAW 26.4 mm)",
       "run_minutes": 0.0
     },
     {
       "id": 3,
       "name": "Zone 3 \u2013 Diploma College",
       "dr_mm": 3.21,
-      "raw_mm": 30.0,
-      "taw_mm": 60.0,
-      "dr_pct": 5.4,
+      "raw_mm": 26.4,
+      "taw_mm": 52.8,
+      "dr_pct": 6.1,
       "decision": "NO_RUN",
-      "reason": "soil water ample (depletion 3.2 mm < RAW 30.0 mm)",
+      "reason": "soil water ample (depletion 3.2 mm < RAW 26.4 mm)",
       "run_minutes": 0.0
     }
   ],
