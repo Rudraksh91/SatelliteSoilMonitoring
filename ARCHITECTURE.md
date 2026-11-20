@@ -285,7 +285,7 @@ packages, Python environment, systemd service, nightly self-update with rollback
 helper command. See `hardware/raspberry_pi/INSTALL.md`. Rebuild with `python3 scripts/build_pi_installer.py`.
 
 ## Farmer app (`farmer.html` + `farmer/core.js`) — any farmer, on their own phone
-Open `farmer.html` (linked from the dashboard as **FOR FARMERS**). A farmer taps the corners of their field on a satellite
+Open `farmer.html` (linked from the dashboard as **Farmers** page (it also opens standalone at `farmer.html`)). A farmer taps the corners of their field on a satellite
 map (or drops a pin + enters the area), and the page works out the advice **entirely in the browser** from public data:
 Sentinel-2 NDVI (Earth Search STAC + COG windows read with geotiff.js, SCL cloud mask, 10 m edge shrink, validated against
 Earth Engine: mean |ΔNDVI| ≈ 0.02–0.03), Open-Meteo weather/forecast, SoilGrids soil → Saxton-Rawls, and the same FAO-56

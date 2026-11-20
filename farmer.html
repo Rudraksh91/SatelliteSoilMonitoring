@@ -8,7 +8,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--btnink:#fff;--bg:#f4f7f2;--card:#fff;--ink:#14231b;--mut:#5a6b61;--line:#dfe7dc;--g:#1b7f4b;--gd:#0b3d2e;--amber:#c27a00;--blue:#1a6fb3;--red:#b3261e}
-@media (prefers-color-scheme:dark){:root{--btnink:#06281b;--bg:#0e1511;--card:#17211b;--ink:#eaf2ec;--mut:#9db0a4;--line:#27362d;--g:#4cc38a;--gd:#0b3d2e;--amber:#f0b24b;--blue:#6ab3ee;--red:#ff8a80}}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--btnink:#06281b;--bg:#0e1511;--card:#17211b;--ink:#eaf2ec;--mut:#9db0a4;--line:#27362d;--g:#4cc38a;--gd:#0b3d2e;--amber:#f0b24b;--blue:#6ab3ee;--red:#ff8a80}}
+:root[data-theme=dark]{--btnink:#06281b;--bg:#0e1511;--card:#17211b;--ink:#eaf2ec;--mut:#9db0a4;--line:#27362d;--g:#4cc38a;--gd:#0b3d2e;--amber:#f0b24b;--blue:#6ab3ee;--red:#ff8a80}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Noto Sans Devanagari","Noto Sans Gujarati",Segoe UI,Roboto,sans-serif}
 header{position:sticky;top:0;z-index:20;background:var(--gd);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 header h1{font-size:17px;margin:0;flex:1 1 auto}header a{color:#bfe9d3;font-size:13px}
@@ -24,7 +25,10 @@ label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 #map{height:min(58vh,440px);border-radius:12px;border:1px solid var(--line)}
 .big{border-radius:16px;padding:18px;color:#fff;margin:0 0 14px}.big .t{font-size:13px;opacity:.85;letter-spacing:.03em}.big .h{font-size:28px;font-weight:800;margin:4px 0;line-height:1.2}.big .r{font-size:15px;opacity:.95}
 .big.go{background:var(--blue)}.big.ok{background:var(--g)}.big.wait{background:#5b6f8a}.big.err{background:var(--red)}
-@media (prefers-color-scheme:dark){.big.ok{color:#06281b}.big.go{color:#04223a}}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .big.ok{color:#06281b}:root:not([data-theme=light]) .big.go{color:#04223a}}
+:root[data-theme=dark] .big.ok{color:#06281b}:root[data-theme=dark] .big.go{color:#04223a}
+/* embedded inside the TERRA-CORE dashboard: no duplicate title bar, scrolls inside the frame */
+html.embed header{position:static;padding:8px 12px}html.embed header h1,html.embed header>a{display:none}html.embed header .lang{margin-left:auto}
 .bar{height:16px;border-radius:9px;background:var(--line);position:relative;overflow:hidden;margin:8px 0}.bar i{position:absolute;inset:0 auto 0 0;background:var(--g)}.bar b{position:absolute;top:0;bottom:0;width:2px;background:var(--amber)}
 .kv{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:15px}.kv span:nth-child(odd){color:var(--mut)}.kv span:nth-child(even){text-align:right}
 .note{font-size:13px;color:var(--mut)}.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:99px;background:#fff3d6;color:#7a4e00}
@@ -86,8 +90,8 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261120c"></script>
-<script src="farmer/i18n.js?v=20261120c"></script>
+<script src="farmer/core.js?v=20261120d"></script>
+<script src="farmer/i18n.js?v=20261120d"></script>
 <script>
 (function(){
 'use strict';
@@ -97,6 +101,13 @@ if(!window.AgriCore||!window.AgriCore.CROPS||!window.AgriI18n){   // an old cach
 const C=window.AgriCore, I=window.AgriI18n, KEY='agrisat_farmer_v1', LKEY='agrisat_farmer_lang';
 const $=id=>document.getElementById(id);
 const today=()=>new Date(Date.now()+5.5*3600e3).toISOString().slice(0,10);   // IST calendar day
+// embedded in the dashboard (?embed=1): follow its light/dark theme
+if(/[?&]embed=1/.test(location.search)){
+  document.documentElement.classList.add('embed');
+  try{const pr=window.parent.document.documentElement;
+    const sync=()=>{const t=pr.getAttribute('data-theme');if(t)document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme');};
+    sync();new MutationObserver(sync).observe(pr,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
+}
 let db=load(), lang=pickLang(), view='home', map=null, layer=null, pts=[], markers=[], pin=null, editing=null, busy=false, last=null;
 
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&Array.isArray(d.farms))return d;}catch(e){}return {consent:null,farms:[],selected:null};}

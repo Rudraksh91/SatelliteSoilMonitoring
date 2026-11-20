@@ -487,6 +487,7 @@ body{
   :root{--header-h:48px}
   /* Pages bump up */
   main.page{margin-top:48px!important}
+  #page-farmers{height:calc(100vh - 48px - 56px)!important;overflow:hidden!important;padding:0!important}
   /* Compact bottom nav */
   #mob-nav{height:42px!important}
   .mob-btn{padding:4px 2px!important}
@@ -988,10 +989,10 @@ header{
     </div>
   </div>
   <nav class="flex-1 py-md flex flex-col gap-base overflow-hidden">
-    <a href="farmer.html" class="nav-btn flex items-center w-full px-sm py-xs text-secondary transition-all active:scale-95" title="Farmer app: choose your own farm on the map">
+    <button onclick="nav('farmers')" data-page="farmers" class="nav-btn flex items-center w-full px-sm py-xs text-on-surface-variant/60 hover:bg-white/5 hover:text-primary transition-all active:scale-95" title="Farmer app: choose your own farm on the map">
       <span class="material-symbols-outlined mso min-w-[48px] text-center dock-icon">agriculture</span>
-      <span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity duration-200">FOR FARMERS</span>
-    </a>
+      <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Farmers</span>
+    </button>
     <button onclick="nav('map')" data-page="map" class="nav-btn flex items-center w-full px-sm py-xs text-primary border-r-2 border-primary-container bg-primary/10 transition-all active:scale-95">
       <span class="material-symbols-outlined mso min-w-[48px] text-center dock-icon">public</span>
       <span class="opacity-0 group-hover:opacity-100 transition-opacity font-label-caps text-label-caps ml-xs whitespace-nowrap">Global Map</span>
@@ -3010,7 +3011,7 @@ function renderTimeline(){
 // ══════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════
-const pageMap={map:'COMMAND CENTER',ndvi:'ASSET ANALYTICS & NDVI',climate:'CLIMATE & WEATHER ANALYTICS',auto:'AUTOMATION & LOGIC HUB',health:'SYSTEM HEALTH',pipeline:'SATELLITE DATA PIPELINE'};
+const pageMap={map:'COMMAND CENTER',ndvi:'ASSET ANALYTICS & NDVI',climate:'CLIMATE & WEATHER ANALYTICS',auto:'AUTOMATION & LOGIC HUB',health:'SYSTEM HEALTH',pipeline:'SATELLITE DATA PIPELINE',farmers:'FARMER APP'};
 function nav(id){
   document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none'});
   document.querySelectorAll('.nav-btn').forEach(b=>{b.classList.remove('text-primary','border-r-2','border-primary-container','bg-primary/10');b.classList.add('text-on-surface-variant/60')});
@@ -3029,6 +3030,7 @@ function nav(id){
   const mob=document.querySelector(`.mob-btn[data-page="${id}"]`);
   if(mob)mob.classList.add('active');
   set('page-title',pageMap[id]||'COMMAND CENTER');
+  if(id==='farmers'){const fr=document.getElementById('farmers-frame');if(fr&&!fr.getAttribute('src'))fr.setAttribute('src','farmer.html?embed=1');}   // load the farmer app on first visit only
   // Scroll to top on mobile
   window.scrollTo({top:0,behavior:'smooth'});
   // Resize charts when entering climate tab
@@ -3694,7 +3696,16 @@ updateClock();
     <span class="material-symbols-outlined dock-icon" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">account_tree</span>
     <span class="mob-btn-lbl">Pipeline</span>
   </button>
+  <button class="mob-btn" data-page="farmers" onclick="nav('farmers')">
+    <span class="material-symbols-outlined dock-icon" style="font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24">agriculture</span>
+    <span class="mob-btn-lbl">Farmers</span>
+  </button>
 </nav>
+
+<!-- ═══ FARMERS PAGE — the farmer app (farmer.html) embedded; any farmer can mark their own farm and get advice ═══ -->
+<main id="page-farmers" class="page ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] p-0 overflow-hidden">
+  <iframe id="farmers-frame" title="AgriSat for Farmers" allow="geolocation" loading="lazy" style="width:100%;height:100%;border:0;background:transparent"></iframe>
+</main>
 
 <!-- ═══ SCREEN ROTATION HINT ═══ -->
 <div id="rotation-hint" role="status" aria-live="polite">
