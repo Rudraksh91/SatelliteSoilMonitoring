@@ -60,4 +60,9 @@ const noRain = C.advise({ today, weather: w0, soil, ndvi: [], start: { date: '20
 check('farmer-reported local rain counts (40 mm -> 32 mm effective)', noRain.dr - withRain.dr > 25 && noRain.dr - withRain.dr < 40);
 check('stale / missing NDVI is flagged and a fallback Kc is used', C.advise({ today, weather: w0, soil, ndvi: [], start: { date: '2026-11-01', depletion_mm: 0 } }).ndviStale === true);
 check('start date older than the weather window is flagged as assumed', C.advise({ today, weather: w0, soil, ndvi: [] }).startAssumed === true);
+const anch = C.advise({ today, weather: w0, soil, ndvi: [], start: { date: today, frac: 0.05 } });
+check('farmer says soil is WET today: anchored at 5% of TAW, no setup prompt', anch.needsSetup === false && near(anch.dr, 0.05 * anch.taw, 1e-6) && anch.decision === 'OK');
+const dryA = C.advise({ today, weather: w0, soil, ndvi: [], start: { date: today, frac: 0.65 }, areaM2: 5000 });
+check('farmer says soil is DRY today: irrigate', dryA.needsSetup === false && dryA.decision === 'IRRIGATE' && dryA.litres > 0);
+check('no starting information -> needsSetup (the page asks instead of guessing litres)', C.advise({ today, weather: w0, soil, ndvi: [] }).needsSetup === true);
 console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);

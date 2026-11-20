@@ -7,15 +7,15 @@
 <meta name="theme-color" content="#0b3d2e">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-:root{--bg:#f4f7f2;--card:#fff;--ink:#14231b;--mut:#5a6b61;--line:#dfe7dc;--g:#1b7f4b;--gd:#0b3d2e;--amber:#c27a00;--blue:#1a6fb3;--red:#b3261e}
-@media (prefers-color-scheme:dark){:root{--bg:#0e1511;--card:#17211b;--ink:#eaf2ec;--mut:#9db0a4;--line:#27362d;--g:#4cc38a;--gd:#0b3d2e;--amber:#f0b24b;--blue:#6ab3ee;--red:#ff8a80}}
+:root{--btnink:#fff;--bg:#f4f7f2;--card:#fff;--ink:#14231b;--mut:#5a6b61;--line:#dfe7dc;--g:#1b7f4b;--gd:#0b3d2e;--amber:#c27a00;--blue:#1a6fb3;--red:#b3261e}
+@media (prefers-color-scheme:dark){:root{--btnink:#06281b;--bg:#0e1511;--card:#17211b;--ink:#eaf2ec;--mut:#9db0a4;--line:#27362d;--g:#4cc38a;--gd:#0b3d2e;--amber:#f0b24b;--blue:#6ab3ee;--red:#ff8a80}}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 header{position:sticky;top:0;z-index:20;background:var(--gd);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;gap:10px;align-items:center}
 header h1{font-size:17px;margin:0;flex:1}header a{color:#bfe9d3;font-size:13px}
 main{max-width:640px;margin:0 auto;padding:14px 16px calc(40px + env(safe-area-inset-bottom))}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 14px}
 .card h2{font-size:15px;margin:0 0 8px;color:var(--mut);font-weight:600;letter-spacing:.02em;text-transform:uppercase}
-button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--g);color:#fff;font-weight:600;cursor:pointer;min-height:46px}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--g);color:var(--btnink);font-weight:600;cursor:pointer;min-height:46px}
 button.sec{background:transparent;color:var(--g);border:1.5px solid var(--g)}button.warn{background:transparent;color:var(--red);border:1.5px solid var(--red)}
 button:disabled{opacity:.5}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1 1 auto}
 input[type=text],input[type=number]{width:100%;font:inherit;padding:11px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
@@ -228,13 +228,22 @@ function renderAdvice(f,a,w,warn){
   const dates=w.time,i0=dates.indexOf(today());
   const fc=dates.slice(i0>=0?i0:0,(i0>=0?i0:0)+5).map((d,i)=>{const k=(i0>=0?i0:0)+i;return `<div><b>${new Date(d+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'})}</b><br>${fmt(w.rain[k],0)} mm<br><span class="note">ET ${fmt(w.et0[k],1)}</span></div>`;}).join('');
   const nd=(f.cache&&f.cache.ndvi&&f.cache.ndvi[0])||null;
-  const est=(a.startAssumed?'<span class="pill est">start assumed</span> ':'')+'<span class="pill est">estimate</span>';
+  const est='<span class="pill est">estimate</span>';
+  if(a.needsSetup){   // never give a confident litres figure from an assumed starting state
+    $('advice').innerHTML=
+     `<div class="big wait"><div class="t">${esc(f.name)} · ${fmt(f.areaM2/10000,2)} ha</div><div class="h">One quick question</div>
+       <div class="r">How does the soil in your field feel today (a hand's depth down)? This sets the starting point for the advice.</div>
+       <div class="row" style="margin-top:12px"><button data-soil="0.05" style="background:#fff;color:#14231b">💧 Wet</button><button data-soil="0.30" style="background:#fff;color:#14231b">🌱 Moist</button><button data-soil="0.65" style="background:#fff;color:#14231b">🏜 Dry</button></div></div>`+
+     (warn.length?`<div class="card"><p class="note" style="margin:0;color:var(--amber)">${warn.map(esc).join('<br>')}</p></div>`:'');
+    $('advice').querySelectorAll('[data-soil]').forEach(b=>b.onclick=()=>{const fm=farm();fm.start={date:today(),frac:parseFloat(b.dataset.soil)};save();refreshFarm(false);});
+    $('logCard').hidden=true;$('mgmt').hidden=false;return;
+  }
   $('advice').innerHTML=
    `<div class="big ${cls}"><div class="t">${esc(f.name)} · ${fmt(f.areaM2/10000,2)} ha</div><div class="h">${head}</div><div class="r">${esc(a.reason)}</div>${how}</div>`+
    (warn.length?`<div class="card"><p class="note" style="margin:0;color:var(--amber)">${warn.map(esc).join('<br>')}</p></div>`:'')+
    `<div class="card"><h2>Soil water ${est}</h2><div class="bar"><i style="width:${Math.min(100,a.pct).toFixed(0)}%"></i><b style="left:${(100*a.raw/a.taw).toFixed(0)}%"></b></div>
      <div class="note">Used ${fmt(a.dr)} of ${fmt(a.taw)} mm. The amber line (${fmt(a.raw)} mm) is where plants start to struggle.</div>
-     ${a.startAssumed?'<p class="note">The model assumes the soil was full 30 days ago. After a heavy irrigation or rain, tap “Soil is full today” to anchor it.</p>':''}</div>`+
+     </div>`+
    `<div class="card"><h2>Next days (rain mm / evaporation)</h2><div class="fc">${fc}</div></div>`+
    `<div class="card"><h2>What the advice is based on</h2><div class="kv">
       <span>Crop water use (Kc)</span><span>${a.kc!=null?fmt(a.kc,2):'—'}${a.ndviStale?' (general value)':''}</span>
@@ -260,7 +269,7 @@ $('btnIrr').onclick=()=>{
   }
 };
 $('btnRain').onclick=()=>{const v=parseFloat(prompt('How many millimetres of rain fell on your field today? (a rough guess is fine)','10'));if(v>0&&v<400)addEvent('rain_mm',v);};
-$('btnFull').onclick=()=>{if(confirm('Is the soil completely wet (just irrigated heavily or heavy rain) right now?')){const f=farm();f.start={date:today(),depletion_mm:0};save();refreshFarm(false);}};
+$('btnFull').onclick=()=>{if(confirm('Is the soil completely wet (just irrigated heavily or heavy rain) right now?')){const f=farm();f.start={date:today(),frac:0};save();refreshFarm(false);}};
 
 // boot
 window.AgriApp={_map:()=>map,db:()=>db,refreshFarm,renderHome,openFarm,renderAdvice,_state:()=>({pts,pin})};

@@ -224,7 +224,8 @@
     const taw = tawMm(soil.theta_fc, soil.theta_wp, crop.root_depth_m), p = crop.p, raw = p * taw;
     const idx = {}; a.weather.time.forEach((t, i) => { idx[t] = i; });
     const start = a.start && a.start.date >= a.weather.time[0] ? a.start : { date: a.weather.time[0], depletion_mm: 0, assumed: true };
-    let dr = Math.min(taw, start.depletion_mm || 0), lastKc = null, stale = false, lastNdvi = null, age = null, rows = [];
+    const startMm = start.frac != null ? start.frac * taw : (start.depletion_mm || 0);   // frac = share of TAW already used (farmer's soil check)
+    let dr = Math.min(taw, startMm), lastKc = null, stale = false, lastNdvi = null, age = null, rows = [];
     const evSum = (day, type) => (a.events || []).filter(e => e.date === day && e.type === type).reduce((s, e) => s + e.value, 0);
     const yesterday = addDays(a.today, -1);
     for (let day = start.date; day <= yesterday; day = addDays(day, 1)) {
@@ -249,7 +250,7 @@
     const useMm = Math.max(0.1, (lastKc == null ? crop.kc_fallback : lastKc) * (a.weather.et0[idx[a.today]] || a.weather.et0[idx[yesterday]] || 4));
     const daysLeft = decision === 'OK' ? Math.max(0, (raw - dr) / useMm) : 0;
     return { decision, reason, dr, taw, raw, pct: 100 * dr / taw, grossMm, litres, hours, daysLeft, kc: lastKc, ndvi: lastNdvi, ndviAge: age, ndviStale: stale,
-             forecastRain2d: fwd, soil, startAssumed: !!start.assumed, rows };
+             forecastRain2d: fwd, soil, startAssumed: !!start.assumed, needsSetup: !!start.assumed, rows };
   }
 
   return { centroid, bbox, polygonAreaM2, squareFromArea, pointInPolygon, distToEdges, utmZone, toUTM, farmPixels,
