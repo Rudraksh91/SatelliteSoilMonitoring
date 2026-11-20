@@ -39,3 +39,6 @@ node_modules/
 android/
 ios/
 SPRERI_Extension_Training.pptx
+
+# NDVI cloud pipeline inputs (zones are not secret)
+!scripts/farm_zones.csv

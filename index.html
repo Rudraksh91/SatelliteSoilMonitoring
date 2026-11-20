@@ -2880,7 +2880,7 @@ function renderTimeline(){
       // ── Log only on real change, so this doesn't spam every 15-min poll ────
       if(typeof logSystemEvent==='function' && data.jpeg_id && data.jpeg_id!==window._lastNdviJpegId){
         window._lastNdviJpegId=data.jpeg_id;
-        logSystemEvent(`DRIVE SYNC COMPLETE — NEW NDVI SCENE ${data.scene_date||'—'} PULLED FROM GOOGLE DRIVE`);
+        logSystemEvent(`NDVI AUTO-UPDATE COMPLETE — NEW SCENE ${data.scene_date||'—'} LOADED`);
       }
     })
     .catch(err=>{
