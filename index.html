@@ -1037,8 +1037,10 @@ header{
     <div class="h-4 w-px bg-white/10"></div>
     <div class="flex items-center gap-xs px-xs py-[3px] rounded-full" style="background:rgba(0,255,65,.07);border:1px solid rgba(0,255,65,.18)">
       <span class="flex h-[7px] w-[7px] rounded-full bg-primary-container animate-pulse" style="box-shadow:0 0 6px rgba(0,255,65,.8)"></span>
-      <span class="font-label-caps text-label-caps text-primary tracking-widest" style="font-size:9px">LIVE · DEDIAPADA · 21.628°N 73.592°E</span>
+      <span id="live-loc" class="font-label-caps text-label-caps text-primary tracking-widest" style="font-size:9px">LIVE · DEDIAPADA · 21.628°N 73.592°E</span>
     </div>
+    <!-- ACTIVE FARM: weather, NDVI, soil-water model and map all follow this selection -->
+    <select id="active-farm" onchange="setActiveFarm(this.value)" title="Active farm — weather, NDVI and the water model follow this location" class="font-label-caps text-[10px] bg-transparent border border-white/20 rounded px-1 py-[2px] text-primary max-w-[130px]"><option value="campus">CAMPUS</option></select>
   </div>
   <div class="flex items-center gap-md">
     <span class="font-label-caps text-label-caps text-on-surface-variant/60 text-[10px] hidden xl:block" id="api-status">API: CONNECTING...</span>
@@ -1207,9 +1209,9 @@ header{
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-primary/30 animate-pulse"></div>
       </div>
       <div class="absolute top-sm left-sm p-sm gp rounded border-l-2 border-primary-container">
-        <div class="font-label-caps text-primary-container mb-1">NDVI HEATMAP · DEDIAPADA</div>
-        <span class="text-[10px] font-label-caps text-on-surface-variant block">LAT: 21.6277° N</span>
-        <span class="text-[10px] font-label-caps text-on-surface-variant block">LON: 73.5903° E</span>
+        <div id="nd-title" class="font-label-caps text-primary-container mb-1">NDVI HEATMAP · DEDIAPADA</div>
+        <span id="nd-lat" class="text-[10px] font-label-caps text-on-surface-variant block">LAT: 21.6277° N</span>
+        <span id="nd-lon" class="text-[10px] font-label-caps text-on-surface-variant block">LON: 73.5903° E</span>
         <span class="text-[10px] font-label-caps text-on-surface-variant block" id="geo-elev">ELEV: — m</span>
         <span class="text-[10px] font-label-caps text-on-surface-variant block mt-1" id="ndvi-scene-date" style="display:none">SCENE: —</span>
       </div>
@@ -2038,9 +2040,99 @@ function _relTime(date){
 }
 
 // ══════════════════════════════════════════════════
+// ACTIVE FARM — the dashboard follows ONE location at a time: the campus (automatic daily NDVI, central decision, Pi hardware)
+// or a farm a farmer outlined on the Farmers page. For a farmer farm everything is computed for THAT coordinate:
+// Open-Meteo weather/forecast, Sentinel-2 NDVI inside the outline (3 west/centre/east bands feed the 3-field soil model),
+// the FAO-56 balance with the farm's own soil and crop, and the farmer's irrigation/rain notes. Hardware stays campus-only.
+// ══════════════════════════════════════════════════
+const CAMPUS={id:'campus',name:'DEDIAPADA CAMPUS',short:'DEDIAPADA',lat:21.6277,lng:73.5903,campus:true};
+window.ACTIVE=CAMPUS;
+function _farmerDb(){try{const d=JSON.parse(localStorage.getItem('agrisat_farmer_v1'));return d&&Array.isArray(d.farms)?d:{farms:[],selected:null};}catch(e){return {farms:[],selected:null};}}
+const _cleanName=n=>String(n||'FARM').replace(/<[^>]*>/g,'').replace(/[<>&"']/g,'').trim().toUpperCase().slice(0,24)||'FARM';
+function refreshFarmSelector(){
+  const sel=document.getElementById('active-farm');if(!sel)return;
+  const db=_farmerDb();
+  sel.innerHTML='<option value="campus">CAMPUS</option>'+db.farms.map(f=>`<option value="${f.id}">${_cleanName(f.name)} · ${(f.areaM2/10000).toFixed(2)} HA</option>`).join('');
+  sel.value=window.ACTIVE.id;
+}
+function _bandZones(f){          // 3 vertical (west/centre/east) bands of the farm's used pixels, from its newest NDVI scene
+  const sc=((f.cache&&f.cache.ndvi)||[]).filter(s=>s.grid&&s.ndvi!=null)[0];if(!sc)return null;
+  const g=sc.grid,sum=[0,0,0],n=[0,0,0];
+  for(let r=0;r<g.rows;r++)for(let c=0;c<g.cols;c++){const i=r*g.cols+c;if(g.f[i]!==0||g.v[i]===null)continue;const b=Math.min(2,Math.floor(c*3/g.cols));sum[b]+=g.v[i]/100;n[b]++;}
+  const names=['WEST','CENTRE','EAST'],st=x=>x<0.25?['STRESSED','Irrigate within 24 h']:x<0.35?['MODERATE','Irrigate in 2–3 days']:x<0.5?['HEALTHY','Hold — normal schedule']:['THRIVING','No action needed'];
+  const zones=names.map((nm,i)=>{const m=n[i]?sum[i]/n[i]:sc.ndvi,[status,action]=st(m);return {zone:nm,ndvi:+m.toFixed(4),pixels:n[i],status,action};});
+  return {zones,date:sc.date,age:Math.max(0,Math.round((Date.now()-new Date(sc.date+'T00:00:00Z').getTime())/864e5))};
+}
+function _configureModelForFarm(A){
+  const P=FAO56_PARAMS; if(!window._fao56Campus)window._fao56Campus=Object.assign({},P);
+  if(A.campus){Object.assign(P,window._fao56Campus,{cropObj:null});return;}
+  const f=A.farm,crop=AgriCore.cropParams(f.cropId||'general',f.plantingDate),soil=(f.cache&&f.cache.soil)||{theta_fc:0.28,theta_wp:0.13};
+  Object.assign(P,{FC:soil.theta_fc*100,WP:soil.theta_wp*100,rootDepth:crop.root_depth_m,p:crop.p,kcMin:crop.kcb_min,kcMax:crop.kcb_max,kcFallback:crop.kc_fallback,
+    ndviStaleDays:crop.stale_days||20,irrigEff:0.88,irrigRateMmHr:(f.flowLph&&f.areaM2)?f.flowLph/f.areaM2:3,cropObj:crop,anchor:null});
+  const taw=fao56TAW(P),raw=P.p*taw,st=f.start;     // soil-sample / "how does the soil feel" anchor from the Farmers page
+  if(st&&st.date){const dr0=st.fracRaw!=null?st.fracRaw*raw:st.frac!=null?st.frac*taw:(st.depletion_mm||0);P.anchor={date:st.date,vwc:P.FC-dr0/(P.rootDepth*1000)*100};}
+}
+function applyFarmNdvi(){
+  const A=window.ACTIVE;if(A.campus)return;
+  const bz=_bandZones(A.farm);
+  window._ndviZones=bz?bz.zones:null;window._ndviAgeDays=bz?bz.age:null;
+  if(bz){renderZoneRows(bz.zones);const u=document.getElementById('ndvi-updated');if(u)u.textContent=bz.date;
+    const sd=document.getElementById('ndvi-scene-date');if(sd){sd.style.display='';sd.textContent='SCENE: '+bz.date;}}
+  else{renderZoneRows([{zone:'WEST',ndvi:null,status:'—'},{zone:'CENTRE',ndvi:null,status:'—'},{zone:'EAST',ndvi:null,status:'—'}]);
+    if(typeof logSystemEvent==='function')logSystemEvent('NO SATELLITE NDVI FOR THIS FARM YET — OPEN THE FARMERS PAGE ONCE TO LOAD IT');}
+}
+function applyActiveFarm(){
+  const A=window.ACTIVE,fmtLat=Math.abs(A.lat).toFixed(3)+'°'+(A.lat>=0?'N':'S'),fmtLng=Math.abs(A.lng).toFixed(3)+'°'+(A.lng>=0?'E':'W');
+  const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
+  set('live-loc',A.campus?'LIVE · DEDIAPADA · 21.628°N 73.592°E':'LIVE · '+A.short+' · '+fmtLat+' '+fmtLng);
+  set('nd-title','NDVI HEATMAP · '+A.short);set('nd-lat','LAT: '+A.lat.toFixed(4)+'° N');set('nd-lon','LON: '+A.lng.toFixed(4)+'° E');
+  document.title=A.campus?'TERRA-CORE | AgriSat Dediapada':'TERRA-CORE | '+A.name;
+  refreshFarmSelector();
+  _configureModelForFarm(A);
+  if(window._satMapFocus)window._satMapFocus(A);
+  window._central=null;
+  weatherData=null;fetchWeather();                                   // weather + forecast + charts for THIS coordinate
+  if(A.campus){window._ndviZones=null;window._ndviAgeDays=null;if(window._ndviPoll)window._ndviPoll();fetchCentral();}
+  else{applyFarmNdvi();}
+  initFAO56VWC();
+  // Analytics page: show the matching NDVI view
+  if(typeof setNdviMode==='function'){if(!A.campus){mfFarmId=A.id;mfIdx=0;}setNdviMode(A.campus?'campus':'farm');}
+  if(typeof logSystemEvent==='function')logSystemEvent(A.campus?'ACTIVE LOCATION: CAMPUS — AUTOMATIC DAILY NDVI + HARDWARE':`ACTIVE LOCATION: ${A.name} ${A.lat.toFixed(4)}, ${A.lng.toFixed(4)} — WEATHER, NDVI AND WATER MODEL FOR THIS FARM (ADVISORY)`);
+}
+function setActiveFarm(id){
+  let next=CAMPUS;
+  if(id&&id!=='campus'){const f=_farmerDb().farms.find(x=>x.id===id);
+    if(f){const [la,ln]=AgriCore.centroid(f.latlngs);next={id:f.id,name:_cleanName(f.name),short:_cleanName(f.name),lat:la,lng:ln,campus:false,farm:f};}}
+  if(window.ACTIVE.id===next.id){   // same location: the farmer page only changed its data (new NDVI / soil / notes) -> refresh the model, no re-fetch of weather
+    if(!next.campus){window.ACTIVE.farm=next.farm;_configureModelForFarm(window.ACTIVE);applyFarmNdvi();initFAO56VWC();
+      if(typeof mfRender==='function'&&mfMode==='farm')mfRender();}
+    refreshFarmSelector();return;
+  }
+  window.ACTIVE=next;try{localStorage.setItem('agrisat_active_farm',next.id);}catch(e){}
+  applyActiveFarm();
+}
+// the Farmers page (iframe or other tab) changed the saved farms: follow its selected farm and pick up new NDVI/soil/notes
+let _afLastSel=null;
+window.addEventListener('storage',e=>{
+  if(e.key!=='agrisat_farmer_v1')return;
+  const db=_farmerDb(),A=window.ACTIVE;
+  refreshFarmSelector();
+  if(db.selected&&db.selected!==_afLastSel){_afLastSel=db.selected;setActiveFarm(db.selected);return;}
+  if(!A.campus){const f=db.farms.find(x=>x.id===A.id);
+    if(!f){setActiveFarm('campus');return;}
+    A.farm=f;_configureModelForFarm(A);applyFarmNdvi();initFAO56VWC();}
+});
+function bootActiveFarm(){
+  let id='campus';try{id=localStorage.getItem('agrisat_active_farm')||'campus';}catch(e){}
+  _afLastSel=_farmerDb().selected;
+  refreshFarmSelector();
+  if(id!=='campus'&&_farmerDb().farms.some(f=>f.id===id)){setActiveFarm(id);}else{window.ACTIVE=CAMPUS;fetchWeather();}
+}
+function apiUrl(){return 'https://api.open-meteo.com/v1/forecast?latitude='+window.ACTIVE.lat.toFixed(4)+'&longitude='+window.ACTIVE.lng.toFixed(4)+API_QUERY;}
+// ══════════════════════════════════════════════════
 // OPEN-METEO API FETCH
 // ══════════════════════════════════════════════════
-const API_URL='https://api.open-meteo.com/v1/forecast?latitude=21.6277&longitude=73.5903'
+const API_QUERY=''
   +'&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature'
   +',precipitation_probability,precipitation,rain,showers'
   +',vapour_pressure_deficit,evapotranspiration,et0_fao_evapotranspiration'
@@ -2065,7 +2157,7 @@ async function fetchWeather(){
   set('api-status','API: FETCHING...');
   try{
     const _t0=performance.now();
-    const r=await fetch(API_URL);
+    const r=await fetch(apiUrl());
     const _ms=Math.round(performance.now()-_t0);
     set('footer-latency','LATENCY: '+_ms+'MS');
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -2142,7 +2234,7 @@ function applyCurrentData(d){
   // post-rain hold window (which stays "true" for RAIN_HOLD_HOURS and
   // would otherwise re-fire alarms for residual wetness, not rain itself).
   if(S.rain_mm>=RAIN_ACTIVE_MIN_MM || S.rain_next24h_mm>=RAIN_FORECAST_24H_MM){
-    sendAlarm('rain','⛈ TOO MUCH RAIN — Dediapada',
+    sendAlarm('rain','⛈ TOO MUCH RAIN — '+window.ACTIVE.short,
       S.rain_mm>=RAIN_ACTIVE_MIN_MM
         ? `Active rainfall ${S.rain_mm.toFixed(1)}mm/hr right now.`
         : `${S.rain_next24h_mm.toFixed(0)}mm rain forecast in the next 24h.`,
@@ -2339,7 +2431,7 @@ function updateVWC(){
   set('vwc-alert',minVWC<20?'CRITICAL':minVWC<22?'WATCH':'NORMAL');
   // Too-dry alarm — same CRITICAL cutoff already used for vwc-alert above.
   if(minVWC<20){
-    sendAlarm('dry','🌵 SOIL TOO DRY — Dediapada',
+    sendAlarm('dry','🌵 SOIL TOO DRY — '+window.ACTIVE.short,
       `VWC critical at ${minVWC.toFixed(1)}% (below 20%). Irrigation may be needed.`,
       'warning');
   } else {
@@ -2406,6 +2498,7 @@ function fao56ToVWC(Dr,P=FAO56_PARAMS){
 // Bausch & Neale (1987) linear Kc–NDVI; falls back to a stage Kc when NDVI is missing or stale.
 function ndviToKc(ndvi,ageDays,P=FAO56_PARAMS){
   if(ndvi==null||!isFinite(ndvi)||(ageDays!=null&&ageDays>P.ndviStaleDays))return P.kcFallback;
+  if(P.cropObj&&window.AgriCore)return AgriCore.kcFromNdvi(ndvi,P.cropObj);   // farmer farm: the chosen crop's Kcb scaled by canopy cover
   return Math.max(P.kcMin,Math.min(P.kcMax,0.2+1.25*ndvi));
 }
 
@@ -2425,6 +2518,11 @@ function _saveIrrigLog(force){
 }
 function _logSum(date,zone,field){
   return _irrigLog.reduce((s,e)=>s+((e.d===date&&(e.z===zone||e.z===-1))?(e[field]||0):0),0);
+}
+// irrigation / rain notes for the ACTIVE location: campus = this browser's valve log; farmer farm = the notes saved on the Farmers page
+function _evSum(day,zone,field){
+  const A=window.ACTIVE;if(A.campus)return _logSum(day,zone,field);
+  return ((A.farm&&A.farm.events)||[]).reduce((s,e)=>s+(e.date===day&&((field==='irrig'&&e.type==='irrigation_mm')||(field==='rain'&&e.type==='rain_mm'))?e.value:0),0);
 }
 function _addValveIrrig(zone,mm){   // water delivered while the hardware CONFIRMS the valve is open
   const d=_istDate();
@@ -2452,9 +2550,10 @@ _loadIrrigLog();
 // when the file is missing or older than 48 h.
 const CENTRAL_URL='https://raw.githubusercontent.com/Rudraksh91/SatelliteSoilMonitoring/main/data/decision.json';
 window._central=null;
-function centralFresh(){const c=window._central;return !!(c&&c._ageH<=48);}
+function centralFresh(){const c=window._central;return !!(c&&c._ageH<=48&&window.ACTIVE.campus);}
 function centralZone(key){const c=window._central;return c&&c.zones?c.zones[['vA','vB','vC'].indexOf(key)]:null;}
 async function fetchCentral(){
+  if(!window.ACTIVE.campus)return;
   try{
     const r=await fetch(CENTRAL_URL+'?_='+Date.now());
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -2488,7 +2587,7 @@ async function initFAO56VWC(){
     const P=FAO56_PARAMS;
     const resp=await fetch(
       'https://api.open-meteo.com/v1/forecast'
-      +'?latitude=21.62707&longitude=73.5854'
+      +'?latitude='+(window.ACTIVE.campus?'21.62707':window.ACTIVE.lat.toFixed(4))+'&longitude='+(window.ACTIVE.campus?'73.5854':window.ACTIVE.lng.toFixed(4))
       +'&daily=et0_fao_evapotranspiration,precipitation_sum'
       +'&past_days=30&forecast_days=0&timezone=Asia%2FKolkata'
     );
@@ -2508,8 +2607,8 @@ async function initFAO56VWC(){
         if(P.anchor&&days[i]===P.anchor.date)Dr[z]=Math.max(0,(P.FC-P.anchor.vwc)/100*P.rootDepth*1000);
         Dr[z]=fao56Step(Dr[z],{
           et0:ET0d[i]||0,
-          rain:(RAINd[i]||0)+_logSum(days[i],z,'rain'),   // farmer-reported local rain adds to the gauge value
-          irrig:_logSum(days[i],z,'irrig'),               // logged auto-drip + farmer irrigation (mm applied)
+          rain:(RAINd[i]||0)+_evSum(days[i],z,'rain'),   // farmer-reported local rain adds to the gauge value
+          irrig:_evSum(days[i],z,'irrig'),               // logged auto-drip + farmer irrigation (mm applied)
           kc:Kcs[z]
         },P);
         trail[z].push(fao56ToVWC(Dr[z],P));
@@ -2534,16 +2633,16 @@ function tickVWC(){
   // Sub-daily drift between full recalculations (initFAO56VWC runs every 30 min and
   // rebuilds from the irrigation log, so anything added here is not lost).
   const P=FAO56_PARAMS, TAW=fao56TAW(P), RAW=P.p*TAW;
-  const rainPct=S.rain_mm>0?(S.rain_mm*(VWC_TICK_S/3600))/(VWC_ROOT_M*10):0;
+  const rainPct=S.rain_mm>0?(S.rain_mm*(VWC_TICK_S/3600))/(FAO56_PARAMS.rootDepth*10):0;
   ['vA','vB','vC'].forEach((k,i)=>{
     const kc=ndviToKc((window._ndviZones||[])[i]?.ndvi,window._ndviAgeDays,P);
     const Dr=(P.FC-S[k])/100*P.rootDepth*1000;
     const Ks=Dr<=RAW?1:Math.max(0,(TAW-Dr)/(TAW-RAW));
-    const etcPct=Ks*kc*S.et0*(VWC_TICK_S/86400)/(VWC_ROOT_M*10);
+    const etcPct=Ks*kc*S.et0*(VWC_TICK_S/86400)/(FAO56_PARAMS.rootDepth*10);
     let irrPct=0;
     if(hwWaterOn(k)){   // only water the hardware confirms (valve open + link fresh) counts — no simulated irrigation
       const mm=P.irrigRateMmHr*P.irrigEff*(VWC_TICK_S/3600);
-      irrPct=mm/(VWC_ROOT_M*10);
+      irrPct=mm/(FAO56_PARAMS.rootDepth*10);
       _addValveIrrig(i,mm);
     }
     S[k]=clamp(S[k]-etcPct+rainPct+irrPct,P.WP,P.FC);
@@ -2563,6 +2662,7 @@ const VWC_HISTORY_MIN_GAP_MS=5*60*1000;  // sample at most every 5 min
 let _vwcHistory=[];
 function _loadVWCHistory(){try{const s=localStorage.getItem(VWC_HISTORY_KEY);_vwcHistory=s?JSON.parse(s):[];}catch{_vwcHistory=[];}}
 function _recordVWCHistory(avg){
+  if(!window.ACTIVE.campus)return;   // the 24 h trend belongs to the campus; don't mix farms
   const now=Date.now();
   const last=_vwcHistory[_vwcHistory.length-1];
   if(!last||now-last.t>=VWC_HISTORY_MIN_GAP_MS){
@@ -2817,6 +2917,7 @@ function fao56StressVWC(P=FAO56_PARAMS){return P.FC-(P.p*fao56TAW(P))/(P.rootDep
 function zoneDepletionMm(key){const P=FAO56_PARAMS;return Math.max(0,(P.FC-S[key])/100*P.rootDepth*1000);}
 function _zoneIdx(key){return ['vA','vB','vC'].indexOf(key);}
 function hwWaterOn(key){
+  if(!window.ACTIVE.campus)return false;   // the Pi valves belong to the campus, never to a farmer farm
   try{   // hardware globals live in a later <script>; before it has run there is simply no confirmation
     const i=_zoneIdx(key);
     const fresh=_lastDataAt&&(Date.now()-_lastDataAt)<STALE_MS;
@@ -2913,7 +3014,17 @@ function renderTimeline(){
     </div>`,
     iconSize:[32,32],iconAnchor:[16,16]
   });
-  L.marker([21.628,73.592],{icon})
+  const _marker=L.marker([21.628,73.592],{icon});
+  let _outline=null;
+  window._satMapFocus=function(A){            // campus = the original India overview; farmer farm = zoom to the plot with its outline
+    if(_outline){map.removeLayer(_outline);_outline=null;}
+    if(A.campus){map.setView([22,78],5.4);_marker.setLatLng([21.628,73.592]);
+      _marker.setTooltipContent('DEDIAPADA · 21.628°N 73.592°E<br>AgriSat Farm · 0.15 ha · Gujarat');return;}
+    map.setView([A.lat,A.lng],16);_marker.setLatLng([A.lat,A.lng]);
+    _marker.setTooltipContent(A.name+' · '+A.lat.toFixed(4)+'°N '+A.lng.toFixed(4)+'°E<br>'+(A.farm.areaM2/10000).toFixed(2)+' ha · FARMER FARM');
+    _outline=L.polygon(A.farm.latlngs,{color:'#ffd54a',weight:2.5,fill:false,interactive:false}).addTo(map);
+  };
+  _marker
    .addTo(map)
    .bindTooltip('DEDIAPADA · 21.628°N 73.592°E<br>AgriSat Farm · 0.15 ha · Gujarat',{
      permanent:true,direction:'right',offset:[18,0],className:'sat-tip'
@@ -2953,10 +3064,24 @@ function renderTimeline(){
   const URL='https://raw.githubusercontent.com/Rudraksh91/SatelliteSoilMonitoring/main/ndvi_status.json';
   const STATUS_COLOR={STRESSED:'#ffb432',MODERATE:'#00dbe9',HEALTHY:'#00ff41',THRIVING:'#7fff7f',HOLD:'#8888ff'};
   const REFRESH_MS=15*60*1000; // re-check every 15 min so an open tab picks up new harvest cycles without a manual reload
+  function renderZoneRows(zones){
+    const STATUS_COLOR={STRESSED:'#ffb432',MODERATE:'#00dbe9',HEALTHY:'#00ff41',THRIVING:'#7fff7f',HOLD:'#8888ff'};
+    zones.forEach((z,i)=>{
+      const nameEl=document.getElementById('zone-name-'+i),ndviEl=document.getElementById('zone-ndvi-'+i),stEl=document.getElementById('zone-status-'+i);
+      const raw=z.zone||z.zone_name||z.name||('ZONE '+(i+1));
+      const label=raw.replace(/^Zone\s*\d+\s*[–-]\s*/i,'').toUpperCase().slice(0,12);   // strip "Zone N – "
+      if(nameEl)nameEl.textContent=label;
+      if(ndviEl)ndviEl.textContent=(typeof z.ndvi==='number'?z.ndvi.toFixed(3):'—');
+      if(stEl){const st=(z.status||'').toUpperCase();stEl.textContent=st;stEl.style.color=STATUS_COLOR[st]||'inherit';}
+    });
+  }
+  window.renderZoneRows=renderZoneRows;
+  window._ndviPoll=function(){poll();};
   function poll(){
   fetch(URL+'?_='+Date.now())
     .then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})
     .then(data=>{
+      if(window.ACTIVE&&!window.ACTIVE.campus)return;   // a farmer farm is active: leave its panels alone
       // ── Satellite JPEG overlay ─────────────────────────────────────────────
       if(data.jpeg_url){
         const img=document.getElementById('ndvi-sat-img');
@@ -2994,21 +3119,7 @@ function renderTimeline(){
           window._staleNdviWarned=data.scene_date;
           if(typeof logSystemEvent==='function')logSystemEvent(`WARNING: NEWEST CLEAN SCENE IS ${_age} DAYS OLD — USING STAGE KC FALLBACK`);
         }
-        window._ndviZones.forEach((z,i)=>{
-          const nameEl=document.getElementById('zone-name-'+i);
-          const ndviEl=document.getElementById('zone-ndvi-'+i);
-          const stEl  =document.getElementById('zone-status-'+i);
-          const raw   =z.zone||z.zone_name||z.name||('ZONE '+(i+1));
-          // Shorten zone name: strip "Zone N – " prefix
-          const label =raw.replace(/^Zone\s*\d+\s*[–-]\s*/i,'').toUpperCase().slice(0,12);
-          if(nameEl)nameEl.textContent=label;
-          if(ndviEl)ndviEl.textContent=(typeof z.ndvi==='number'?z.ndvi.toFixed(3):'—');
-          if(stEl){
-            const s=(z.status||'').toUpperCase();
-            stEl.textContent=s;
-            stEl.style.color=STATUS_COLOR[s]||'inherit';
-          }
-        });
+        renderZoneRows(window._ndviZones);
         initFAO56VWC();  // re-run balance with fresh per-zone NDVI → Kc
       }
       // ── Log only on real change, so this doesn't spam every 15-min poll ────
@@ -3080,6 +3191,7 @@ function nav(id){
   if(mob)mob.classList.add('active');
   set('page-title',pageMap[id]||'COMMAND CENTER');
   if(id==='ndvi'&&mfMode==='farm')setTimeout(mfRender,60);
+  refreshFarmSelector();
   if(id==='farmers'){const fr=document.getElementById('farmers-frame');if(fr&&!fr.getAttribute('src'))fr.setAttribute('src','farmer.html?embed=1');}   // load the farmer app on first visit only
   // Scroll to top on mobile
   window.scrollTo({top:0,behavior:'smooth'});
@@ -3707,7 +3819,7 @@ setInterval(()=>{
   });
 },1000);
 
-fetchWeather();
+bootActiveFarm();   // weather (and the whole dashboard) for the active location
 setInterval(fetchWeather, 10*60*1000); // refresh every 10 min
 setTimeout(()=>{updateVWC();renderTimeline();pushLog();renderAutoOptUI();},500);
 initFAO56VWC();  // local fallback balance on first load (before NDVI zones arrive)
@@ -4661,6 +4773,11 @@ setInterval(() => {
 // just told the hardware to do.
 let _lastHwCmdTime = 0;
 function _hwSend(payload) {
+  // A farmer farm is ADVISORY: valve commands would otherwise reach the campus hardware. Emergency stop always goes through.
+  if (window.ACTIVE && !window.ACTIVE.campus && !payload.emergency_stop) {
+    if (typeof logValve === 'function') logValve('ADVISORY MODE — hardware commands are disabled while a farmer farm is active (switch to CAMPUS)');
+    return;
+  }
   _lastHwCmdTime = Date.now();
   if (_hwConnected && _hwWS && _hwWS.readyState === WebSocket.OPEN) {
     _hwWS.send(JSON.stringify(payload));

@@ -301,3 +301,13 @@ balance as the daily job. Farm outlines, names and notes stay in the phone's `lo
   Gujarati texts were written for this project and should be reviewed by a native speaker.
 - The first screen asks how the soil feels (wet / moist / dry) instead of assuming a start state; every network step has a deadline.
 - Limits: soil values are estimates; no valve control. Tests: `node tests/test_farmer_core.js`, `node tests/test_i18n.js`.
+
+## Active farm — the dashboard follows one location at a time
+A selector in the header chooses the **active farm**: `CAMPUS` (daily Earth Engine NDVI, central decision, Pi hardware) or any
+farm a farmer outlined on the Farmers page. Selecting a farm (also done automatically when the farmer picks one) re-points the
+whole dashboard at that coordinate: Open-Meteo weather/forecast/charts, the global map (zoom + outline), the NDVI map and the
+three zone rows (west / centre / east bands of the farm's own Sentinel-2 pixels), and the FAO-56 water model with the farm's soil
+(SoilGrids + Saxton-Rawls), crop (Kcb, p, root depth), start state and irrigation/rain notes. A farmer farm is **advisory**: the
+central decision, campus NDVI poll and the Pi valves are not used, and valve commands are blocked (emergency stop always passes).
+NDVI for farmer farms comes from Sentinel-2 read in the browser (validated against Earth Engine, mean |dNDVI| ~0.02-0.03); Earth
+Engine itself cannot be called from a browser without a server-held key.
