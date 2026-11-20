@@ -1113,10 +1113,10 @@ header{
     <!-- Right -->
     <div class="col-span-3 flex flex-col gap-sm">
       <div class="gp p-sm border-t-2 border-primary-container">
-        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs">TOTAL MANAGED AREA</p>
+        <p class="font-label-caps text-label-caps text-on-surface-variant mb-xs" id="area-title">TOTAL MANAGED AREA</p>
         <div class="flex items-end gap-xs">
-          <span class="font-display-lg text-[32px] font-bold text-primary kpi-glow-green">0.15</span>
-          <span class="font-label-caps text-label-caps text-on-surface-variant mb-2">HA · 3 FIELDS</span>
+          <span id="area-val" class="font-display-lg text-[32px] font-bold text-primary kpi-glow-green">0.15</span>
+          <span id="area-unit" class="font-label-caps text-label-caps text-on-surface-variant mb-2">HA · 3 FIELDS</span>
         </div>
         <div class="mt-sm flex gap-1"><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container"></div><div class="h-1 flex-grow bg-primary-container/20"></div><div class="h-1 flex-grow bg-primary-container/20"></div></div>
       </div>
@@ -2134,6 +2134,7 @@ function applyActiveFarm(){
   const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
   set('live-loc',A.campus?'LIVE · DEDIAPADA · 21.628°N 73.592°E':'LIVE · '+A.short+' · '+fmtLat+' '+fmtLng);
   set('brand-sub',A.campus?'AGRISAT · DEDIAPADA':'AGRISAT · FARMER');set('foot-loc',A.campus?'SYSTEM ACTIVE // NODE 774 OP · DEDIAPADA · GUJARAT':'SYSTEM ACTIVE · '+A.short+' · '+fmtLat+' '+fmtLng);
+  set('area-title',A.campus?'TOTAL MANAGED AREA':'MY FARM AREA');set('area-val',A.campus?'0.15':(A.farm.areaM2/10000).toFixed(2));set('area-unit',A.campus?'HA · 3 FIELDS':'HA · '+A.short);
   updateNoFarm();
   set('nd-title','NDVI HEATMAP · '+A.short);set('nd-lat','LAT: '+A.lat.toFixed(4)+'° N');set('nd-lon','LON: '+A.lng.toFixed(4)+'° E');
   document.title=A.campus?'TERRA-CORE | AgriSat Dediapada':'TERRA-CORE | '+A.name;
