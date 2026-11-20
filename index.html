@@ -1185,12 +1185,8 @@ header{
   </section>
   <section class="col-span-6 flex flex-col gap-gutter relative">
     <div id="ndvi-center" class="gp flex-1 rounded-lg relative overflow-hidden">
-      <!-- CAMPUS (automatic daily NDVI) / MY FARM (the farmer's own outline from the Farmers page) -->
-      <div class="absolute top-2 left-1/2 -translate-x-1/2 z-30 flex gap-1 p-1 rounded-full" style="background:rgba(var(--overlay-rgb),.18);backdrop-filter:blur(10px)">
-        <button id="ndm-campus" onclick="setNdviMode('campus')" class="px-3 py-1 rounded-full font-label-caps text-[10px] bg-primary-container text-on-primary">CAMPUS</button>
-        <button id="ndm-farm" onclick="setNdviMode('farm')" class="px-3 py-1 rounded-full font-label-caps text-[10px] text-on-surface-variant">MY FARM</button>
-      </div>
-      <div id="myfarm-ndvi" class="absolute inset-0 z-20 flex-col bg-surface-container-low pt-12 pb-2 px-3 gap-2" style="display:none">
+      <!-- Which view shows follows the ACTIVE FARM selector in the header (no separate toggle needed) -->
+      <div id="myfarm-ndvi" class="absolute inset-0 z-20 flex-col bg-surface-container-low pt-3 pb-2 px-3 gap-2" style="display:none">
         <div class="flex items-center gap-2 flex-wrap">
           <select id="mf-select" onchange="mfPick(this.value)" class="font-data-sm text-[11px] bg-transparent border border-white/20 rounded px-2 py-1 text-primary max-w-[60%]"></select>
           <div id="mf-dates" class="flex gap-1 flex-wrap"></div>
@@ -3185,9 +3181,6 @@ let mfMode='campus',mfIdx=0,mfFarmId=null;
 function mfDb(){try{const d=JSON.parse(localStorage.getItem('agrisat_farmer_v1'));return d&&Array.isArray(d.farms)?d:{farms:[],selected:null};}catch(e){return {farms:[],selected:null};}}
 function setNdviMode(m){
   mfMode=m;
-  const on='bg-primary-container text-on-primary',off='text-on-surface-variant';
-  document.getElementById('ndm-campus').className='px-3 py-1 rounded-full font-label-caps text-[10px] '+(m==='campus'?on:off);
-  document.getElementById('ndm-farm').className='px-3 py-1 rounded-full font-label-caps text-[10px] '+(m==='farm'?on:off);
   document.getElementById('myfarm-ndvi').style.display=m==='farm'?'flex':'none';
   document.getElementById('ndvi-center').classList.toggle('mf-on',m==='farm');   // taller panel on phones so the farm map is usable
   if(m==='farm')mfRender();
