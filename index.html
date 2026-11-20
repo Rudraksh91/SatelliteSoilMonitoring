@@ -439,6 +439,8 @@ body{
   /* Page base */
   main.page{margin-left:0!important;height:auto!important;overflow-y:auto!important;padding-bottom:56px!important}
   main.page.active{display:flex!important}
+  /* Farmers page = embedded app: fill the screen between the header and the bottom nav, scroll inside the frame */
+  #page-farmers{height:calc(100vh - 64px - 56px)!important;height:calc(100dvh - 64px - 56px)!important;overflow:hidden!important;padding:0!important}
   /* Page 1 — satellite map stacks above panels */
   #page-map{flex-direction:column!important;padding:0!important;overflow-x:hidden!important}
   #page-map>div:first-child{position:relative!important;height:240px!important;flex-shrink:0;width:100%}
@@ -487,7 +489,6 @@ body{
   :root{--header-h:48px}
   /* Pages bump up */
   main.page{margin-top:48px!important}
-  #page-farmers{height:calc(100vh - 48px - 56px)!important;overflow:hidden!important;padding:0!important}
   /* Compact bottom nav */
   #mob-nav{height:42px!important}
   .mob-btn{padding:4px 2px!important}
