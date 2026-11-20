@@ -3,7 +3,7 @@
  * Enables offline use, home-screen installation, and fast loading.
  */
 
-const APP_CACHE  = 'agrisat-app-v1.2';
+const APP_CACHE  = 'agrisat-app-v1.3';
 const CDN_CACHE  = 'agrisat-cdn-v1.2';
 
 // App shell — these files are cached immediately on install
@@ -84,7 +84,8 @@ self.addEventListener('fetch', event => {
       event.respondWith(
         caches.match(req).then(cached => {
           const networkFetch = fetch(req).then(res => {
-            if (res.ok) caches.open(APP_CACHE).then(c => c.put(req, res.clone()));
+            // clone synchronously: cloning inside the async .then() runs after `res` may already be consumed
+            if (res.ok) { const copy = res.clone(); caches.open(APP_CACHE).then(c => c.put(req, copy)); }
             return res;
           }).catch(() => null);
           return cached || networkFetch;

@@ -2017,13 +2017,13 @@ function _relTime(date){
 const API_URL='https://api.open-meteo.com/v1/forecast?latitude=21.6277&longitude=73.5903'
   +'&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,apparent_temperature'
   +',precipitation_probability,precipitation,rain,showers'
-  +',vapour_pressure_deficit,evapotranspiration'
+  +',vapour_pressure_deficit,evapotranspiration,et0_fao_evapotranspiration'
   +',cloud_cover_high,cloud_cover_low,cloud_cover_mid,cloud_cover'
   +',surface_pressure,soil_temperature_0cm,soil_temperature_6cm,soil_temperature_18cm'
   +'&current=relative_humidity_2m,temperature_2m,is_day,wind_speed_10m,precipitation,rain,showers'
   // past_days=2 pulls real historical hourly rain so the 48h post-rain
   // irrigation hold (below) has actual data to check, not just forecast.
-  +'&timezone=GMT&forecast_days=7&past_days=2';
+  +'&timezone=Asia%2FKolkata&forecast_days=7&past_days=2';   // times come back as IST wall-clock strings
 
 let weatherData=null;
 const charts={};
@@ -2031,7 +2031,7 @@ const charts={};
 function now_idx(times){
   const now=Date.now();
   let best=0,bestDiff=Infinity;
-  times.forEach((t,i)=>{const diff=Math.abs(new Date(t).getTime()-now);if(diff<bestDiff){bestDiff=diff;best=i}});
+  times.forEach((t,i)=>{const diff=Math.abs(new Date(t+'+05:30').getTime()-now);if(diff<bestDiff){bestDiff=diff;best=i}});
   return best;
 }
 
@@ -2077,7 +2077,15 @@ function applyCurrentData(d){
   S.apt=h.apparent_temperature[idx]??c.temperature_2m;
   S.dew=h.dew_point_2m[idx]??20;
   S.vpd=h.vapour_pressure_deficit[idx]??1.3;
-  S.et0=Math.abs(h.evapotranspiration[idx]??4.8);
+  // Daily reference ET0 (mm/day) = sum of today's 24 hourly values. The hourly value alone
+  // is mm/HOUR (≈0 at night), which was being shown/used as mm/day.
+  {
+    const hr=h.et0_fao_evapotranspiration||h.evapotranspiration;
+    const dayKey=h.time[idx].slice(0,10);
+    let sum=0,n=0;
+    h.time.forEach((t,i)=>{if(t.startsWith(dayKey)){sum+=Math.max(0,hr[i]||0);n++;}});
+    S.et0=n>=20?sum:4.8;
+  }
   S.press=h.surface_pressure[idx]??1008;
   S.precip_prob=h.precipitation_probability[idx]??0;
   // Actual observed precipitation right now (mm) — prefer the 15-min
@@ -2193,8 +2201,8 @@ function mkChart(id,cfg){
 function fmtLabels(times){
   // show every 6th hour label
   return times.map((t,i)=>{
-    const d=new Date(t);
-    return i%6===0?`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}h`:'';
+    // t is 'YYYY-MM-DDTHH:00' in IST
+    return i%6===0?`${+t.slice(5,7)}/${+t.slice(8,10)} ${t.slice(11,13)}h`:'';
   });
 }
 

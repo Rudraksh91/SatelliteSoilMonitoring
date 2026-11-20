@@ -171,7 +171,7 @@ node_data = {
 }
 
 # Local weather from Pi DHT22
-weather = {"temp": 0.0, "humidity": 0.0}
+weather = {"temp": None, "humidity": None}   # None = no sensor reading yet
 
 # NDVI state
 ndvi_state = {"ndvi_avg": 0.5, "date": "", "stressed": False}
@@ -408,8 +408,10 @@ def init_lora():
 def read_weather():
     global weather
     if not HAS_DHT:
-        # Simulate for testing
-        weather = {"temp": 28.5 + (time.time() % 3), "humidity": 62.0}
+        # No DHT22 present: report "no reading" instead of inventing one. A simulated value
+        # here used to be published as if it were the real sensor and overrode the live
+        # Open-Meteo temperature on the dashboard.
+        weather = {"temp": None, "humidity": None}
         return
     try:
         h, t = Adafruit_DHT.read_retry(DHT_TYPE, DHT_PIN)
@@ -422,33 +424,32 @@ def read_weather():
 # NDVI DATA LOADER (reads output from ndvi_harvester.py)
 # ══════════════════════════════════════════════════════════════════════
 
+NDVI_STATUS_URL = "https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main/ndvi_status.json"
+NDVI_MAX_AGE_DAYS = 20   # older imagery is ignored (no "stressed" flag from stale data)
+
 def load_ndvi():
     """
-    Reads the latest NDVI JSON file output by ndvi_harvester.py.
-    Expected file: ~/agrisat_ndvi_data/YYYY-MM-DD.json
-    Format: {"ndvi_avg": 0.45, "ndvi_min": 0.31, "ndvi_max": 0.62, "date": "2026-06-08"}
+    Reads ndvi_status.json, produced every 2 days by the GitHub Actions NDVI pipeline
+    (scripts/ndvi_pipeline.py). ndvi_avg is the mean of the zone NDVIs. If the file cannot be
+    fetched, or its scene is older than NDVI_MAX_AGE_DAYS, the previous state is kept and the
+    crop is NOT flagged stressed (a missing signal must not lower irrigation thresholds).
     """
-    today = date.today().isoformat()
-    ndvi_file = NDVI_DATA_DIR / f"{today}.json"
-
-    # Fallback: find the most recent file
-    if not ndvi_file.exists():
-        files = sorted(NDVI_DATA_DIR.glob("*.json"), reverse=True) if NDVI_DATA_DIR.exists() else []
-        if files:
-            ndvi_file = files[0]
-        else:
-            log.debug("[NDVI] No data file found — using defaults")
-            return
-
+    import urllib.request
     try:
-        with open(ndvi_file) as f:
-            data = json.load(f)
-        ndvi_state["ndvi_avg"]  = data.get("ndvi_avg", 0.5)
-        ndvi_state["date"]      = data.get("date", today)
-        ndvi_state["stressed"]  = ndvi_state["ndvi_avg"] < NDVI_THRESHOLD
-        log.info(f"[NDVI] Loaded {ndvi_file.name}: avg={ndvi_state['ndvi_avg']:.3f}, stressed={ndvi_state['stressed']}")
+        with urllib.request.urlopen(NDVI_STATUS_URL, timeout=15) as r:
+            data = json.load(r)
+        zones = [z["ndvi"] for z in data.get("zones", []) if isinstance(z.get("ndvi"), (int, float))]
+        if not zones:
+            raise ValueError("no zone NDVI values in ndvi_status.json")
+        scene = data.get("scene_date", "")
+        age = (date.today() - date.fromisoformat(scene)).days if scene else 999
+        ndvi_state["ndvi_avg"] = sum(zones) / len(zones)
+        ndvi_state["date"]     = scene
+        ndvi_state["stressed"] = age <= NDVI_MAX_AGE_DAYS and ndvi_state["ndvi_avg"] < NDVI_THRESHOLD
+        log.info(f"[NDVI] scene {scene} ({age} d old): avg={ndvi_state['ndvi_avg']:.3f}, stressed={ndvi_state['stressed']}")
     except Exception as e:
-        log.error(f"[NDVI] Load error: {e}")
+        ndvi_state["stressed"] = False
+        log.warning(f"[NDVI] load failed ({e}) — NDVI not used for decisions")
 
 # ══════════════════════════════════════════════════════════════════════
 # IRRIGATION DECISION ENGINE
@@ -473,7 +474,7 @@ def decide_irrigation():
     if ndvi_state["stressed"]:
         dry_threshold -= 5.0   # stressed crops need more water
         log.debug(f"[AI] NDVI stressed → dry threshold lowered to {dry_threshold}%")
-    if weather["temp"] > 35.0:
+    if weather["temp"] is not None and weather["temp"] > 35.0:
         dry_threshold -= 3.0   # hot day → irrigate sooner
         log.debug(f"[AI] Hot day {weather['temp']}°C → dry threshold lowered to {dry_threshold}%")
     dry_threshold = max(15.0, dry_threshold)   # never below 15%
