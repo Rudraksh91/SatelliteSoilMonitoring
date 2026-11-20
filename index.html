@@ -1118,7 +1118,7 @@ header{
         <div class="p-sm space-y-base overflow-y-auto">
           <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">SOIL VWC LOW</span><span class="font-label-caps text-label-caps text-error" id="vwc-alert">WATCH</span></div>
           <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">RAIN GUARD</span><span class="font-label-caps text-label-caps text-primary-container" id="rain-alert">CLEAR</span></div>
-          <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">DRIVE SYNC</span><span class="font-label-caps text-label-caps text-secondary">ACTIVE</span></div>
+          <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">DAILY JOB</span><span class="font-label-caps text-label-caps text-secondary">ACTIVE</span></div>
           <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">ET0 THRESHOLD</span><span class="font-label-caps text-label-caps text-primary-container" id="et0-alert">NORMAL</span></div>
           <div class="flex items-center justify-between py-1 border-b border-white/5"><span class="font-data-sm text-data-sm">PRECIP PROB</span><span class="font-label-caps text-label-caps text-secondary-fixed-dim" id="precip-alert">—%</span></div>
         </div>
@@ -1729,7 +1729,7 @@ header{
       <p class="font-label-caps text-on-surface-variant/60 mt-1">Rule-based VWC + irrigation logic</p>
     </div>
     <div class="gp p-sm border-l-2">
-      <p class="font-label-caps text-on-surface-variant mb-xs">GOOGLE DRIVE SYNC</p>
+      <p class="font-label-caps text-on-surface-variant mb-xs">DAILY JOB · GITHUB ACTIONS</p>
       <p class="font-data-lg text-data-lg text-secondary">ACTIVE</p>
       <p class="font-label-caps text-on-surface-variant/60 mt-1" id="health-drive-push">Last push: —</p>
     </div>
@@ -1935,8 +1935,8 @@ const PIPE_NODES = {
   cm: {tag:'COMPUTE STEP', bg:'rgba(0,219,233,.12)', color:'#7df4ff', border:'rgba(0,219,233,.4)', title:'Cloud mask', desc:"Filters pixels using the Sentinel-2 Scene Classification Layer (SCL) so cloud, cloud-shadow, and snow pixels don't corrupt the NDVI signal before it's computed."},
   ndvi: {tag:'COMPUTE STEP', bg:'rgba(0,219,233,.12)', color:'#7df4ff', border:'rgba(0,219,233,.4)', title:'NDVI compute', desc:"Calculates (NIR − Red) / (NIR + Red) per pixel from the cloud-masked bands, producing a vegetation-health raster across the farm."},
   zone: {tag:'COMPUTE STEP', bg:'rgba(0,219,233,.12)', color:'#7df4ff', border:'rgba(0,219,233,.4)', title:'Zone analysis', desc:"Aggregates the NDVI raster into per-field zone statistics, which is what ultimately drives the soil VWC and field health indicators shown on the dashboard."},
-  sel: {tag:'DISTRIBUTION TARGET', bg:'rgba(255,180,162,.12)', color:'#ffb4a2', border:'rgba(255,180,162,.4)', title:'Selenium sync', desc:"A headless, incognito Chrome session automates uploading the finished NDVI image to Google Drive, since the harvester has no direct server-side Drive write access."},
-  drive: {tag:'DISTRIBUTION TARGET', bg:'rgba(255,180,162,.12)', color:'#ffb4a2', border:'rgba(255,180,162,.4)', title:'Drive folder', desc:"The shared Google Drive folder where Selenium drops each dated NDVI image — filenames always carry a YYYY-MM-DD date so the dashboard can find the latest one."},
+  sel: {tag:'RETIRED', bg:'rgba(255,180,162,.12)', color:'#ffb4a2', border:'rgba(255,180,162,.4)', title:'Selenium sync (retired)', desc:"The old browser-automation upload to Google Drive was replaced by the GitHub Actions job, which commits the NDVI image, status and daily decision straight to the repository. No computer or browser is involved any more."},
+  drive: {tag:'RETIRED', bg:'rgba(255,180,162,.12)', color:'#ffb4a2', border:'rgba(255,180,162,.4)', title:'Drive folder (retired)', desc:"Dated NDVI images are now archived in the repository (ndvi_archive/NDVI_Dediapada_YYYY-MM-DD.jpeg) instead of Google Drive."},
   gh: {tag:'DISTRIBUTION TARGET', bg:'rgba(255,180,162,.12)', color:'#ffb4a2', border:'rgba(255,180,162,.4)', title:'GitHub push', desc:"Uses the GitHub REST API to commit updated NDVI outputs and config back to this repo, which is what triggers a GitHub Pages rebuild of the public site."},
   streamlit: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Streamlit app.py', desc:"An internal operational dashboard built with Streamlit, used for deeper diagnostics and debugging beyond what's published on the public GitHub Pages site."},
   pages: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'GitHub Pages site', desc:"This is the public index.html site itself — the TERRA-CORE / AgriSat dashboard you're looking at right now, showing live weather and irrigation state served straight from GitHub Pages."},
@@ -2639,7 +2639,14 @@ const RAIN_ACTIVE_MIN_MM=1;      // below this is trace/mist noise, not "activel
 // Install the ntfy app (iOS/Android) or open https://ntfy.sh/<topic> in a
 // browser and subscribe to the topic below to receive these.
 // ══════════════════════════════════════════════════
-const NTFY_TOPIC='agrisat-dediapada-farm01-x7k2m9';
+// Push alerts go to a private ntfy.sh topic YOU choose (this browser only). The old topic name was published
+// in the public repo, so anyone could read or spam it — it is intentionally gone. Set one with:
+//   localStorage.setItem('agrisat_ntfy_topic','<long-random-name>')   (or open <site>/#ntfy=<long-random-name>)
+// Without a topic alerts stay local (browser notification + log); the daily job's Telegram alerts are separate.
+(function(){try{const m=/(?:^#|&)ntfy=([0-9A-Za-z_-]{12,80})/.exec(location.hash);
+  if(m){localStorage.setItem('agrisat_ntfy_topic',m[1]);history.replaceState(null,'',location.pathname+location.search);}}catch(e){}})();
+function _ntfyTopic(){try{return localStorage.getItem('agrisat_ntfy_topic')||'';}catch(e){return '';}}
+const NTFY_TOPIC=_ntfyTopic();
 const ALARM_STATE_KEY='agrisat_alarm_state_v1';
 const ALARM_RENOTIFY_MS=6*3600*1000; // re-remind at most every 6h while a condition persists
 
@@ -2665,11 +2672,13 @@ async function sendAlarm(kind, title, body, tags, bypassCooldown){
     // the fetch doesn't throw (Tags below already renders an emoji icon in
     // the ntfy app, so the header title doesn't need one of its own).
     const safeTitle=title.replace(/[^\x00-\xFF]/g,'').replace(/\s+/g,' ').trim();
-    await fetch('https://ntfy.sh/'+NTFY_TOPIC, {
-      method:'POST',
-      headers:{'Title':safeTitle, 'Priority':'urgent', 'Tags':tags||'warning'},
-      body
-    });
+    if(_ntfyTopic()){
+      await fetch('https://ntfy.sh/'+_ntfyTopic(), {
+        method:'POST',
+        headers:{'Title':safeTitle, 'Priority':'urgent', 'Tags':tags||'warning'},
+        body
+      });
+    }
   }catch(e){ console.warn('[Alarm] ntfy push failed:', e); }
   if(typeof Notification==='function' && Notification.permission==='granted'){
     try{ new Notification(title,{body, icon:'icons/icon.svg'}); }catch(e){}
@@ -4418,6 +4427,18 @@ function connectMQTT(farmId) {
 // commands signed with a shared secret (AGRISAT_CMD_KEY on the Pi). The secret is typed in
 // once per browser and kept in localStorage — it is never in the repo or the page source.
 const CMD_KEY_STORAGE = 'agrisat_cmd_key';
+// One-click setup: opening  <site>/#cmdkey=<key>  stores the command key in this browser and removes it from the URL.
+// (A URL fragment is never sent to any server.)
+(function(){
+  try{
+    const m=/(?:^#|&)cmdkey=([0-9A-Za-z_-]{16,128})/.exec(location.hash);
+    if(m){
+      localStorage.setItem(CMD_KEY_STORAGE,m[1]);
+      history.replaceState(null,'',location.pathname+location.search);
+      setTimeout(()=>{ if(typeof logValve==='function')logValve('COMMAND KEY SAVED IN THIS BROWSER'); },1500);
+    }
+  }catch(e){}
+})();
 function getCmdKey(promptIfMissing = true) {
   try {
     let k = localStorage.getItem(CMD_KEY_STORAGE);
@@ -4856,8 +4877,8 @@ function renderAlarmToggle(){
   if(dot) dot.style.left=on?'18px':'2px';
   const t1=document.getElementById('ntfy-topic-display');
   const t2=document.getElementById('ntfy-topic-display-2');
-  if(t1) t1.textContent=NTFY_TOPIC;
-  if(t2) t2.textContent=NTFY_TOPIC;
+  if(t1) t1.textContent=_ntfyTopic()||'NOT SET (local alerts only)';
+  if(t2) t2.textContent=_ntfyTopic()||'NOT SET (local alerts only)';
 }
 function toggleAlarmsUI(){
   setAlarmsEnabled(!alarmsEnabled());
@@ -5057,7 +5078,7 @@ const RULES_DEFAULT=[
   {id:'r1',icon:'water_drop',color:'primary',  condition:'SOIL VWC < 22%',action:'OPEN DRIP VALVE',enabled:true},
   {id:'r2',icon:'cloud',     color:'secondary', condition:'RAIN (NOW / NEXT 24H≥10mm / LAST 48H) OR PROB>60%',action:'SUSPEND IRRIGATION',enabled:true},
   {id:'r3',icon:'device_thermostat',color:'surface',condition:'TEMP > 38°C',action:'BOOST ET0 COMP',enabled:false},
-  {id:'r4',icon:'cloud_upload',color:'primary', condition:'EVERY 30 MIN',action:'SYNC GOOGLE DRIVE',enabled:true},
+  {id:'r4',icon:'cloud_upload',color:'primary', condition:'EVERY 15 MIN',action:'SYNC DAILY DECISION',enabled:true},
 ];
 let _rules=[];
 function _loadRules(){
@@ -5108,7 +5129,7 @@ const _COND_CHIPS=[
 ];
 const _ACT_CHIPS=[
   'OPEN DRIP VALVE','CLOSE DRIP VALVE','SUSPEND IRRIGATION',
-  'BOOST ET0 COMP','SYNC GOOGLE DRIVE','SEND ALERT','LOG EVENT',
+  'BOOST ET0 COMP','SYNC DAILY DECISION','SEND ALERT','LOG EVENT',
 ];
 
 function _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}

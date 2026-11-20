@@ -5,3 +5,4 @@ shapely
 matplotlib
 pillow
 requests
+paho-mqtt

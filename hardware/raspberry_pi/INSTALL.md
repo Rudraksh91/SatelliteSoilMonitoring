@@ -27,6 +27,16 @@ It needs Raspberry Pi OS / Debian with internet access during the install only.
 | Settings | `/etc/agrisat/agrisat.env` (kept when you re-run the installer) |
 | Helper | `agrisat status | logs | follow | restart | key | auto on|off | update | edit | uninstall` |
 
+## Fully automatic mode
+`sudo bash install_agrisat_pi.sh --auto` starts the gateway in AUTO and lets it follow the daily decision even though the
+soil values are still automatic estimates. **Personal build** (key + one-click dashboard link, generated on your Mac):
+
+```bash
+python3 scripts/build_pi_installer.py --personal      # writes hardware/raspberry_pi/dist/install_agrisat_pi_PERSONAL.sh (git-ignored)
+```
+It also stores the key as the GitHub secret `AGRISAT_CMD_KEY` and writes `~/.agrisat/dashboard_link.txt` — open that link once on each
+device to save the command key in the dashboard (no typing).
+
 ## Safety defaults
 - Starts in **MANUAL** mode. Turn automatic irrigation on from the dashboard, or `sudo agrisat auto on`.
 - Refuses to run valves while `config/farm_config.json` still has estimate values (`calibrated:false`).

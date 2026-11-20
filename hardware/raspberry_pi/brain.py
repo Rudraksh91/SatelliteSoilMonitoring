@@ -127,6 +127,7 @@ MQTT_PORT  = 1883
 TOPIC_DATA = f"agrisat/{FARM_ID}/data"
 TOPIC_CMD  = f"agrisat/{FARM_ID}/cmd"     # listen for manual dashboard overrides
 TOPIC_NDVI = f"agrisat/{FARM_ID}/ndvi"   # push NDVI analysis
+TOPIC_CONFIRMED = f"agrisat/{FARM_ID}/confirmed"   # signed, RETAINED: verified run minutes for the daily job
 
 # ── Command authentication ───────────────────────────────────────────
 # The broker is public (broker.hivemq.com), so anyone could publish to TOPIC_CMD. Every command
@@ -157,8 +158,6 @@ RAIN_HOLD_HOURS     = 48              # real-time hold: this long after >= 4 mm/
 RAIN_FORECAST_24H_MM = 10.0
 STATE_FILE          = Path.home() / ".agrisat_gateway.json"          # executed decision date etc. (survives restarts)
 CONFIRMED_FILE      = Path.home() / ".agrisat_confirmed_runs.json"   # verified run durations (H3) -> data/confirmed_runs.json
-GITHUB_TOKEN        = os.environ.get("AGRISAT_GITHUB_TOKEN", "").strip()   # optional: lets the Pi publish confirmed runs
-GITHUB_REPO         = "Rudraksh91/SatelliteSoilMonitoring"
 MIN_IRRIGATE_SECS = 600     # minimum run time: 10 minutes (blueprint t_min; avoids cavitation on short pulses)
 MAX_IRRIGATE_SECS = 7200    # safety cap per run: 120 min (enforced by enforce_valve_limits watchdog; rejects any command above it)
 MAX_DAILY_SECS    = 14400   # safety cap per zone per day: 240 min (blocks further AUTO opens)
@@ -537,34 +536,33 @@ def _merge_confirmed_for_publish():
         k = (e["date"], e["zone"]); tot[k] = tot.get(k, 0.0) + e["minutes"]
     return [{"date": d, "zone": z, "minutes": round(m, 1), "source": "gateway"} for (d, z), m in sorted(tot.items())]
 
+def _signed_envelope(payload):
+    """Same wire format as dashboard commands: {"m": "<inner JSON>", "sig": "<hex HMAC-SHA256 of m>"}."""
+    inner = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+    return json.dumps({"m": inner, "sig": hmac.new(CMD_KEY, inner.encode(), hashlib.sha256).hexdigest()})
+
+_last_confirmed_publish = 0.0
 def publish_confirmed_runs():
-    """Push data/confirmed_runs.json to the repo (needs AGRISAT_GITHUB_TOKEN with contents:write on this repo)."""
-    global _confirmed_dirty
-    if not _confirmed_dirty:
+    """Feed verified run minutes back to the daily job — no GitHub token needed: the last 14 days of daily totals
+    go out as a signed RETAINED MQTT message that scripts/run_daily.py reads at 07:00 IST. Re-sent every 6 h
+    so the broker keeps it fresh."""
+    global _confirmed_dirty, _last_confirmed_publish
+    now = time.time()
+    if not (_confirmed_dirty or now - _last_confirmed_publish > 6 * 3600):
         return
-    if not GITHUB_TOKEN:
-        log.warning("[Gateway] AGRISAT_GITHUB_TOKEN not set — confirmed runs stay on the Pi; the daily balance "
-                    "will treat them as NOT irrigated until published")
-        _confirmed_dirty = False      # warn once per batch
+    if not mqtt_conn:
+        return                        # retry next tick; nothing is lost — _confirmed_runs persists on disk
+    if not CMD_KEY:
+        log.warning("[Gateway] AGRISAT_CMD_KEY not set — confirmed runs cannot be signed, not published")
         return
-    import base64
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/data/confirmed_runs.json"
-    hdr = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"}
+    cutoff = (datetime.now(IST) - timedelta(days=14)).strftime("%Y-%m-%d")
+    runs = [r for r in _merge_confirmed_for_publish() if r["date"] >= cutoff]
     try:
-        sha = None
-        try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=hdr), timeout=20) as r:
-                sha = json.load(r)["sha"]
-        except Exception:
-            pass
-        body = {"message": "Pi: confirmed irrigation runs",
-                "content": base64.b64encode(json.dumps(_merge_confirmed_for_publish(), indent=2).encode()).decode()}
-        if sha:
-            body["sha"] = sha
-        req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=hdr, method="PUT")
-        urllib.request.urlopen(req, timeout=30).read()
+        info = mqtt_conn.publish(TOPIC_CONFIRMED, _signed_envelope({"farm": FARM_ID, "ts": int(now * 1000), "runs": runs}),
+                                 qos=1, retain=True)
         _confirmed_dirty = False
-        log.info("[Gateway] confirmed runs published")
+        _last_confirmed_publish = now
+        log.info(f"[Gateway] confirmed runs published ({len(runs)} day/zone totals)")
     except Exception as e:
         log.warning(f"[Gateway] could not publish confirmed runs: {e} — will retry")
 

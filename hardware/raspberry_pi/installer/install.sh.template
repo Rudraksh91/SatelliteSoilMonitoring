@@ -25,6 +25,16 @@ UNIT_DIR="$PREFIX/etc/systemd/system"
 ENV_FILE="$ETC_DIR/agrisat.env"
 SERVICE_USER="agrisat"
 
+# ---- options ----
+FORCE_AUTO=0
+for arg in "$@"; do
+  case "$arg" in
+    --auto) FORCE_AUTO=1 ;;   # fully automatic: start in AUTO and run on the automatic estimates (see summary)
+    -h|--help) sed -n '2,12p' "$0"; echo "Option:  --auto   start in AUTO mode and do not require calibrated soil/crop values"; exit 0 ;;
+    *) echo "unknown option: $arg (try --help)"; exit 1 ;;
+  esac
+done
+
 say()  { printf '\n\033[1;32m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[warn]\033[0m %s\n' "$*"; }
 die()  { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
@@ -75,9 +85,15 @@ python3 -m venv --system-site-packages "$APP_DIR/venv"
 
 # ---- 5. settings + command key (kept on upgrade) ----
 NEW_KEY=""
+PRESET_KEY=""; PRESET_AUTO=0
+if [ -f "$TMP/preset.env" ]; then
+  PRESET_KEY="$(grep '^AGRISAT_CMD_KEY=' "$TMP/preset.env" | cut -d= -f2- || true)"
+  grep -q '^AGRISAT_AUTO_START=1' "$TMP/preset.env" && PRESET_AUTO=1
+fi
+[ "$PRESET_AUTO" = 1 ] && FORCE_AUTO=1
 if [ ! -f "$ENV_FILE" ]; then
-  say "Creating settings with a new random command key"
-  NEW_KEY="$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+  say "Creating settings with a command key"
+  NEW_KEY="${PRESET_KEY:-$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')}"
   cat > "$ENV_FILE" <<EOF
 # AgriSat gateway settings — edit, then:  sudo agrisat restart
 # Secret that authenticates dashboard commands. Type the same value into the dashboard's CMD KEY button.
@@ -97,6 +113,10 @@ AGRISAT_AUTO_UPDATE=1
 EOF
 else
   say "Keeping your existing settings and command key"
+fi
+if [ "$FORCE_AUTO" = 1 ]; then
+  say "FULLY AUTOMATIC mode requested"
+  sed -i.bak 's/^AGRISAT_AUTO_START=.*/AGRISAT_AUTO_START=1/; s/^AGRISAT_REQUIRE_CALIBRATED=.*/AGRISAT_REQUIRE_CALIBRATED=0/' "$ENV_FILE" && rm -f "$ENV_FILE.bak"
 fi
 if [ "$SKIP_SYSTEM" != "1" ]; then
   chown -R "$SERVICE_USER:$SERVICE_USER" "$LOG_DIR" "$STATE_DIR"
@@ -232,8 +252,18 @@ cat <<SUMMARY
    • starts at every boot and restarts itself if it crashes
    • pulls the daily irrigation decision from GitHub (decision file > 48 h old = it stops)
    • updates its own program each night (rolls back if the new one will not start)
-   • starts in MANUAL mode: it will NOT irrigate until you enable auto mode
 SUMMARY
+if [ "$FORCE_AUTO" = 1 ]; then
+cat <<AUTOBOX
+   • FULLY AUTOMATIC: starts in AUTO and follows the daily decision, using the automatic soil estimate
+     (not lab-calibrated) until you set real values. Limits still apply: 10 min minimum, 120 min per run,
+     240 min per zone per day, rain hold, stale-file stop, E-stop, and valves close on any stop/restart.
+AUTOBOX
+else
+cat <<MANBOX
+   • starts in MANUAL mode: it will NOT irrigate until you enable auto mode  (sudo agrisat auto on)
+MANBOX
+fi
 if [ -n "$NEW_KEY" ]; then
 cat <<KEYBOX
 

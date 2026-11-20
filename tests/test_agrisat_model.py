@@ -96,3 +96,25 @@ wx2 = dict(wx); wx2[today + timedelta(days=1)] = {"rain": 25.0, "et0": 3.0}
 _, dec2, _, _ = R.run(cfg, {}, wx2, {}, ({}, {}, {}, {}), today)
 check("25 mm forecast tomorrow -> SKIP_RAIN", dec2["zones"][0]["decision"] == "SKIP_RAIN" and dec2["sequence"] == [])
 print(f"\n{n} checks passed")
+
+# ── automatic soil estimate (SoilGrids + Saxton-Rawls) ──
+import soil_estimate as SE
+fc, wp = SE.saxton_rawls(0.31, 0.40, 2.2)
+check("Saxton-Rawls hand calc (S .31, C .40, OM 2.2%): FC .376, WP .244", near(fc, 0.3763, 5e-4) and near(wp, 0.2444, 5e-4))
+fc2, wp2 = SE.saxton_rawls(0.40, 0.20, 2.0)
+check("loam sanity (S .40, C .20, OM 2%): FC .274, WP .134", near(fc2, 0.2742, 5e-4) and near(wp2, 0.1339, 5e-4))
+check("sand has a lower WP than clay", SE.saxton_rawls(0.85, 0.05, 1)[1] < SE.saxton_rawls(0.2, 0.5, 1)[1])
+vals = {"0-5cm": 300, "5-15cm": 300, "15-30cm": 300, "30-60cm": 600}
+check("depth weighting to 0.4 m: 5/10/15/10 cm layers", near(SE.depth_weighted(vals, 0.40), (300*5 + 300*10 + 300*15 + 600*10) / 40))
+check("depth weighting to 0.15 m uses only the top two layers", near(SE.depth_weighted(vals, 0.15), 300))
+fake = lambda lat, lng: {"sand": {"0-5cm": 300, "5-15cm": 296, "15-30cm": 300, "30-60cm": 338},
+                         "clay": {"0-5cm": 397, "5-15cm": 413, "15-30cm": 406, "30-60cm": 355},
+                         "soc":  {"0-5cm": 128, "5-15cm": 104, "15-30cm": 64,  "30-60cm": 47}}
+e = SE.estimate(21.6, 73.6, 0.40, fetch=fake)
+check("estimate for the Dediapada profile gives plausible clay values (FC .33-.42, WP .21-.28, AWC .10-.17)",
+      0.33 < e["theta_fc"] < 0.42 and 0.21 < e["theta_wp"] < 0.28 and 0.10 < e["theta_fc"] - e["theta_wp"] < 0.17 and "ESTIMATE" in e["source"])
+cfg2 = json.loads(json.dumps(cfg)); cfg2["soil"]["calibrated"] = False; cfg2["soil"]["auto_estimate"] = True
+_, decE, _, _ = R.run(cfg2, {"soil_estimate": e}, wx, {}, ({}, {}, {}, {}), today)
+check("run() uses the automatic estimate and labels its source", abs(decE["soil"]["theta_fc"] - e["theta_fc"]) < 1e-9 and "SoilGrids" in decE["soil"]["source"])
+check("...and still marks the decision calibrated=false", decE["calibrated"] is False and any("SoilGrids" in m for m in decE["missing_inputs"]))
+print(f"\n{n} checks passed (incl. soil estimate)")

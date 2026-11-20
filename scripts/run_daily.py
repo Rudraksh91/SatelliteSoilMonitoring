@@ -19,6 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import agrisat_model as M
+import soil_estimate
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("AGRISAT_DATA_DIR", ROOT / "data"))
@@ -109,10 +110,94 @@ def fetch_ndvi_series(ee, cfg, zones_geojson, days_back=120):
     return out
 
 
+def verify_envelope(raw, key):
+    """Return the inner dict if the HMAC-SHA256 signature matches `key`, else None."""
+    import hashlib, hmac
+    try:
+        env = json.loads(raw)
+        expect = hmac.new(key.encode(), env["m"].encode(), hashlib.sha256).hexdigest()
+        return json.loads(env["m"]) if hmac.compare_digest(expect, str(env["sig"])) else None
+    except Exception:
+        return None
+
+
+def read_confirmed_mqtt(cfg, wait_s=10):
+    """Read the Pi's retained, signed confirmed-runs message from the public broker. Returns (runs, verified)."""
+    m = cfg["inputs"].get("mqtt") or {}
+    if not m.get("topic"):
+        return [], False
+    try:
+        import paho.mqtt.client as mqtt
+    except ImportError:
+        send_alert("paho-mqtt missing: confirmed runs from the Pi cannot be read.")
+        return [], False
+    got = []
+    def on_connect(c, *a):
+        c.subscribe(m["topic"], qos=1)
+    def on_message(c, u, msg):
+        got.append(msg.payload)
+    try:
+        try:
+            client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)        # paho >= 2
+            client.on_connect = lambda c, u, f, rc, p=None: c.subscribe(m["topic"], qos=1)
+        except AttributeError:
+            client = mqtt.Client()                                          # paho 1.x
+            client.on_connect = on_connect
+        client.on_message = on_message
+        client.connect(m.get("host", "broker.hivemq.com"), int(m.get("port", 1883)), 30)
+        client.loop_start()
+        t0 = datetime.now()
+        while not got and (datetime.now() - t0).total_seconds() < wait_s:
+            import time; time.sleep(0.5)
+        client.loop_stop(); client.disconnect()
+    except Exception as exc:
+        send_alert(f"Could not reach the MQTT broker for confirmed runs ({exc}); using the stored record only.")
+        return [], False
+    if not got:
+        return [], False
+    key = os.environ.get("AGRISAT_CMD_KEY", "").strip()
+    if key:
+        doc = verify_envelope(got[-1], key)
+        if doc is None:
+            send_alert("Confirmed-runs message FAILED signature verification — ignored.")
+            return [], False
+        return doc.get("runs", []), True
+    try:                                              # no key available: accept only after plausibility checks
+        env = json.loads(got[-1]); return json.loads(env["m"]).get("runs", []), False
+    except Exception:
+        return [], False
+
+
+def merge_confirmed(existing, incoming, today, zone_ids, max_daily_min):
+    """Merge Pi totals into the stored record: the Pi is authoritative for each (date, zone) it reports.
+    Implausible entries (future date, unknown zone, > daily cap, > 30 days old) are dropped."""
+    merged = {(e["date"], int(e["zone"])): float(e["minutes"]) for e in existing}
+    rejected = 0
+    for e in incoming:
+        try:
+            d = date.fromisoformat(e["date"]); z = int(e["zone"]); m = float(e["minutes"])
+        except Exception:
+            rejected += 1; continue
+        if d > today or (today - d).days > 30 or z not in zone_ids or not (0 <= m <= max_daily_min * 1.01):
+            rejected += 1; continue
+        merged[(e["date"], z)] = m
+    out = [{"date": d, "zone": z, "minutes": round(m, 1), "source": "gateway"} for (d, z), m in sorted(merged.items())]
+    return out, rejected
+
+
 def load_events(cfg):
     """Confirmed runs (from the gateway) and farmer entries (CSV), per (date, zone)."""
     confirmed = {}
-    for e in load_json(DATA / "confirmed_runs.json", []):
+    stored = load_json(DATA / "confirmed_runs.json", [])
+    incoming, verified = read_confirmed_mqtt(cfg)
+    if incoming:
+        stored, rejected = merge_confirmed(stored, incoming, datetime.now(IST).date(),
+                                           [z["id"] for z in cfg["zones"]], cfg["irrigation"]["max_daily_min"])
+        (DATA / "confirmed_runs.json").write_text(json.dumps(stored, indent=2) + "\n")
+        log(f"confirmed runs from the Pi: {len(incoming)} received ({'signature OK' if verified else 'UNVERIFIED'}), {rejected} rejected")
+        if not verified:
+            send_alert("Confirmed runs were accepted WITHOUT signature verification (AGRISAT_CMD_KEY secret not set in the workflow).")
+    for e in stored:
         k = (date.fromisoformat(e["date"]), int(e["zone"]))
         confirmed[k] = confirmed.get(k, 0.0) + float(e["minutes"])
     irrig_min, rain_override, notes = {}, {}, {}
@@ -141,7 +226,10 @@ def load_events(cfg):
 def run(cfg, state, weather, ndvi_series, events, today):
     """Pure orchestration step (no I/O): returns (new_state, decision, log_rows, alerts)."""
     alerts, rows = [], []
-    soil, crop, irr, ncfg = cfg["soil"], cfg["crop"], cfg["irrigation"], cfg["ndvi"]
+    soil, crop, irr, ncfg = dict(cfg["soil"]), cfg["crop"], cfg["irrigation"], cfg["ndvi"]
+    est = state.get("soil_estimate")
+    if est and soil.get("auto_estimate") and not soil.get("calibrated"):
+        soil.update(theta_fc=est["theta_fc"], theta_wp=est["theta_wp"], source=est["source"])   # automatic ESTIMATE
     taw = M.taw_mm(soil["theta_fc"], soil["theta_wp"], soil["root_depth_m"])
     p = crop["p"]
     raw = M.raw_mm(p, taw)
@@ -214,7 +302,7 @@ def run(cfg, state, weather, ndvi_series, events, today):
                      (today - date.fromisoformat(crop["planting_date"])).days >= crop["senescence_dap"])
     stress = M.ndvi_stress_flag(series, recent_rain, ncfg["stress_noise"], ncfg["stress_scenes"], senescent=senescent)
     missing = []
-    if not soil.get("calibrated"): missing.append("soil.calibrated (theta_fc/theta_wp are estimates)")
+    if not soil.get("calibrated"): missing.append("soil.calibrated (theta_fc/theta_wp are " + ("SoilGrids+Saxton-Rawls estimates" if est and soil.get("auto_estimate") else "textbook estimates") + ")")
     if not crop.get("confirmed"): missing.append("crop.confirmed (Kcb/p/Zr are estimates)")
     if anchor_missing: missing.append("start (no soil-sample anchor: depletion assumed 0 at first run)")
     if any(not (z.get("area_m2") and z.get("flow_lph")) for z in zones):
@@ -253,13 +341,16 @@ def run(cfg, state, weather, ndvi_series, events, today):
                  "ndvi_stale": bool(last_stale), "ndvi_age_days": age, "stress_flag": stress,
                  "forecast_rain_mm_48h": round(fwd, 1), "balanced_to": balanced_to.isoformat()},
         "limits": {"min_run_min": irr["min_run_min"], "max_run_min": irr["max_run_min"], "max_daily_min": irr["max_daily_min"]},
-        "soil": {"theta_fc": soil["theta_fc"], "theta_wp": soil["theta_wp"], "root_depth_m": soil["root_depth_m"], "p": p},
+        "soil": {"theta_fc": soil["theta_fc"], "theta_wp": soil["theta_wp"], "root_depth_m": soil["root_depth_m"], "p": p,
+                 "source": soil.get("source", "config")},
         "zones": dec_zones, "sequence": sequence}
     new_state = {"updated": now.isoformat(timespec="seconds"), "date": balanced_to.isoformat(),
                  "dr": {str(k): round(v, 3) for k, v in dr.items()},
                  "ndvi_series": {d.isoformat(): round(v, 4) for d, v in sorted(series.items())},
                  "last_scene_date": max(clean_dates).isoformat() if clean_dates else None,
                  "ndvi_stale": bool(last_stale), "last_decision": {"date": today.isoformat(), "runs": runs}}
+    if state.get("soil_estimate"):
+        new_state["soil_estimate"] = state["soil_estimate"]
     return new_state, decision_doc, rows, alerts
 
 
@@ -305,6 +396,18 @@ def main():
         log(f"{len(ndvi_series)} clean scenes in the last 120 days")
     except Exception as exc:
         send_alert(f"Earth Engine NDVI failed ({exc}); using the stored NDVI history / stage curve.")
+    soil = cfg["soil"]
+    if soil.get("auto_estimate") and not soil.get("calibrated"):
+        est = state.get("soil_estimate")
+        stale = (not est) or (today - date.fromisoformat(est["fetched"])).days > 60
+        if stale:
+            try:
+                new = soil_estimate.estimate(cfg["farm"]["lat"], cfg["farm"]["lng"], soil["root_depth_m"])
+                new["fetched"] = today.isoformat()
+                state["soil_estimate"] = new
+                log(f"soil estimate: FC {new['theta_fc']} WP {new['theta_wp']} (sand {new['sand']}, clay {new['clay']}, OM {new['om_pct']}%)")
+            except Exception as exc:
+                send_alert(f"Soil estimate from SoilGrids failed ({exc}); using {'the cached estimate' if est else 'the config values'}.")
     new_state, decision, rows, alerts = run(cfg, state, weather, ndvi_series, load_events(cfg), today)
     for a in alerts:
         send_alert(a)

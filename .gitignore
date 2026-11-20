@@ -49,3 +49,6 @@ SPRERI_Extension_Training.pptx
 !data/raw/*.json
 !data/log.csv
 !config/farm_config.json
+
+# personal installer contains a secret key
+hardware/raspberry_pi/dist/
