@@ -1,0 +1,51 @@
+name: NDVI auto-update
+
+# Runs in GitHub's cloud — no computer, browser or person needed.
+# Pulls Sentinel-2 from Google Earth Engine, writes ndvi_latest.jpeg,
+# ndvi_status.json and ndvi_archive/NDVI_Dediapada_<date>.jpeg, then commits them.
+# If anything fails the run turns red and GitHub emails the repo owner.
+on:
+  schedule:
+    - cron: "0 2 */2 * *"      # every 2 days at 02:00 UTC (07:30 IST)
+  workflow_dispatch: {}         # "Run workflow" button for a manual refresh
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ndvi-update
+  cancel-in-progress: false
+
+jobs:
+  ndvi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements-ndvi.txt
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements-ndvi.txt
+
+      - name: Compute NDVI
+        env:
+          EE_SERVICE_ACCOUNT_KEY: ${{ secrets.EE_SERVICE_ACCOUNT_KEY }}
+        run: python scripts/ndvi_pipeline.py
+
+      - name: Commit and push results
+        run: |
+          git config user.name  "agrisat-bot"
+          git config user.email "agrisat-bot@users.noreply.github.com"
+          git add ndvi_latest.jpeg ndvi_status.json ndvi_archive
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "NDVI auto-update $(date -u +%Y-%m-%d)"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
