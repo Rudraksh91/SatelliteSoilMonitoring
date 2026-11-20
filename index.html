@@ -1196,6 +1196,13 @@ header{
           <div><span class="font-label-caps text-[9px] text-on-surface-variant block">IRRIG TYPE</span><span class="font-data-sm text-secondary">DRIP 3MM/HR</span></div>
           <div><span class="font-label-caps text-[9px] text-on-surface-variant block">NEXT CYCLE</span><span class="font-data-sm text-tertiary-fixed-dim" id="next-irrig">CALC...</span></div>
         </div>
+        <div class="gp p-xs rounded border border-white/10 flex flex-col gap-[3px]" id="farmer-input">
+          <span class="font-label-caps text-[8px] text-on-surface-variant">FARMER INPUT</span>
+          <div class="flex gap-xs">
+            <button type="button" onclick="farmerEvent('irrig')" class="font-label-caps text-[9px] px-2 py-1 rounded border border-primary/40 text-primary hover:bg-primary/10">I IRRIGATED</button>
+            <button type="button" onclick="farmerEvent('rain')" class="font-label-caps text-[9px] px-2 py-1 rounded border border-secondary/40 text-secondary hover:bg-secondary/10">IT RAINED</button>
+          </div>
+        </div>
         <!-- Zone health panel — populated by fetchNdviStatus() -->
         <div class="gp p-xs rounded border border-white/10 flex flex-col gap-[3px] min-w-[160px]">
           <div class="font-label-caps text-[8px] text-on-surface-variant mb-[2px]">ZONE HEALTH · <span id="ndvi-updated">—</span></div>
@@ -2392,21 +2399,74 @@ function updateVWC(){
 // ══════════════════════════════════════════════════
 // FAO-56 SOIL WATER BALANCE (Allen et al. 1998)
 // ══════════════════════════════════════════════════
-// Soil parameters — Gujarat campus clay loam (FAO-56 Table 5)
-const FAO56_PARAMS={FC:28,WP:13,rootDepth:0.4,p:0.5};
-// _ndviZones is populated by fetchNdviStatus() so Kc reflects live satellite data
-window._ndviZones=null;
+const FAO56_PARAMS={
+  FC:28, WP:13, rootDepth:0.4, p:0.5,      // TODO(M3): replace with values measured from field soil samples
+  rainMinMm:5, runoffFrac:0.10,            // M11: daily rain <5 mm counts as 0; 10% runoff on larger events
+  kcMin:0.30, kcMax:1.15, kcFallback:0.60, // M5/M6: Kc limits and fallback (TODO: crop-specific FAO-56 Kcb)
+  ndviStaleDays:20,                        // M6: NDVI older than this -> use kcFallback instead of frozen Kc
+  irrigRateMmHr:3, irrigEff:0.90,          // M12: site drip rate (3 mm/hr, see dashboard) x application efficiency
+  anchor:null                              // M4: optional soil-sample start, e.g. {date:'2026-11-01',vwc:24}
+};
+window._ndviZones=null;   // populated by fetchNdviStatus()
+window._ndviAgeDays=null; // age of the newest satellite scene, in days
 
-function ndviToKc(ndvi){
-  // Bausch & Neale (1987) linear Kc–NDVI relationship
-  return Math.max(0.5,Math.min(1.2,0.2+1.25*(ndvi||0.35)));
+function fao56TAW(P=FAO56_PARAMS){return (P.FC-P.WP)/100*P.rootDepth*1000;}   // mm
+// One daily step of root-zone depletion Dr (mm): Dr' = clamp(Dr - Pe - I + Ks*Kc*ET0, 0, TAW)
+function fao56Step(Dr,{et0=0,rain=0,irrig=0,kc=0.6}={},P=FAO56_PARAMS){
+  const TAW=fao56TAW(P), RAW=P.p*TAW;
+  const Pe=rain<P.rainMinMm?0:rain*(1-P.runoffFrac);
+  const Ks=Dr<=RAW?1:Math.max(0,(TAW-Dr)/(TAW-RAW));
+  return Math.max(0,Math.min(TAW,Dr-Pe-irrig+Ks*kc*et0));
 }
+function fao56ToVWC(Dr,P=FAO56_PARAMS){
+  return Math.max(P.WP,Math.min(P.FC,P.FC-(Dr/(P.rootDepth*1000))*100));
+}
+// Bausch & Neale (1987) linear Kc–NDVI; falls back to a stage Kc when NDVI is missing or stale.
+function ndviToKc(ndvi,ageDays,P=FAO56_PARAMS){
+  if(ndvi==null||!isFinite(ndvi)||(ageDays!=null&&ageDays>P.ndviStaleDays))return P.kcFallback;
+  return Math.max(P.kcMin,Math.min(P.kcMax,0.2+1.25*ndvi));
+}
+
+// ── Irrigation / rain log (V2, V4, H3): auto-drip time and farmer reports ──
+// Entries: {d:'YYYY-MM-DD' (IST), z:0|1|2|-1 (-1 = all zones), irrig:mm, rain:mm, src:'auto'|'farmer'}
+const IRRIG_LOG_KEY='agrisat_irrig_log_v1';
+let _irrigLog=[], _irrigSavedAt=0;
+function _istDate(offsetDays=0){return new Date(Date.now()+5.5*3600e3+offsetDays*864e5).toISOString().slice(0,10);}
+function _loadIrrigLog(){try{_irrigLog=JSON.parse(localStorage.getItem(IRRIG_LOG_KEY)||'[]');}catch{_irrigLog=[];}}
+function _saveIrrigLog(force){
+  const now=Date.now();
+  if(!force&&now-_irrigSavedAt<60000)return;
+  _irrigSavedAt=now;
+  const cutoff=_istDate(-90);
+  _irrigLog=_irrigLog.filter(e=>e.d>=cutoff);
+  try{localStorage.setItem(IRRIG_LOG_KEY,JSON.stringify(_irrigLog));}catch{}
+}
+function _logSum(date,zone,field){
+  return _irrigLog.reduce((s,e)=>s+((e.d===date&&(e.z===zone||e.z===-1))?(e[field]||0):0),0);
+}
+function _addAutoIrrig(zone,mm){
+  const d=_istDate();
+  let e=_irrigLog.find(x=>x.d===d&&x.z===zone&&x.src==='auto');
+  if(!e){e={d,z:zone,irrig:0,rain:0,src:'auto'};_irrigLog.push(e);}
+  e.irrig+=mm;
+  _saveIrrigLog(false);
+}
+// V4: farmer correction buttons — "I irrigated" / "It rained here" (whole field, today)
+function farmerEvent(kind){
+  const label=kind==='rain'?'Rain that fell on your field today (mm):':'Water you applied today (mm over the whole field):';
+  const raw=window.prompt(label,kind==='rain'?'10':'10');
+  const mm=parseFloat(raw);
+  if(!isFinite(mm)||mm<=0||mm>300)return;
+  _irrigLog.push({d:_istDate(),z:-1,irrig:kind==='irrig'?mm:0,rain:kind==='rain'?mm:0,src:'farmer'});
+  _saveIrrigLog(true);
+  if(typeof logSystemEvent==='function')logSystemEvent(`FARMER INPUT: ${kind==='rain'?'RAIN':'IRRIGATION'} ${mm.toFixed(1)}mm RECORDED — BALANCE RECALCULATED`);
+  initFAO56VWC();
+}
+_loadIrrigLog();
 
 async function initFAO56VWC(){
   try{
-    const {FC,WP,rootDepth,p}=FAO56_PARAMS;
-    const TAW=(FC-WP)/100*rootDepth*1000;  // mm total available water in root zone
-    const RAW=p*TAW;                        // mm readily available water
+    const P=FAO56_PARAMS;
     const resp=await fetch(
       'https://api.open-meteo.com/v1/forecast'
       +'?latitude=21.62707&longitude=73.5854'
@@ -2416,33 +2476,33 @@ async function initFAO56VWC(){
     const d=await resp.json();
     const ET0d=d.daily.et0_fao_evapotranspiration;
     const RAINd=d.daily.precipitation_sum;
-    // Per-zone Kc from satellite NDVI; fall back to 0.35 if not yet loaded
+    const days=d.daily.time;
+    const age=window._ndviAgeDays;
     const zones=window._ndviZones||[];
-    const Kcs=[0,1,2].map(i=>ndviToKc(zones[i]?.ndvi));
-    // Start at field capacity (Dr=0) 30 days ago; step forward day by day,
-    // keeping the full trajectory (not just the final value) so the
-    // per-field VWC chart has real history to plot — same model, nothing synthetic.
-    const toVWC=dr=>Math.max(WP,Math.min(FC,FC-(dr/(rootDepth*1000))*100));
+    const Kcs=[0,1,2].map(i=>ndviToKc(zones[i]?.ndvi,age,P));
+    // M4: start from a soil-sample anchor if one is configured, else field capacity (Dr=0) at window start
     const Dr=[0,0,0];
     const trail=[[],[],[]];
-    for(let i=0;i<ET0d.length;i++){
-      const Pe=Math.min(RAINd[i]||0,TAW);  // effective precip — cap at TAW (no runoff carry)
+    for(let i=0;i<days.length;i++){
       [0,1,2].forEach(z=>{
-        const ETc=Kcs[z]*(ET0d[i]||0);
-        // Ks: stress coefficient — 1 above RAW, linear reduction below
-        const Ks=Dr[z]<=RAW?1:Math.max(0,(TAW-Dr[z])/(TAW-RAW));
-        Dr[z]=Math.max(0,Math.min(TAW,Dr[z]-Pe+Ks*ETc));
-        trail[z].push(toVWC(Dr[z]));
+        if(P.anchor&&days[i]===P.anchor.date)Dr[z]=Math.max(0,(P.FC-P.anchor.vwc)/100*P.rootDepth*1000);
+        Dr[z]=fao56Step(Dr[z],{
+          et0:ET0d[i]||0,
+          rain:(RAINd[i]||0)+_logSum(days[i],z,'rain'),   // farmer-reported local rain adds to the gauge value
+          irrig:_logSum(days[i],z,'irrig'),               // logged auto-drip + farmer irrigation (mm applied)
+          kc:Kcs[z]
+        },P);
+        trail[z].push(fao56ToVWC(Dr[z],P));
       });
     }
-    window._vwcFieldHistory={labels:d.daily.time,A:trail[0],B:trail[1],C:trail[2]};
+    window._vwcFieldHistory={labels:days,A:trail[0],B:trail[1],C:trail[2]};
     buildVWCFieldsChart();
-    S.vA=toVWC(Dr[0]);
-    S.vB=toVWC(Dr[1]);
-    S.vC=toVWC(Dr[2]);
+    S.vA=fao56ToVWC(Dr[0],P);
+    S.vB=fao56ToVWC(Dr[1],P);
+    S.vC=fao56ToVWC(Dr[2],P);
     updateVWC();
     renderTimeline();
-    console.log(`[FAO-56] VWC — A:${S.vA.toFixed(1)}% B:${S.vB.toFixed(1)}% C:${S.vC.toFixed(1)}%`);
+    console.log(`[FAO-56] VWC — A:${S.vA.toFixed(1)}% B:${S.vB.toFixed(1)}% C:${S.vC.toFixed(1)}% (NDVI age ${age ?? '?'}d)`);
   }catch(e){
     console.warn('[FAO-56] init failed — keeping current VWC:',e);
   }
@@ -2450,19 +2510,24 @@ async function initFAO56VWC(){
 
 const VWC_TICK_S=5, VWC_ROOT_M=0.4;   // matches setInterval(tickVWC,5000)
 function tickVWC(){
-  // Sub-daily drift using FAO-56 per-zone Kc: zones with higher NDVI
-  // (denser canopy) evapotranspire faster and diverge over time.
-  // S.rain_mm is a RATE (mm/hr, Open-Meteo "precipitation"). Convert to the mm that
-  // actually fell during this tick, then to % VWC (1 mm over the root zone = 1/(rootDepth_mm/100) %).
-  // Previously the full hourly rate was added every 5 s (~720x too much).
+  // Sub-daily drift between full recalculations (initFAO56VWC runs every 30 min and
+  // rebuilds from the irrigation log, so anything added here is not lost).
+  const P=FAO56_PARAMS, TAW=fao56TAW(P), RAW=P.p*TAW;
   const rainPct=S.rain_mm>0?(S.rain_mm*(VWC_TICK_S/3600))/(VWC_ROOT_M*10):0;
   ['vA','vB','vC'].forEach((k,i)=>{
-    const kc=ndviToKc((window._ndviZones||[])[i]?.ndvi);
-    const etcPct=kc*S.et0*(VWC_TICK_S/86400)/(VWC_ROOT_M*10);
+    const kc=ndviToKc((window._ndviZones||[])[i]?.ndvi,window._ndviAgeDays,P);
+    const Dr=(P.FC-S[k])/100*P.rootDepth*1000;
+    const Ks=Dr<=RAW?1:Math.max(0,(TAW-Dr)/(TAW-RAW));
+    const etcPct=Ks*kc*S.et0*(VWC_TICK_S/86400)/(VWC_ROOT_M*10);
     const dripAt=_liveVwcThreshold();
     const dripping=AUTO_OPT_LIVE.dripControlA&&!rainGuardActive()&&isFieldDripping(k,S[k],dripAt);
-    const irrPct=dripping?0.12:0;
-    S[k]=clamp(S[k]-etcPct+rainPct+irrPct,FAO56_PARAMS.WP,FAO56_PARAMS.FC);
+    let irrPct=0;
+    if(dripping){
+      const mm=P.irrigRateMmHr*P.irrigEff*(VWC_TICK_S/3600);   // water actually delivered this tick
+      irrPct=mm/(VWC_ROOT_M*10);
+      _addAutoIrrig(i,mm);                                      // recorded so the daily balance keeps it
+    }
+    S[k]=clamp(S[k]-etcPct+rainPct+irrPct,P.WP,P.FC);
   });
   updateVWC();
   renderTimeline();
@@ -2860,6 +2925,14 @@ function renderTimeline(){
       // ── Zone health rows ──────────────────────────────────────────────────
       if(Array.isArray(data.zones)){
         window._ndviZones=data.zones.slice(0,3);  // store for FAO-56 Kc
+        // M6: age of the satellite scene -> Kc falls back to a stage value when it is stale
+        const _age=(typeof data.scene_age_days==='number')?data.scene_age_days
+          :(data.scene_date?Math.round((Date.now()-new Date(data.scene_date).getTime())/864e5):null);
+        window._ndviAgeDays=_age;
+        if(_age!=null&&_age>FAO56_PARAMS.ndviStaleDays&&window._staleNdviWarned!==data.scene_date){
+          window._staleNdviWarned=data.scene_date;
+          if(typeof logSystemEvent==='function')logSystemEvent(`WARNING: NEWEST CLEAN SCENE IS ${_age} DAYS OLD — USING STAGE KC FALLBACK`);
+        }
         window._ndviZones.forEach((z,i)=>{
           const nameEl=document.getElementById('zone-name-'+i);
           const ndviEl=document.getElementById('zone-ndvi-'+i);

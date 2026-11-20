@@ -38,6 +38,7 @@ Run:
 ══════════════════════════════════════════════════════════════════════
 """
 
+import csv
 import json
 import time
 import logging
@@ -130,6 +131,8 @@ MOISTURE_ADEQUATE = 65.0    # % — stop irrigation above this
 MIN_IRRIGATE_SECS = 300     # minimum run time: 5 minutes
 MAX_IRRIGATE_SECS = 3600    # safety cap per run: 1 hour (enforced by enforce_valve_limits watchdog)
 MAX_DAILY_SECS    = 7200    # safety cap per zone per day: 2 hours (blocks further AUTO opens)
+NODE_STALE_SECS   = 120     # fail-safe: close a zone whose field node has been silent this long (H2)
+CONFIRM_WAIT_SECS = 60      # a valve command must be confirmed by the node's status within this (H3)
 
 # ── Zone definitions (3 fields, 3 gravity tanks) ─────────────────────
 # node_id maps to the LoRa node address in esp32_field_node.ino
@@ -237,6 +240,30 @@ def _record_close(zone_id):
     if t0 is not None:
         daily_run_secs[zone_id] = daily_run_secs.get(zone_id, 0) + (time.time() - t0)
 
+pending_confirm  = {}   # zone_id -> (expected_state, sent_at) until the node reports it (H3)
+EVENT_LOG_FILE   = LOG_DIR / "irrigation_log.csv"   # V2: one row per valve event / watchdog action
+
+def log_event(event: str, zone_id=None, source: str = "", detail: str = ""):
+    """Append one row to irrigation_log.csv (never raises — logging must not stop irrigation)."""
+    try:
+        new_file = not EVENT_LOG_FILE.exists()
+        with open(EVENT_LOG_FILE, "a", newline="") as fh:
+            w = csv.writer(fh)
+            if new_file:
+                w.writerow(["timestamp", "event", "zone", "source", "zone_secs_today",
+                            "ndvi_avg", "temp_c", "auto_mode", "detail"])
+            w.writerow([datetime.now().isoformat(timespec="seconds"), event, zone_id, source,
+                        round(daily_run_secs.get(zone_id, 0)) if zone_id is not None else "",
+                        ndvi_state.get("ndvi_avg"), weather.get("temp"), auto_mode, detail])
+    except Exception as e:
+        log.debug(f"[Log] event log write failed: {e}")
+
+def _node_for_zone(zone_id):
+    for z in ZONES:
+        if z["id"] == zone_id:
+            return z["node_id"]
+    return None
+
 def command_valve(zone_id, state: bool, source: str = "auto") -> bool:
     """Single entry point for valve commands. source: auto | manual | watchdog.
     Returns True if the command was sent, False if blocked by a safety rule."""
@@ -250,6 +277,7 @@ def command_valve(zone_id, state: bool, source: str = "auto") -> bool:
     if state:
         if source == "auto" and daily_run_secs.get(zone_id, 0) >= MAX_DAILY_SECS:
             log.warning(f"[Safety] Zone {zone_id}: daily cap {MAX_DAILY_SECS}s reached — AUTO open blocked")
+            log_event("BLOCKED_DAILY_CAP", zone_id, source)
             return False
         valve_open_since.setdefault(zone_id, now)
     else:
@@ -259,6 +287,8 @@ def command_valve(zone_id, state: bool, source: str = "auto") -> bool:
             return False
         _record_close(zone_id)
     lora_send(build_valve_cmd(zone_id, state))
+    pending_confirm[zone_id] = (state, now)
+    log_event("OPEN" if state else "CLOSE", zone_id, source)
     # One physical relay stands in for all zones during bring-up: keep it open
     # while any zone is open, close it only when none are.
     set_physical_valve(bool(valve_open_since))
@@ -269,10 +299,38 @@ def stop_all_valves():
         _record_close(zid)
     lora_send(build_stop_cmd())
     set_physical_valve(False)
+    pending_confirm.clear()
+    log_event("EMERGENCY_STOP", None, "manual")
 
 def enforce_valve_limits():
-    """Watchdog (runs every loop tick): force-close any run past MAX_IRRIGATE_SECS."""
+    """Watchdog (runs every loop tick):
+       • force-close any run past MAX_IRRIGATE_SECS
+       • fail-safe: close a zone whose field node went silent for NODE_STALE_SECS (H2)
+       • flag valve commands the node never confirmed within CONFIRM_WAIT_SECS (H3)"""
     now = time.time()
+    for zid, t0 in list(valve_open_since.items()):
+        addr = _node_for_zone(zid)
+        nd = node_data.get(addr)
+        # last_seen == 0 means no field node has ever reported (bring-up with the single Pi relay)
+        if nd and nd["last_seen"] > 0 and now - nd["last_seen"] > NODE_STALE_SECS:
+            log.warning(f"[Safety] Zone {zid} node silent {now - nd['last_seen']:.0f}s — FAIL-SAFE CLOSE")
+            command_valve(zid, False, "watchdog")
+            log_event("FAILSAFE_STALE_NODE", zid, "watchdog")
+    for zid, (want, sent) in list(pending_confirm.items()):
+        nd = node_data.get(_node_for_zone(zid))
+        if not nd or nd["last_seen"] == 0:
+            pending_confirm.pop(zid, None)          # no node to confirm with (single-relay bring-up)
+        elif nd["last_seen"] > sent and nd["valve"] == want:
+            pending_confirm.pop(zid, None)          # confirmed
+        elif now - sent > CONFIRM_WAIT_SECS:
+            log.error(f"[Safety] Zone {zid}: {'OPEN' if want else 'CLOSE'} NOT CONFIRMED by node after {CONFIRM_WAIT_SECS}s")
+            log_event("UNCONFIRMED", zid, "watchdog", f"wanted {'OPEN' if want else 'CLOSE'}")
+            if mqtt_conn:
+                mqtt_conn.publish(TOPIC_DATA, json.dumps({
+                    "ai_action": f"ZONE_{zid}_UNCONFIRMED",
+                    "reason": f"node did not confirm {'OPEN' if want else 'CLOSE'} within {CONFIRM_WAIT_SECS}s",
+                }))
+            pending_confirm.pop(zid, None)
     for zid, t0 in list(valve_open_since.items()):
         if now - t0 > MAX_IRRIGATE_SECS:
             log.warning(f"[Safety] Zone {zid} open {now - t0:.0f}s > {MAX_IRRIGATE_SECS}s — FORCE CLOSE")

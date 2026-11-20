@@ -42,3 +42,4 @@ SPRERI_Extension_Training.pptx
 
 # NDVI cloud pipeline inputs (zones are not secret)
 !scripts/farm_zones.csv
+!ndvi_archive/ndvi_history.csv

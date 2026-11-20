@@ -224,6 +224,20 @@ def main():
         "weather": weather,
     }
     (out_dir / "ndvi_status.json").write_text(json.dumps(status, indent=2, ensure_ascii=False) + "\n")
+
+    # Append-only history (V2): one row per zone per run, for validation and tuning later.
+    hist = out_dir / "ndvi_archive" / "ndvi_history.csv"
+    new_file = not hist.exists()
+    with open(hist, "a", newline="") as fh:
+        w = csv.writer(fh)
+        if new_file:
+            w.writerow(["run_date", "scene_date", "scene_age_days", "scenes_in_composite", "zone",
+                        "ndvi", "pixels", "status", "et0_mm_day", "rain_3d_mm", "vpd_kpa"])
+        for z in zones:
+            w.writerow([tag, scene_date, age, n_scenes, z["zone"], z["ndvi"], z["pixels"],
+                        z["status"], weather["et0_mm_day"], weather["rain_3d_mm"], weather["vpd_kpa"]])
+    if age > 20:   # M6: stale imagery warning, visible on the Actions run page
+        print(f"::warning::Newest clean Sentinel-2 scene is {age} days old; the dashboard uses a stage Kc until a clearer pass arrives")
     log(f"Done — scene {scene_date} ({age} d old), {len(zones)} zones written to {out_dir}")
 
 
