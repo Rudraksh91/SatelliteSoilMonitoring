@@ -3,7 +3,7 @@
  * Enables offline use, home-screen installation, and fast loading.
  */
 
-const APP_CACHE  = 'agrisat-app-v1.5';
+const APP_CACHE  = 'agrisat-app-v1.6';
 const CDN_CACHE  = 'agrisat-cdn-v1.2';
 
 // App shell — these files are cached immediately on install
@@ -70,7 +70,10 @@ self.addEventListener('fetch', event => {
 
   // ── App shell (same origin): Network-first for HTML, cache-first for assets
   if (url.origin === self.location.origin) {
-    const isNavigation = req.mode === 'navigate' || req.destination === 'document';
+    // Code (html/js/json) is network-first so a new deploy is never mixed with stale cached scripts;
+    // only images/icons/fonts use the cache-first path below.
+    const isCode = /\.(?:js|json|html|css)(?:\?|$)/.test(url.pathname + url.search) || url.pathname.endsWith('/');
+    const isNavigation = req.mode === 'navigate' || req.destination === 'document' || isCode;
     if (isNavigation) {
       // HTML pages: always try network first so new deploys show immediately
       event.respondWith(

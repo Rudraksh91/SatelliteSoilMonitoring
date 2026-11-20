@@ -86,11 +86,14 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js"></script>
-<script src="farmer/i18n.js"></script>
+<script src="farmer/core.js?v=20261120c"></script>
+<script src="farmer/i18n.js?v=20261120c"></script>
 <script>
 (function(){
 'use strict';
+if(!window.AgriCore||!window.AgriCore.CROPS||!window.AgriI18n){   // an old cached script met a newer page: reload once, bypassing caches
+  if(!sessionStorage.getItem('agrisat_reloaded')){sessionStorage.setItem('agrisat_reloaded','1');location.reload();}
+}
 const C=window.AgriCore, I=window.AgriI18n, KEY='agrisat_farmer_v1', LKEY='agrisat_farmer_lang';
 const $=id=>document.getElementById(id);
 const today=()=>new Date(Date.now()+5.5*3600e3).toISOString().slice(0,10);   // IST calendar day
