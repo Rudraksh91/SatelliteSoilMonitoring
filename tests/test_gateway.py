@@ -91,3 +91,13 @@ pub = b._merge_confirmed_for_publish()
 check("published format = {date, zone, minutes} totals", pub[0]["zone"] == 1 and pub[0]["date"] == b._today_ist())
 b.stop_all_valves(); check("emergency stop clears the queue", b.run_queue == [] and not b.valve_open_since)
 print(f"\n{n} checks passed")
+
+# ── shutdown (systemd stop / update restart) must close valves ──
+fresh(doc(zones=[{"id": 1, "decision": "IRRIGATE", "run_minutes": 30.0}], seq=[1])); b.decide_irrigation()
+sent.clear()
+try:
+    b._shutdown(15, None); raised = False
+except SystemExit:
+    raised = True
+check("SIGTERM handler closes every valve, clears the queue and exits", raised and "CMD:ALL:STOP" in sent and not b.valve_open_since)
+print(f"{n} checks passed (incl. shutdown)")

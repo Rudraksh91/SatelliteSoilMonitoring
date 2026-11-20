@@ -46,6 +46,7 @@ import hashlib
 import hmac
 import json
 import os
+import signal
 import time
 import logging
 from datetime import datetime, date, timedelta, timezone
@@ -840,7 +841,25 @@ def publish_dashboard():
 # MAIN LOOP
 # ══════════════════════════════════════════════════════════════════════
 
+def _shutdown(signum, frame):
+    """systemd stop/restart (SIGTERM) or Ctrl-C: close every valve and release the relay pin LOW before exiting,
+    otherwise an energised relay would stay latched open after the program is gone."""
+    log.warning(f"[Brain] signal {signum} received — closing all valves and exiting")
+    try:
+        stop_all_valves()
+    except Exception as e:
+        log.error(f"[Brain] stop_all_valves failed: {e}")
+    if HAS_GPIO:
+        try:
+            GPIO.output(VALVE_GPIO_PIN, GPIO.LOW)
+            GPIO.cleanup()
+        except Exception:
+            pass
+    raise SystemExit(0)
+
 def main():
+    signal.signal(signal.SIGTERM, _shutdown)
+    signal.signal(signal.SIGINT, _shutdown)
     log.info("══════════════════════════════════════════")
     log.info("  TERRA-CORE Pi Brain starting…")
     log.info(f"  Farm ID: {FARM_ID}")

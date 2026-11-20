@@ -278,3 +278,8 @@ stops model decisions when the file is > 48 h old, closes on node loss, E-stop, 
 - `AGRISAT_CMD_KEY`: shared secret that authenticates dashboard commands (see above).
 - Limits enforced at the gateway regardless of the JSON: 10 min minimum, 120 min per run, 240 min per zone per day.
 - Tests: `python3 tests/test_agrisat_model.py`, `python3 tests/test_gateway.py`, `node tests/test_fao56.js`.
+
+## Installing the Pi gateway
+`hardware/raspberry_pi/install_agrisat_pi.sh` is a self-extracting one-file installer (`sudo bash install_agrisat_pi.sh`):
+packages, Python environment, systemd service, nightly self-update with rollback, random command key and the `agrisat`
+helper command. See `hardware/raspberry_pi/INSTALL.md`. Rebuild with `python3 scripts/build_pi_installer.py`.
