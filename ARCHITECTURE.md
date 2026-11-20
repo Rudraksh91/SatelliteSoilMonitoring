@@ -283,3 +283,16 @@ stops model decisions when the file is > 48 h old, closes on node loss, E-stop, 
 `hardware/raspberry_pi/install_agrisat_pi.sh` is a self-extracting one-file installer (`sudo bash install_agrisat_pi.sh`):
 packages, Python environment, systemd service, nightly self-update with rollback, random command key and the `agrisat`
 helper command. See `hardware/raspberry_pi/INSTALL.md`. Rebuild with `python3 scripts/build_pi_installer.py`.
+
+## Farmer app (`farmer.html` + `farmer/core.js`) — any farmer, on their own phone
+Open `farmer.html` (linked from the dashboard as **FOR FARMERS**). A farmer taps the corners of their field on a satellite
+map (or drops a pin + enters the area), and the page works out the advice **entirely in the browser** from public data:
+Sentinel-2 NDVI (Earth Search STAC + COG windows read with geotiff.js, SCL cloud mask, 10 m edge shrink, validated against
+Earth Engine: mean |ΔNDVI| ≈ 0.02–0.03), Open-Meteo weather/forecast, SoilGrids soil → Saxton-Rawls, and the same FAO-56
+balance as the daily job. Farm outlines, names and notes stay in the phone's `localStorage` — no account, no server.
+- Consent screen before the first farm (what is sent to which service; DPDP Act 2023 note).
+- Warnings for fields under 0.2 ha / 0.1 ha; pin + area fallback; optional pump flow (L/h) turns depth into hours.
+- "I irrigated" / "It rained" / "Soil is full today" notes correct the balance (stored per farm on the phone).
+- Advice only: it does not control valves (that needs the Pi + daily job for a specific farm).
+- Limits: no per-farm crop table yet (generic Kcb/p/root depth), English only, soil values are estimates, the start state
+  is assumed unless the farmer taps "Soil is full today". Tests: `node tests/test_farmer_core.js`.

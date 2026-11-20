@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AgriSat for Farmers</title>
+<meta name="theme-color" content="#0b3d2e">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#f4f7f2;--card:#fff;--ink:#14231b;--mut:#5a6b61;--line:#dfe7dc;--g:#1b7f4b;--gd:#0b3d2e;--amber:#c27a00;--blue:#1a6fb3;--red:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1511;--card:#17211b;--ink:#eaf2ec;--mut:#9db0a4;--line:#27362d;--g:#4cc38a;--gd:#0b3d2e;--amber:#f0b24b;--blue:#6ab3ee;--red:#ff8a80}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:20;background:var(--gd);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;gap:10px;align-items:center}
+header h1{font-size:17px;margin:0;flex:1}header a{color:#bfe9d3;font-size:13px}
+main{max-width:640px;margin:0 auto;padding:14px 16px calc(40px + env(safe-area-inset-bottom))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 14px}
+.card h2{font-size:15px;margin:0 0 8px;color:var(--mut);font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--g);color:#fff;font-weight:600;cursor:pointer;min-height:46px}
+button.sec{background:transparent;color:var(--g);border:1.5px solid var(--g)}button.warn{background:transparent;color:var(--red);border:1.5px solid var(--red)}
+button:disabled{opacity:.5}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1 1 auto}
+input[type=text],input[type=number]{width:100%;font:inherit;padding:11px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+#map{height:min(58vh,440px);border-radius:12px;border:1px solid var(--line)}
+.big{border-radius:16px;padding:18px;color:#fff;margin:0 0 14px}.big .t{font-size:13px;opacity:.85;text-transform:uppercase;letter-spacing:.05em}.big .h{font-size:28px;font-weight:800;margin:4px 0}.big .r{font-size:15px;opacity:.95}
+.big.go{background:var(--blue)}.big.ok{background:var(--g)}.big.wait{background:#5b6f8a}.big.err{background:var(--red)}
+.bar{height:16px;border-radius:9px;background:var(--line);position:relative;overflow:hidden;margin:8px 0}.bar i{position:absolute;inset:0 auto 0 0;background:var(--g)}.bar b{position:absolute;top:0;bottom:0;width:2px;background:var(--amber)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:15px}.kv span:nth-child(odd){color:var(--mut)}
+.note{font-size:13px;color:var(--mut)}.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:99px;background:var(--line);color:var(--mut)}.pill.est{background:#fff3d6;color:#7a4e00}
+.list button{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line);margin-bottom:8px;font-weight:600}.list small{display:block;font-weight:400;color:var(--mut)}
+.steps div{font-size:14px;color:var(--mut);padding:2px 0}.steps .done{color:var(--g)}.steps .fail{color:var(--red)}
+dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);padding:18px;background:var(--card);color:var(--ink)}dialog::backdrop{background:rgba(0,0,0,.55)}
+.fc{display:flex;gap:6px;overflow-x:auto}.fc div{flex:0 0 auto;text-align:center;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><h1>🌱 AgriSat · Farmer</h1><a href="index.html">Project dashboard</a></header>
+<main>
+
+<section id="v-home">
+  <div class="card"><h2>My farms</h2><div id="farmList" class="list"></div>
+    <button id="btnAdd" style="width:100%">＋ Add my farm</button></div>
+  <p class="note">Your farm outline is stored only on this phone — no account, no server. Advice is an <b>estimate</b> from satellite and weather data; check the soil by hand before big decisions.</p>
+</section>
+
+<section id="v-edit" hidden>
+  <div class="card"><h2 id="editTitle">Select your farm</h2>
+    <p class="note" style="margin-top:0">1) Zoom to your field. 2) Tap its corners one by one (3 or more) — or choose “pin + area”. 3) Save.</p>
+    <div id="map"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="sec" id="btnGps">📍 My location</button>
+      <button class="sec" id="btnUndo">↶ Undo corner</button>
+      <button class="sec" id="btnClear">Clear</button>
+    </div>
+    <div id="areaBox" class="note" style="margin:10px 0 0"></div>
+    <label><input type="checkbox" id="pinMode"> I only know the centre — use a pin + area instead</label>
+    <div id="pinArea" hidden><label for="haIn">Area (hectares)</label><input id="haIn" type="number" step="0.01" min="0.02" value="0.5"></div>
+    <label for="nameIn">Farm name</label><input id="nameIn" type="text" maxlength="40" placeholder="e.g. Home field">
+    <label for="flowIn">Pump / drip output in litres per hour <span class="note">(optional — gives hours to run)</span></label><input id="flowIn" type="number" min="0" step="10" placeholder="e.g. 3000">
+    <div class="row" style="margin-top:14px"><button id="btnSave">Save farm</button><button class="sec" id="btnCancel">Cancel</button></div>
+  </div>
+</section>
+
+<section id="v-farm" hidden>
+  <div class="row" style="margin-bottom:12px"><button class="sec" id="btnBack">← Farms</button><button class="sec" id="btnRefresh">⟳ Refresh</button></div>
+  <div id="loadCard" class="card steps" hidden></div>
+  <div id="advice"></div>
+  <div class="card" id="logCard" hidden><h2>Tell AgriSat what happened</h2>
+    <div class="row"><button id="btnIrr">💧 I irrigated</button><button id="btnRain" class="sec">🌧 It rained</button></div>
+    <div class="row" style="margin-top:8px"><button id="btnFull" class="sec">Soil is full today (reset)</button></div>
+    <p class="note" id="logNote"></p></div>
+  <div class="card" id="mgmt" hidden><div class="row"><button class="sec" id="btnEdit">Edit farm</button><button class="warn" id="btnDel">Delete farm</button></div></div>
+</section>
+</main>
+
+<dialog id="consent">
+  <h2 style="margin-top:0">Before you start</h2>
+  <p>To give advice for your farm, this page sends the <b>approximate location of your farm</b> to three free public services: <b>Open-Meteo</b> (weather), <b>ISRIC SoilGrids</b> (soil type) and <b>AWS / Copernicus Sentinel-2</b> (satellite pictures).</p>
+  <p>Your farm outline, name and notes are kept <b>only on this phone</b>. We run no server and ask for no account. You can delete a farm any time (“Delete farm”).</p>
+  <p class="note">Advice is an estimate, not a guarantee. Under India's Digital Personal Data Protection Act, 2023 you may withdraw at any time by deleting your farms and clearing this site's data.</p>
+  <label style="display:flex;gap:10px;align-items:flex-start;color:var(--ink);font-size:15px"><input type="checkbox" id="consentChk" style="margin-top:4px"> I understand and agree.</label>
+  <div class="row" style="margin-top:14px"><button id="consentBtn" disabled>Continue</button></div>
+</dialog>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+<script src="farmer/core.js"></script>
+<script>
+(function(){
+'use strict';
+const C=window.AgriCore, KEY='agrisat_farmer_v1';
+const $=id=>document.getElementById(id);
+const today=()=>new Date(Date.now()+5.5*3600e3).toISOString().slice(0,10);   // IST calendar day
+let db=load(), map=null, layer=null, pts=[], markers=[], pin=null, editing=null, busy=false;
+
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&Array.isArray(d.farms))return d;}catch(e){}return {consent:null,farms:[],selected:null};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(n,d=0)=>Number(n).toFixed(d);
+function show(v){['v-home','v-edit','v-farm'].forEach(x=>$(x).hidden=(x!==v));window.scrollTo(0,0);}
+
+// ── consent (P3) ──
+function needConsent(){return !db.consent;}
+function askConsent(){const d=$('consent');if(d.showModal)d.showModal();else d.setAttribute('open','');}
+$('consentChk').onchange=()=>{$('consentBtn').disabled=!$('consentChk').checked;};
+$('consentBtn').onclick=()=>{db.consent={at:new Date().toISOString(),v:1};save();$('consent').close&&$('consent').close();$('consent').removeAttribute('open');};
+
+// ── home ──
+function renderHome(){
+  const el=$('farmList');
+  el.innerHTML=db.farms.length?db.farms.map(f=>`<button data-id="${f.id}">${esc(f.name)}<small>${fmt(f.areaM2/10000,2)} ha</small></button>`).join(''):'<p class="note">No farm yet. Tap “Add my farm”.</p>';
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>openFarm(b.dataset.id));
+  show('v-home');
+}
+$('btnAdd').onclick=()=>{if(needConsent())return askConsent();startEdit(null);};
+
+// ── map / edit (P4: area, small-farm warning) ──
+function ensureMap(center){
+  if(map)return;
+  map=L.map('map',{zoomControl:true}).setView(center||[21.6277,73.5854],center?17:5);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'}).addTo(map);
+  map.on('click',e=>onMapClick(e.latlng));
+}
+function onMapClick(ll){
+  if($('pinMode').checked){pin=[ll.lat,ll.lng];}else{pts.push([ll.lat,ll.lng]);}
+  redraw();
+}
+function redraw(){
+  if(!map)return;
+  if(layer){map.removeLayer(layer);layer=null;}markers.forEach(m=>map.removeLayer(m));markers=[];
+  let shape=null;
+  if($('pinMode').checked&&pin){const ha=parseFloat($('haIn').value)||0.5;shape=C.squareFromArea(pin[0],pin[1],ha);markers.push(L.marker(pin).addTo(map));}
+  else if(pts.length){
+    pts.forEach((p,i)=>{const m=L.circleMarker(p,{radius:7,color:'#fff',weight:2,fillColor:'#1b7f4b',fillOpacity:1}).addTo(map);markers.push(m);});
+    shape=pts;
+  }
+  if(shape&&shape.length>=3)layer=L.polygon(shape,{color:'#ffd54a',weight:3,fillOpacity:.15}).addTo(map);
+  else if(shape&&shape.length>=2)layer=L.polyline(shape,{color:'#ffd54a',weight:3}).addTo(map);
+  const box=$('areaBox');
+  if(shape&&shape.length>=3){
+    const a=C.polygonAreaM2(shape),ha=a/10000;
+    let msg=`Area: <b>${fmt(ha,2)} ha</b> (${fmt(a)} m²)`;
+    if(ha<0.1)msg+=`<br><span style="color:var(--red)">Very small field: satellite pixels are 10 m × 10 m, so crop readings will be rough.</span>`;
+    else if(ha<0.2)msg+=`<br><span style="color:var(--amber)">Small field: satellite readings may be a little rough.</span>`;
+    box.innerHTML=msg;
+  }else box.textContent=$('pinMode').checked?'Tap the centre of your field.':`Corners placed: ${pts.length} (need at least 3)`;
+}
+function currentShape(){
+  if($('pinMode').checked&&pin)return C.squareFromArea(pin[0],pin[1],Math.max(0.02,parseFloat($('haIn').value)||0.5));
+  return pts.length>=3?pts.slice():null;
+}
+function startEdit(f){
+  editing=f;pts=f&&!f.pinOnly?f.latlngs.slice():[];pin=f&&f.pinOnly?f.pin:null;
+  $('editTitle').textContent=f?'Edit farm':'Select your farm';
+  $('nameIn').value=f?f.name:'';$('flowIn').value=f&&f.flowLph?f.flowLph:'';
+  $('pinMode').checked=!!(f&&f.pinOnly);$('pinArea').hidden=!$('pinMode').checked;$('haIn').value=f&&f.pinOnly?fmt(f.areaM2/10000,2):'0.5';
+  show('v-edit');
+  ensureMap(f?C.centroid(f.latlngs):null);
+  setTimeout(()=>{map.invalidateSize();if(f)map.fitBounds(L.latLngBounds(f.latlngs).pad(.3));redraw();},60);
+}
+$('pinMode').onchange=()=>{$('pinArea').hidden=!$('pinMode').checked;redraw();};
+$('haIn').oninput=redraw;
+$('btnUndo').onclick=()=>{pts.pop();redraw();};
+$('btnClear').onclick=()=>{pts=[];pin=null;redraw();};
+$('btnCancel').onclick=()=>{db.farms.length?renderHome():renderHome();};
+$('btnGps').onclick=()=>{
+  if(!navigator.geolocation)return alert('Location is not available on this device.');
+  navigator.geolocation.getCurrentPosition(p=>{map.setView([p.coords.latitude,p.coords.longitude],18);},()=>alert('Could not get your location. Zoom the map by hand.'),{enableHighAccuracy:true,timeout:15000});
+};
+$('btnSave').onclick=()=>{
+  const shape=currentShape();
+  if(!shape)return alert('Please mark at least 3 corners of your field (or use pin + area).');
+  const area=C.polygonAreaM2(shape);
+  if(area<200)return alert('That area is too small. Please check the corners.');
+  const f=editing||{id:'f'+Date.now().toString(36),events:[],cache:null,start:null};
+  f.name=($('nameIn').value||'My farm').trim();f.latlngs=shape;f.areaM2=area;f.pinOnly=$('pinMode').checked;f.pin=f.pinOnly?pin:null;
+  f.flowLph=parseFloat($('flowIn').value)||null;f.cache=null;                     // geometry changed -> drop cached satellite/soil
+  if(!editing)db.farms.push(f);db.selected=f.id;save();openFarm(f.id);
+};
+
+// ── farm view ──
+const farm=()=>db.farms.find(f=>f.id===db.selected);
+function openFarm(id){db.selected=id;save();show('v-farm');$('advice').innerHTML='';refreshFarm(false);}
+$('btnBack').onclick=renderHome;
+$('btnRefresh').onclick=()=>refreshFarm(true);
+$('btnEdit').onclick=()=>startEdit(farm());
+$('btnDel').onclick=()=>{if(confirm('Delete this farm from this phone?')){db.farms=db.farms.filter(f=>f.id!==db.selected);db.selected=null;save();renderHome();}};
+
+function steps(list){const el=$('loadCard');el.hidden=false;el.innerHTML=list.map(s=>`<div class="${s[1]||''}">${s[1]==='done'?'✓':s[1]==='fail'?'✕':'…'} ${esc(s[0])}</div>`).join('');}
+async function jget(url){const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
+
+async function refreshFarm(force){
+  const f=farm();if(!f||busy)return;busy=true;
+  const st=[['Weather',''],['Soil',''],['Satellite (first time takes about 20 seconds)',''],['Advice','']];steps(st);
+  const cache=f.cache||{};const now=Date.now();let weather=null,soil=cache.soil||null,ndvi=cache.ndvi||[],warn=[];
+  const [la,ln]=C.centroid(f.latlngs);
+  try{
+    const w=await jget(`https://api.open-meteo.com/v1/forecast?latitude=${la.toFixed(4)}&longitude=${ln.toFixed(4)}&daily=precipitation_sum,et0_fao_evapotranspiration&past_days=30&forecast_days=7&timezone=Asia%2FKolkata`);
+    weather={time:w.daily.time,rain:w.daily.precipitation_sum.map(v=>v||0),et0:w.daily.et0_fao_evapotranspiration.map(v=>v||0)};
+    st[0][1]='done';
+  }catch(e){st[0][1]='fail';weather=cache.weather||null;if(weather)warn.push('Weather is old (no internet).');}
+  steps(st);
+  if(!soil||force&&!cache.soilAt||(now-(cache.soilAt||0))>60*864e5){
+    try{soil=await C.fetchSoil(la,ln,C.DEFAULT_CROP.root_depth_m,fetch);cache.soilAt=now;st[1][1]='done';}catch(e){st[1][1]='fail';soil=soil||null;warn.push('Soil type could not be loaded; using a general value.');}
+  }else st[1][1]='done';
+  steps(st);
+  if(force||!cache.ndviAt||(now-cache.ndviAt)>24*3600e3||!ndvi.length){
+    try{const s=await C.ndviSeries(f.latlngs,window.GeoTIFF,fetch,{days:45,maxScenes:3,minPixels:Math.min(8,Math.max(1,Math.floor(f.areaM2/100/4)))});
+        ndvi=s.map(x=>({date:x.date,ndvi:x.ndvi,n:x.n,shrunk:x.shrunk}));cache.ndviAt=now;st[2][1]='done';}
+    catch(e){st[2][1]='fail';warn.push('Satellite pictures could not be read; using a general crop value.');}
+  }else st[2][1]='done';
+  steps(st);
+  if(!weather){busy=false;$('loadCard').hidden=true;$('advice').innerHTML='<div class="big err"><div class="t">No data</div><div class="h">No internet</div><div class="r">Connect and tap Refresh.</div></div>';return;}
+  Object.assign(cache,{weather,soil,ndvi});f.cache=cache;save();
+  st[3][1]='done';steps(st);$('loadCard').hidden=true;
+  const adv=C.advise({today:today(),weather,soil:soil||undefined,ndvi,start:f.start||undefined,events:f.events,areaM2:f.areaM2,flowLph:f.flowLph});
+  renderAdvice(f,adv,weather,warn);busy=false;
+}
+
+function renderAdvice(f,a,w,warn){
+  const cls={IRRIGATE:'go',OK:'ok',WAIT_RAIN:'wait'}[a.decision]||'ok';
+  const head={IRRIGATE:'Irrigate today',OK:'No irrigation needed',WAIT_RAIN:'Wait for the rain'}[a.decision];
+  let how='';
+  if(a.decision==='IRRIGATE'){
+    how=`<div class="r" style="margin-top:8px"><b>Apply about ${fmt(a.grossMm)} mm</b> = <b>${fmt(a.litres).replace(/\B(?=(\d{3})+(?!\d))/g,',')} litres</b> over the farm`+
+        (a.hours?` — about <b>${a.hours<1?fmt(a.hours*60)+' minutes':fmt(a.hours,1)+' hours'}</b> at ${f.flowLph} L/h`:'')+`.</div>`;
+  }else if(a.decision==='OK'){how=`<div class="r" style="margin-top:8px">Check again in about ${a.daysLeft<1?'a day':fmt(a.daysLeft)+' days'}.</div>`;}
+  const dates=w.time,i0=dates.indexOf(today());
+  const fc=dates.slice(i0>=0?i0:0,(i0>=0?i0:0)+5).map((d,i)=>{const k=(i0>=0?i0:0)+i;return `<div><b>${new Date(d+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'})}</b><br>${fmt(w.rain[k],0)} mm<br><span class="note">ET ${fmt(w.et0[k],1)}</span></div>`;}).join('');
+  const nd=(f.cache&&f.cache.ndvi&&f.cache.ndvi[0])||null;
+  const est=(a.startAssumed?'<span class="pill est">start assumed</span> ':'')+'<span class="pill est">estimate</span>';
+  $('advice').innerHTML=
+   `<div class="big ${cls}"><div class="t">${esc(f.name)} · ${fmt(f.areaM2/10000,2)} ha</div><div class="h">${head}</div><div class="r">${esc(a.reason)}</div>${how}</div>`+
+   (warn.length?`<div class="card"><p class="note" style="margin:0;color:var(--amber)">${warn.map(esc).join('<br>')}</p></div>`:'')+
+   `<div class="card"><h2>Soil water ${est}</h2><div class="bar"><i style="width:${Math.min(100,a.pct).toFixed(0)}%"></i><b style="left:${(100*a.raw/a.taw).toFixed(0)}%"></b></div>
+     <div class="note">Used ${fmt(a.dr)} of ${fmt(a.taw)} mm. The amber line (${fmt(a.raw)} mm) is where plants start to struggle.</div>
+     ${a.startAssumed?'<p class="note">The model assumes the soil was full 30 days ago. After a heavy irrigation or rain, tap “Soil is full today” to anchor it.</p>':''}</div>`+
+   `<div class="card"><h2>Next days (rain mm / evaporation)</h2><div class="fc">${fc}</div></div>`+
+   `<div class="card"><h2>What the advice is based on</h2><div class="kv">
+      <span>Crop water use (Kc)</span><span>${a.kc!=null?fmt(a.kc,2):'—'}${a.ndviStale?' (general value)':''}</span>
+      <span>Satellite greenness (NDVI)</span><span>${a.ndvi!=null?fmt(a.ndvi,2):'—'}${nd?` · ${nd.date}`:''}</span>
+      <span>Reading uses</span><span>${nd?nd.n+' pixels'+(nd.shrunk?' (edges removed)':''):'—'}</span>
+      <span>Soil</span><span>${a.soil&&a.soil.clay!=null?`${fmt(a.soil.clay*100)}% clay, ${fmt(a.soil.sand*100)}% sand`:'general value'}</span>
+      <span>Rain next 2 days</span><span>${fmt(a.forecastRain2d,0)} mm</span></div>
+      <p class="note">Satellite: Sentinel-2 (10 m). Weather: Open-Meteo. Soil: SoilGrids 250 m (an estimate — a lab test of your soil would be better).</p></div>`;
+  $('logCard').hidden=false;$('mgmt').hidden=false;
+  $('logNote').textContent=f.events.length?`${f.events.length} note(s) saved on this phone.`:'Tell AgriSat when you water or when it rains on your field — it makes the advice more accurate.';
+}
+
+// ── farmer log (V4) ──
+function addEvent(type,val){const f=farm();f.events.push({date:today(),type,value:val});save();refreshFarm(false);}
+$('btnIrr').onclick=()=>{
+  const f=farm(),mm=f.flowLph?null:undefined;
+  if(f.flowLph){
+    const m=parseFloat(prompt('How many MINUTES did you irrigate (whole farm)?','60'));
+    if(m>0&&m<2000)addEvent('irrigation_mm',(m/60*f.flowLph)/f.areaM2*0.88);
+  }else{
+    const v=parseFloat(prompt('How many millimetres of water did you apply? (1 mm = 10,000 litres per hectare)','10'));
+    if(v>0&&v<300)addEvent('irrigation_mm',v);
+  }
+};
+$('btnRain').onclick=()=>{const v=parseFloat(prompt('How many millimetres of rain fell on your field today? (a rough guess is fine)','10'));if(v>0&&v<400)addEvent('rain_mm',v);};
+$('btnFull').onclick=()=>{if(confirm('Is the soil completely wet (just irrigated heavily or heavy rain) right now?')){const f=farm();f.start={date:today(),depletion_mm:0};save();refreshFarm(false);}};
+
+// boot
+window.AgriApp={_map:()=>map,db:()=>db,refreshFarm,renderHome,openFarm,renderAdvice,_state:()=>({pts,pin})};
+if(db.farms.length===1&&db.selected&&!needConsent())openFarm(db.selected);else renderHome();
+if(needConsent()&&!db.farms.length){/* consent is asked when the farmer taps "Add my farm" */}
+})();
+</script>
+</body>
+</html>
