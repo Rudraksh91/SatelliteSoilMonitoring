@@ -1,25 +1,26 @@
-name: NDVI auto-update
+name: AgriSat daily
 
-# Runs in GitHub's cloud — no computer, browser or person needed.
-# Pulls Sentinel-2 from Google Earth Engine, writes ndvi_latest.jpeg,
-# ndvi_status.json and ndvi_archive/NDVI_Dediapada_<date>.jpeg, then commits them.
-# If anything fails the run turns red and GitHub emails the repo owner.
+# Runs in GitHub's cloud every morning (07:00 IST) ‚Äî no computer, browser or person needed.
+#   1. unit tests (the model must still reproduce the hand-calculated cases)
+#   2. Sentinel-2 NDVI image + status, then the water-balance decision (scripts/run_daily.py)
+#   3. commit ndvi_*, data/decision.json, data/state.json, data/log.csv back to the repo
+# A failure turns the run red (GitHub emails you); Telegram alerts are sent too if the secrets are set.
 on:
   schedule:
-    - cron: "0 2 */2 * *"      # every 2 days at 02:00 UTC (07:30 IST)
-  workflow_dispatch: {}         # "Run workflow" button for a manual refresh
+    - cron: "30 1 * * *"      # 01:30 UTC = 07:00 IST
+  workflow_dispatch: {}
 
 permissions:
   contents: write
 
 concurrency:
-  group: ndvi-update
+  group: agrisat-daily
   cancel-in-progress: false
 
 jobs:
-  ndvi:
+  run:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -32,20 +33,27 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements-ndvi.txt
 
-      - name: Compute NDVI
+      - name: Model tests
+        run: python tests/test_agrisat_model.py
+
+      - name: Daily job (NDVI + water balance + decision)
         env:
           EE_SERVICE_ACCOUNT_KEY: ${{ secrets.EE_SERVICE_ACCOUNT_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STRICT: "1"
         run: python scripts/ndvi_pipeline.py
 
-      - name: Commit and push results
+      - name: Commit results
+        if: always()
         run: |
           git config user.name  "agrisat-bot"
           git config user.email "agrisat-bot@users.noreply.github.com"
-          git add ndvi_latest.jpeg ndvi_status.json ndvi_archive
+          git add ndvi_latest.jpeg ndvi_status.json ndvi_archive data || true
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "NDVI auto-update $(date -u +%Y-%m-%d)"
+            git commit -m "AgriSat daily $(date -u +%Y-%m-%d)"
             git pull --rebase origin main
             git push origin HEAD:main
           fi
