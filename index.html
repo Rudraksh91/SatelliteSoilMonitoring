@@ -2321,10 +2321,23 @@ function updateVWC(){
     clearAlarm('dry');
   }
   set('ndvi-vwc',avg+'%');
-  set('ndvi-vwc-status',parseFloat(avg)>25?'OPTIMAL':parseFloat(avg)>20?'ADEQUATE':'LOW — IRRIGATING');
-  const dep=((clamp(23-S.vA,0,10)/100)*.4*1000/.9).toFixed(0);
-  set('irrig-depth',dep+'mm');
-  set('next-irrig','T+'+(S.vA>22?120:30)+'MIN');
+  set('ndvi-vwc-status',parseFloat(avg)>25?'OPTIMAL':parseFloat(avg)>20?'ADEQUATE':'LOW — IRRIGATION DUE');
+  // Refill depth = mean root-zone depletion (mm); next cycle = time until the driest zone reaches the drip threshold
+  const keys=['vA','vB','vC'];
+  set('irrig-depth',Math.round(keys.reduce((a,k)=>a+zoneDepletionMm(k),0)/3)+'mm');
+  const dripAt=_liveVwcThreshold();
+  let nextTxt='—';
+  if(dripAt!==null){
+    if(minVWC<dripAt) nextTxt='DUE NOW';
+    else if(rainGuardActive()) nextTxt='RAIN HOLD';
+    else{
+      const P=FAO56_PARAMS;
+      const useMm=Math.max(0.1,Math.max(...keys.map((k,i)=>ndviToKc((window._ndviZones||[])[i]?.ndvi,window._ndviAgeDays,P)))*S.et0); // mm/day
+      const hrs=((minVWC-dripAt)/100*P.rootDepth*1000)/useMm*24;
+      nextTxt='T+'+(hrs<48?Math.round(hrs)+'H':Math.round(hrs/24)+'D');
+    }
+  }
+  set('next-irrig',nextTxt);
 }
 
 // ══════════════════════════════════════════════════
@@ -2336,6 +2349,7 @@ const FAO56_PARAMS={
   kcMin:0.30, kcMax:1.15, kcFallback:0.60, // M5/M6: Kc limits and fallback (TODO: crop-specific FAO-56 Kcb)
   ndviStaleDays:20,                        // M6: NDVI older than this -> use kcFallback instead of frozen Kc
   irrigRateMmHr:3, irrigEff:0.90,          // M12: site drip rate (3 mm/hr, see dashboard) x application efficiency
+  maxRunHours:1, maxDailyHours:2,          // mirror brain.py MAX_IRRIGATE_SECS / MAX_DAILY_SECS so the plan never exceeds what the Pi allows
   anchor:null                              // M4: optional soil-sample start, e.g. {date:'2026-11-01',vwc:24}
 };
 window._ndviZones=null;   // populated by fetchNdviStatus()
@@ -2375,10 +2389,10 @@ function _saveIrrigLog(force){
 function _logSum(date,zone,field){
   return _irrigLog.reduce((s,e)=>s+((e.d===date&&(e.z===zone||e.z===-1))?(e[field]||0):0),0);
 }
-function _addAutoIrrig(zone,mm){
+function _addValveIrrig(zone,mm){   // water delivered while the hardware CONFIRMS the valve is open
   const d=_istDate();
-  let e=_irrigLog.find(x=>x.d===d&&x.z===zone&&x.src==='auto');
-  if(!e){e={d,z:zone,irrig:0,rain:0,src:'auto'};_irrigLog.push(e);}
+  let e=_irrigLog.find(x=>x.d===d&&x.z===zone&&x.src==='valve');
+  if(!e){e={d,z:zone,irrig:0,rain:0,src:'valve'};_irrigLog.push(e);}
   e.irrig+=mm;
   _saveIrrigLog(false);
 }
@@ -2450,13 +2464,11 @@ function tickVWC(){
     const Dr=(P.FC-S[k])/100*P.rootDepth*1000;
     const Ks=Dr<=RAW?1:Math.max(0,(TAW-Dr)/(TAW-RAW));
     const etcPct=Ks*kc*S.et0*(VWC_TICK_S/86400)/(VWC_ROOT_M*10);
-    const dripAt=_liveVwcThreshold();
-    const dripping=AUTO_OPT_LIVE.dripControlA&&!rainGuardActive()&&isFieldDripping(k,S[k],dripAt);
     let irrPct=0;
-    if(dripping){
-      const mm=P.irrigRateMmHr*P.irrigEff*(VWC_TICK_S/3600);   // water actually delivered this tick
+    if(hwWaterOn(k)){   // only water the hardware confirms (valve open + link fresh) counts — no simulated irrigation
+      const mm=P.irrigRateMmHr*P.irrigEff*(VWC_TICK_S/3600);
       irrPct=mm/(VWC_ROOT_M*10);
-      _addAutoIrrig(i,mm);                                      // recorded so the daily balance keeps it
+      _addValveIrrig(i,mm);
     }
     S[k]=clamp(S[k]-etcPct+rainPct+irrPct,P.WP,P.FC);
   });
@@ -2711,29 +2723,51 @@ function rainGuardReason(){
 // replenishment model (tickVWC) so they can't disagree about drip state.
 // Idempotent: calling this again while a cycle is already running just
 // returns true without resetting the expiry.
-const AUTO_DRIP_HOURS=1.5;
-let _autoDripExpiry={vA:0,vB:0,vC:0};
-function isFieldDripping(fieldKey,vwc,dripAt){
-  const now=Date.now();
-  if(_autoDripExpiry[fieldKey]>now)return true;
-  if(dripAt!==null && vwc<dripAt){
-    _autoDripExpiry[fieldKey]=now+AUTO_DRIP_HOURS*3600*1000;
-    return true;
-  }
-  return false;
+// ── Drip engine ─────────────────────────────────────────────────────────
+// Irrigation is DUE when a zone drops below the rule threshold (default 22%, just above the FAO-56 stress
+// point ≈20.5%). The plan is deficit-based: refill depth ÷ (drip rate × efficiency), limited to the same
+// per-run / per-day caps brain.py enforces. Water only counts once the hardware confirms the valve is open
+// (hwWaterOn) — the dashboard never "waters" the soil model on its own.
+function fao56StressVWC(P=FAO56_PARAMS){return P.FC-(P.p*fao56TAW(P))/(P.rootDepth*1000)*100;}
+function zoneDepletionMm(key){const P=FAO56_PARAMS;return Math.max(0,(P.FC-S[key])/100*P.rootDepth*1000);}
+function _zoneIdx(key){return ['vA','vB','vC'].indexOf(key);}
+function hwWaterOn(key){
+  try{   // hardware globals live in a later <script>; before it has run there is simply no confirmation
+    const i=_zoneIdx(key);
+    const fresh=_lastDataAt&&(Date.now()-_lastDataAt)<STALE_MS;
+    return !!(fresh&&Array.isArray(window._hwValve)&&window._hwValve[i]&&valveState[i+1]&&valveState[i+1].open);
+  }catch(e){return false;}
 }
+function _valveHoursToday(i){
+  const P=FAO56_PARAMS,d=_istDate();
+  const mm=_irrigLog.reduce((sum,e)=>sum+((e.d===d&&e.src==='valve'&&e.z===i)?e.irrig:0),0);
+  return mm/(P.irrigRateMmHr*P.irrigEff);
+}
+function dripPlan(key){
+  const P=FAO56_PARAMS,rate=P.irrigRateMmHr*P.irrigEff;   // mm of soil water per hour of drip
+  const need=zoneDepletionMm(key);
+  const hrsNeeded=need/rate;
+  const dailyLeft=Math.max(0,P.maxDailyHours-_valveHoursToday(_zoneIdx(key)));
+  const hrs=Math.max(0,Math.min(hrsNeeded,P.maxRunHours,dailyLeft));
+  return {need,hrsNeeded,hrs,mm:hrs*rate,capped:hrs<hrsNeeded-1e-6,dailyLeft};
+}
+function isFieldDripping(fieldKey){return hwWaterOn(fieldKey);}
 
 function evaluateFieldAction(vwc,fieldKey){
-  if(fieldKey==='vA' && !AUTO_OPT_LIVE.dripControlA)
+  if(!AUTO_OPT_LIVE.dripControlA)
     return {label:'MANUAL OVERRIDE · AUTO DISABLED',cls:'bg-white/5 border-white/10 text-on-surface-variant/40',spanCols:2.4};
+  if(hwWaterOn(fieldKey))
+    return {label:'DRIP ACTIVE · VALVE CONFIRMED OPEN · '+vwc.toFixed(1)+'%',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38 && AUTO_OPT_LIVE.et0Comp};
   if(rainGuardActive())
     return {label:'RAIN GUARD HOLD',cls:'bg-secondary-container/10 border-secondary-container/30 text-secondary-container',spanCols:4};
   const dripAt=_liveVwcThreshold();
   if(dripAt===null)
     return {label:'DRIP RULE DISABLED',cls:'bg-white/5 border-white/10 text-on-surface-variant/40',spanCols:2.4};
-  if(isFieldDripping(fieldKey,vwc,dripAt)){
-    const remainMin=Math.max(0,Math.ceil((_autoDripExpiry[fieldKey]-Date.now())/60000));
-    return {label:'DRIP CYCLE ACTIVE · '+vwc.toFixed(1)+'% · '+remainMin+'m left',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38 && AUTO_OPT_LIVE.et0Comp};
+  if(vwc<dripAt){
+    const plan=dripPlan(fieldKey);
+    if(plan.hrs<=0)
+      return {label:'DAILY LIMIT REACHED · '+vwc.toFixed(1)+'%',cls:'bg-white/5 border-white/10 text-on-surface-variant/60',spanCols:2.4};
+    return {label:'IRRIGATION DUE · '+vwc.toFixed(1)+'% · '+Math.round(plan.hrs*60)+' min / '+plan.mm.toFixed(0)+' mm'+(plan.capped?' (CAPPED)':''),cls:'bg-secondary/20 border-secondary/40 text-secondary',spanCols:3};
   }
   if(vwc<dripAt+3)
     return {label:'DRIP SCHEDULED · '+vwc.toFixed(1)+'%',cls:'bg-secondary/20 border-secondary/40 text-secondary',spanCols:2.2};
@@ -4367,6 +4401,7 @@ function disconnectAllHW() {
 function _hwHandleData(d) {
   if (!d) return;
   _lastDataAt = Date.now();
+  window._hwValve = Array.isArray(d.valve) ? d.valve : null;   // used by hwWaterOn() to confirm real irrigation
   // If we were showing "stale" (no-data) and real data just arrived again,
   // flip back to a clean "online" — same connection, real data resumed.
   const curLabel = document.getElementById('hw-status-txt')?.textContent;
@@ -4955,7 +4990,7 @@ async function clearAppCache(){
 // ══════════════════════════════════════════════════
 const RULES_KEY='agrisat_rules_v1';
 const RULES_DEFAULT=[
-  {id:'r1',icon:'water_drop',color:'primary',  condition:'SOIL VWC < 30%',action:'OPEN DRIP VALVE',enabled:true},
+  {id:'r1',icon:'water_drop',color:'primary',  condition:'SOIL VWC < 22%',action:'OPEN DRIP VALVE',enabled:true},
   {id:'r2',icon:'cloud',     color:'secondary', condition:'RAIN (NOW / NEXT 24H≥10mm / LAST 48H) OR PROB>60%',action:'SUSPEND IRRIGATION',enabled:true},
   {id:'r3',icon:'device_thermostat',color:'surface',condition:'TEMP > 38°C',action:'BOOST ET0 COMP',enabled:false},
   {id:'r4',icon:'cloud_upload',color:'primary', condition:'EVERY 30 MIN',action:'SYNC GOOGLE DRIVE',enabled:true},
@@ -4973,6 +5008,13 @@ function _loadRules(){
     localStorage.setItem('agrisat_rules_migrated_v2','1');
     _saveRules();
   }
+  // v3: 30% sits ABOVE field capacity (28%) so the drip rule was always true and cycles never ended.
+  if(!localStorage.getItem('agrisat_rules_migrated_v3')){
+    const r1=_rules.find(r=>r.id==='r1');
+    if(r1 && /VWC\s*<\s*(2[8-9]|[3-9]\d)\s*%/i.test(r1.condition))r1.condition='SOIL VWC < 22%';
+    localStorage.setItem('agrisat_rules_migrated_v3','1');
+    _saveRules();
+  }
 }
 function _saveRules(){localStorage.setItem(RULES_KEY,JSON.stringify(_rules));}
 
@@ -4985,7 +5027,8 @@ function _liveVwcThreshold(){
   const rule=_rules.find(r=>r.enabled && /open drip valve/i.test(r.action) && /vwc/i.test(r.condition));
   if(!rule)return null;
   const m=rule.condition.match(/(\d+(?:\.\d+)?)\s*%/);
-  return m?parseFloat(m[1]):null;
+  // Never accept a trigger at/above field capacity: the rule would be permanently true and never stop.
+  return m?Math.min(parseFloat(m[1]),FAO56_PARAMS.FC-1):null;
 }
 
 const _ICONS=[
