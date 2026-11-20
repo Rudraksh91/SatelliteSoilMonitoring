@@ -2452,7 +2452,10 @@ const VWC_TICK_S=5, VWC_ROOT_M=0.4;   // matches setInterval(tickVWC,5000)
 function tickVWC(){
   // Sub-daily drift using FAO-56 per-zone Kc: zones with higher NDVI
   // (denser canopy) evapotranspire faster and diverge over time.
-  const rainPct=S.rain_mm>0?Math.min(18,S.rain_mm/(VWC_ROOT_M*10)):0;
+  // S.rain_mm is a RATE (mm/hr, Open-Meteo "precipitation"). Convert to the mm that
+  // actually fell during this tick, then to % VWC (1 mm over the root zone = 1/(rootDepth_mm/100) %).
+  // Previously the full hourly rate was added every 5 s (~720x too much).
+  const rainPct=S.rain_mm>0?(S.rain_mm*(VWC_TICK_S/3600))/(VWC_ROOT_M*10):0;
   ['vA','vB','vC'].forEach((k,i)=>{
     const kc=ndviToKc((window._ndviZones||[])[i]?.ndvi);
     const etcPct=kc*S.et0*(VWC_TICK_S/86400)/(VWC_ROOT_M*10);

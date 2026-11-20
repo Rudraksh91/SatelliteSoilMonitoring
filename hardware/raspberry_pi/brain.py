@@ -128,7 +128,8 @@ DHT_TYPE = Adafruit_DHT.DHT22 if HAS_DHT else None
 MOISTURE_DRY      = 30.0    # % — start irrigation below this
 MOISTURE_ADEQUATE = 65.0    # % — stop irrigation above this
 MIN_IRRIGATE_SECS = 300     # minimum run time: 5 minutes
-MAX_IRRIGATE_SECS = 3600    # safety cap: 1 hour
+MAX_IRRIGATE_SECS = 3600    # safety cap per run: 1 hour (enforced by enforce_valve_limits watchdog)
+MAX_DAILY_SECS    = 7200    # safety cap per zone per day: 2 hours (blocks further AUTO opens)
 
 # ── Zone definitions (3 fields, 3 gravity tanks) ─────────────────────
 # node_id maps to the LoRa node address in esp32_field_node.ino
@@ -211,6 +212,76 @@ def build_valve_cmd(zone_id: int, state: bool) -> str:
 
 def build_stop_cmd() -> str:
     return "CMD:ALL:STOP"
+
+# ══════════════════════════════════════════════════════════════════════
+# VALVE SAFETY LAYER — every open/close goes through command_valve()
+#   • MAX_IRRIGATE_SECS : watchdog force-closes any run longer than this
+#   • MIN_IRRIGATE_SECS : AUTO logic may not close a valve before this
+#   • MAX_DAILY_SECS    : AUTO logic may not open a zone past its daily total
+#   • Manual close / emergency stop are ALWAYS allowed (farmer has priority)
+# ══════════════════════════════════════════════════════════════════════
+
+valve_open_since = {}   # zone_id -> epoch when it was opened
+daily_run_secs   = {}   # zone_id -> seconds run today
+_daily_date      = datetime.now().date()
+
+def _roll_daily_counters():
+    global _daily_date
+    today = datetime.now().date()
+    if today != _daily_date:
+        daily_run_secs.clear()
+        _daily_date = today
+
+def _record_close(zone_id):
+    t0 = valve_open_since.pop(zone_id, None)
+    if t0 is not None:
+        daily_run_secs[zone_id] = daily_run_secs.get(zone_id, 0) + (time.time() - t0)
+
+def command_valve(zone_id, state: bool, source: str = "auto") -> bool:
+    """Single entry point for valve commands. source: auto | manual | watchdog.
+    Returns True if the command was sent, False if blocked by a safety rule."""
+    _roll_daily_counters()
+    try:
+        zone_id = int(zone_id)   # dashboard may send "1" or 1 — keep dict keys consistent
+    except (TypeError, ValueError):
+        log.error(f"[Safety] Invalid zone id {zone_id!r} — command ignored")
+        return False
+    now = time.time()
+    if state:
+        if source == "auto" and daily_run_secs.get(zone_id, 0) >= MAX_DAILY_SECS:
+            log.warning(f"[Safety] Zone {zone_id}: daily cap {MAX_DAILY_SECS}s reached — AUTO open blocked")
+            return False
+        valve_open_since.setdefault(zone_id, now)
+    else:
+        t0 = valve_open_since.get(zone_id)
+        if source == "auto" and t0 is not None and now - t0 < MIN_IRRIGATE_SECS:
+            log.info(f"[Safety] Zone {zone_id}: min run {MIN_IRRIGATE_SECS}s not reached — AUTO close deferred")
+            return False
+        _record_close(zone_id)
+    lora_send(build_valve_cmd(zone_id, state))
+    # One physical relay stands in for all zones during bring-up: keep it open
+    # while any zone is open, close it only when none are.
+    set_physical_valve(bool(valve_open_since))
+    return True
+
+def stop_all_valves():
+    for zid in list(valve_open_since):
+        _record_close(zid)
+    lora_send(build_stop_cmd())
+    set_physical_valve(False)
+
+def enforce_valve_limits():
+    """Watchdog (runs every loop tick): force-close any run past MAX_IRRIGATE_SECS."""
+    now = time.time()
+    for zid, t0 in list(valve_open_since.items()):
+        if now - t0 > MAX_IRRIGATE_SECS:
+            log.warning(f"[Safety] Zone {zid} open {now - t0:.0f}s > {MAX_IRRIGATE_SECS}s — FORCE CLOSE")
+            command_valve(zid, False, "watchdog")
+            if mqtt_conn:
+                mqtt_conn.publish(TOPIC_DATA, json.dumps({
+                    "ai_action": f"ZONE_{zid}_CLOSE",
+                    "reason": f"max run time {MAX_IRRIGATE_SECS}s exceeded (watchdog)",
+                }))
 
 def parse_lora_status(msg: str):
     """
@@ -365,7 +436,8 @@ def decide_irrigation():
 
         if not v and m < dry_threshold:
             log.info(f"[AI] Zone {zid} {zone['name']}: moisture {m:.1f}% < {dry_threshold:.1f}% → OPEN valve")
-            lora_send(build_valve_cmd(zid, True))
+            if not command_valve(zid, True, "auto"):
+                continue
             if mqtt_conn:
                 mqtt_conn.publish(TOPIC_DATA, json.dumps({
                     "ai_action": f"ZONE_{zid}_OPEN",
@@ -375,7 +447,8 @@ def decide_irrigation():
 
         elif v and m > MOISTURE_ADEQUATE:
             log.info(f"[AI] Zone {zid} {zone['name']}: moisture {m:.1f}% > {MOISTURE_ADEQUATE}% → CLOSE valve")
-            lora_send(build_valve_cmd(zid, False))
+            if not command_valve(zid, False, "auto"):
+                continue
             if mqtt_conn:
                 mqtt_conn.publish(TOPIC_DATA, json.dumps({
                     "ai_action": f"ZONE_{zid}_CLOSE",
@@ -404,8 +477,7 @@ def mqtt_on_message(client, userdata, msg):
         d = json.loads(msg.payload)
         if d.get("emergency_stop"):
             log.info("[MQTT] Dashboard: EMERGENCY STOP")
-            lora_send(build_stop_cmd())
-            set_physical_valve(False)
+            stop_all_valves()
             return
         if "auto_mode" in d:
             auto_mode = d["auto_mode"]
@@ -415,12 +487,11 @@ def mqtt_on_message(client, userdata, msg):
         state = d.get("state")
         if zone and state is not None:
             log.info(f"[MQTT] Dashboard: Zone {zone} → {'OPEN' if state else 'CLOSE'}")
-            lora_send(build_valve_cmd(zone, state))
-            # Only one physical relay+solenoid exists right now (no ESP32 field
-            # nodes yet) — drive it directly regardless of which zone was
-            # commanded, so any zone button during bring-up testing controls
-            # the one real valve wired to this Pi.
-            set_physical_valve(state)
+            # Manual commands always win over auto logic (no min-run / daily-cap
+            # blocking), but opens are still bounded by the MAX_IRRIGATE_SECS
+            # watchdog. Only one physical relay exists right now, so
+            # command_valve() drives it for whichever zone was commanded.
+            command_valve(zone, bool(state), "manual")
     except Exception as e:
         log.error(f"[MQTT] Message error: {e}")
 
@@ -520,6 +591,9 @@ def main():
         if now - last_decision > 60:
             decide_irrigation()
             last_decision = now
+
+        # Safety watchdog — force-close runs past MAX_IRRIGATE_SECS
+        enforce_valve_limits()
 
         # Push to dashboard every 3s
         if now - last_publish > 3:
