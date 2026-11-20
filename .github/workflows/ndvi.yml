@@ -41,6 +41,7 @@ jobs:
           EE_SERVICE_ACCOUNT_KEY: ${{ secrets.EE_SERVICE_ACCOUNT_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          AGRISAT_CMD_KEY: ${{ secrets.AGRISAT_CMD_KEY }}   # verifies the Pi's signed confirmed-runs message
           STRICT: "1"
         run: python scripts/ndvi_pipeline.py
 
