@@ -86,4 +86,9 @@ const fpAll = C.farmPixels(C.squareFromArea(21.6277, 73.5854, 1.0), 43);
 check('farmPixels returns every pixel inside the outline (all) and the used subset', fpAll.all.length >= fpAll.pixels.length && fpAll.all.length > 90 && fpAll.shrunk);
 const cell = C.fromUTM(fpAll.all[0][0] - 5, fpAll.all[0][1] - 5, 43), cell2 = C.fromUTM(fpAll.all[0][0] + 5, fpAll.all[0][1] + 5, 43);
 check('a pixel corner pair maps to a ~10 m square on the ground', Math.abs((cell2[0] - cell[0]) * 110574 - 10) < 0.2 && Math.abs((cell2[1] - cell[1]) * 111320 * Math.cos(21.6 * Math.PI / 180) - 10) < 0.2);
+const mkL = (nm, a) => ({ name: nm, depths: ['0-5cm', '5-15cm', '15-30cm', '30-60cm'].map((l, i) => ({ label: l, values: { mean: a[i] } })) });
+let threw = false; try { C.soilFromSoilGrids({ properties: { layers: [mkL('sand', [null, null, null, null]), mkL('clay', [null, null, null, null]), mkL('soc', [null, null, null, null])] } }, 1.0); } catch (e) { threw = /no soil data/.test(e.message); }
+check('SoilGrids nulls (no data at this place) are rejected, not modelled as zero sand/clay', threw);
+const partial = C.soilFromSoilGrids({ properties: { layers: [mkL('sand', [null, 300, 300, 338]), mkL('clay', [null, 413, 406, 355]), mkL('soc', [null, 104, 64, 47])] } }, 0.4);
+check('a missing top layer is skipped (not averaged in as 0)', partial.clay > 0.37 && partial.clay < 0.42 && partial.theta_fc > 0.3);
 console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);

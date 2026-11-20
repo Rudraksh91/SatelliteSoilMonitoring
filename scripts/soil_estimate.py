@@ -21,14 +21,18 @@ def saxton_rawls(sand, clay, om_pct):
 
 
 def depth_weighted(values_by_label, root_depth_m):
-    """Thickness-weighted mean over the part of each layer that lies inside the root zone."""
+    """Thickness-weighted mean over the part of each layer that lies inside the root zone.
+    SoilGrids returns None where it has no data (built-up, water): such layers are skipped, never counted as 0."""
     root_cm, top, total, wsum = root_depth_m * 100.0, 0, 0.0, 0.0
     for label, bottom in LAYERS:               # layer bottoms: 5, 15, 30, 60 cm
+        v = values_by_label.get(label)
         thick = max(0.0, min(bottom, root_cm) - top)
-        if thick > 0:
-            total += values_by_label[label] * thick
+        if thick > 0 and v is not None:
+            total += v * thick
             wsum += thick
         top = bottom
+    if wsum == 0:
+        raise ValueError("SoilGrids has no soil data for this location")
     return total / wsum
 
 
@@ -51,7 +55,11 @@ def estimate(lat, lng, root_depth_m, fetch=fetch_soilgrids):
     clay = depth_weighted(raw["clay"], root_depth_m) / 1000.0
     soc_gkg = depth_weighted(raw["soc"], root_depth_m) / 10.0            # dg/kg -> g/kg
     om_pct = min(8.0, soc_gkg * 1.724 / 10.0)                            # SOC -> organic matter, capped at the SR2006 range
+    if sand + clay < 0.05 or sand + clay > 1.0:
+        raise ValueError("SoilGrids has no soil data for this location")
     fc, wp = saxton_rawls(sand, clay, om_pct)
+    if not (fc > wp + 0.03) or fc > 0.55 or wp < 0.01 or fc - wp > 0.30:
+        raise ValueError("soil estimate outside the physical range")   # reject nonsense instead of modelling it
     return {"theta_fc": round(fc, 3), "theta_wp": round(wp, 3), "sand": round(sand, 3), "clay": round(clay, 3),
             "om_pct": round(om_pct, 2),
             "source": "ESTIMATE: SoilGrids 250 m + Saxton-Rawls 2006 (replace with core/lab values)"}

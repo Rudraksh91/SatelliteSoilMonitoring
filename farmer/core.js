@@ -201,15 +201,21 @@
   }
   function depthWeighted(byLabel, rootM) {
     const rootCm = rootM * 100; let top = 0, tot = 0, w = 0;
-    for (const [label, bottom] of SG_LAYERS) { const th = Math.max(0, Math.min(bottom, rootCm) - top); if (th > 0) { tot += byLabel[label] * th; w += th; } top = bottom; }
-    return tot / w;
+    for (const [label, bottom] of SG_LAYERS) {
+      const v = byLabel[label], th = Math.max(0, Math.min(bottom, rootCm) - top);
+      if (th > 0 && v !== null && v !== undefined && isFinite(v)) { tot += v * th; w += th; }   // SoilGrids returns null where it has no data (built-up, water): skip, never count as 0
+      top = bottom;
+    }
+    return w > 0 ? tot / w : NaN;
   }
   function soilFromSoilGrids(doc, rootM) {
     const g = {};
     doc.properties.layers.forEach(l => { g[l.name] = {}; l.depths.forEach(d => { g[l.name][d.label] = d.values.mean; }); });
     const sand = depthWeighted(g.sand, rootM) / 1000, clay = depthWeighted(g.clay, rootM) / 1000;
     const om = Math.min(8, depthWeighted(g.soc, rootM) / 10 * 1.724 / 10);
-    const { fc, wp } = saxtonRawls(sand, clay, om);
+    if (!isFinite(sand) || !isFinite(clay) || sand + clay < 0.05 || sand + clay > 1.0) throw new Error('SoilGrids has no soil data for this location');
+    const { fc, wp } = saxtonRawls(sand, clay, isFinite(om) ? om : 1.5);
+    if (!(fc > wp + 0.03) || fc > 0.55 || wp < 0.01 || fc - wp > 0.30) throw new Error('soil estimate outside the physical range for this location');   // reject nonsense instead of modelling it
     return { theta_fc: +fc.toFixed(3), theta_wp: +wp.toFixed(3), sand: +sand.toFixed(3), clay: +clay.toFixed(3), om_pct: +om.toFixed(2),
              source: 'ESTIMATE: SoilGrids 250 m + Saxton-Rawls 2006' };
   }

@@ -117,4 +117,13 @@ cfg2 = json.loads(json.dumps(cfg)); cfg2["soil"]["calibrated"] = False; cfg2["so
 _, decE, _, _ = R.run(cfg2, {"soil_estimate": e}, wx, {}, ({}, {}, {}, {}), today)
 check("run() uses the automatic estimate and labels its source", abs(decE["soil"]["theta_fc"] - e["theta_fc"]) < 1e-9 and "SoilGrids" in decE["soil"]["source"])
 check("...and still marks the decision calibrated=false", decE["calibrated"] is False and any("SoilGrids" in m for m in decE["missing_inputs"]))
+nulls = lambda lat, lng: {k: {"0-5cm": None, "5-15cm": None, "15-30cm": None, "30-60cm": None} for k in ("sand", "clay", "soc")}
+try:
+    SE.estimate(20.95, 72.92, 0.40, fetch=nulls); raised = False
+except ValueError as ex:
+    raised = "no soil data" in str(ex)
+check("SoilGrids None (no data) is rejected instead of becoming zero sand/clay", raised)
+part = lambda lat, lng: {"sand": {"0-5cm": None, "5-15cm": 296, "15-30cm": 300, "30-60cm": 338}, "clay": {"0-5cm": None, "5-15cm": 413, "15-30cm": 406, "30-60cm": 355}, "soc": {"0-5cm": None, "5-15cm": 104, "15-30cm": 64, "30-60cm": 47}}
+ep = SE.estimate(21.6, 73.6, 0.40, fetch=part)
+check("a missing top layer is skipped (clay stays ~0.38-0.42)", 0.37 < ep["clay"] < 0.42)
 print(f"\n{n} checks passed (incl. soil estimate)")

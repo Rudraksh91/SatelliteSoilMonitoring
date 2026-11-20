@@ -46,8 +46,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261120g"></script>
-<script src="farmer/ndvimap.js?v=20261120g"></script>
+<script src="farmer/core.js?v=20261120h"></script>
+<script src="farmer/ndvimap.js?v=20261120h"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -2079,8 +2079,46 @@ function applyFarmNdvi(){
   if(bz){renderZoneRows(bz.zones);const u=document.getElementById('ndvi-updated');if(u)u.textContent=bz.date;
     const sd=document.getElementById('ndvi-scene-date');if(sd){sd.style.display='';sd.textContent='SCENE: '+bz.date;}}
   else{renderZoneRows([{zone:'WEST',ndvi:null,status:'—'},{zone:'CENTRE',ndvi:null,status:'—'},{zone:'EAST',ndvi:null,status:'—'}]);
-    if(typeof logSystemEvent==='function')logSystemEvent('NO SATELLITE NDVI FOR THIS FARM YET — OPEN THE FARMERS PAGE ONCE TO LOAD IT');}
+    /* ensureFarmData() loads it */}
 }
+// ── NDVI + soil for the active farm: if the Farmers page has not loaded them yet, the dashboard loads them itself
+//    (same Sentinel-2 read as the farmer app, shared through the same localStorage record) ──
+let _gtPromise=null;
+function loadGeoTiff(){
+  if(window.GeoTIFF)return Promise.resolve();
+  if(_gtPromise)return _gtPromise;
+  _gtPromise=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js';s.onload=res;s.onerror=()=>{_gtPromise=null;rej(new Error('geotiff.js could not be loaded'));};document.head.appendChild(s);});
+  return _gtPromise;
+}
+const _tfetch=(u,o,ms=25000)=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);return fetch(u,Object.assign({},o||{},{signal:c.signal})).finally(()=>clearTimeout(t));};
+async function ensureFarmData(A){
+  if(!A||A.campus||A.loading||!A.farm)return;
+  const f=A.farm,c=f.cache||{},now=Date.now();
+  const needSoil=!c.soil&&(!c.soilTried||now-c.soilTried>24*3600e3),needNdvi=!(c.ndvi&&c.ndvi.length&&c.ndviAt&&now-c.ndviAt<24*3600e3);
+  if(!needSoil&&!needNdvi)return;
+  A.loading=true;
+  const log=m=>{if(typeof logSystemEvent==='function')logSystemEvent(m);};
+  log('LOADING SENTINEL-2 NDVI + SOIL FOR '+A.name+' (ABOUT 20 SECONDS, FIRST TIME ONLY)');
+  const upd={};
+  try{
+    const crop=AgriCore.cropParams(f.cropId||'general',f.plantingDate);
+    if(needSoil){try{upd.soil=await AgriCore.fetchSoil(A.lat,A.lng,crop.root_depth_m,(u,o)=>_tfetch(u,o,30000));upd.soilAt=now;upd.soilZr=crop.root_depth_m;}catch(e){upd.soilTried=now;log('NO SOIL DATA FOR THIS LOCATION ('+e.message+') — USING A GENERAL SOIL');}}
+    if(needNdvi){
+      try{
+        await loadGeoTiff();
+        const ser=await Promise.race([AgriCore.ndviSeries(f.latlngs,window.GeoTIFF,(u,o)=>_tfetch(u,o,25000),{days:45,maxScenes:3,minPixels:Math.min(8,Math.max(1,Math.floor(f.areaM2/100/4)))}),
+                                       new Promise((_,rej)=>setTimeout(()=>rej(new Error('satellite read timed out')),80000))]);
+        upd.ndvi=ser.map((x,i)=>({date:x.date,ndvi:x.ndvi,n:x.n,shrunk:x.shrunk,grid:(x.grid&&x.grid.cols*x.grid.rows<=2500)||i===0?x.grid:null}));upd.ndviAt=now;
+        log(ser.length?`NDVI LOADED FOR ${A.name}: ${ser.length} CLEAR SCENE(S), NEWEST ${ser[0].date}`:`NO CLEAR SENTINEL-2 SCENE OF ${A.name} IN THE LAST 45 DAYS`);
+      }catch(e){log('SATELLITE NDVI COULD NOT BE READ FOR '+A.name+' ('+e.message+')');}
+    }
+    const db=_farmerDb(),g=db.farms.find(x=>x.id===f.id);
+    if(g&&Object.keys(upd).length){g.cache=Object.assign(g.cache||{},upd);try{localStorage.setItem('agrisat_farmer_v1',JSON.stringify(db));}catch(e){}}
+    if(window.ACTIVE.id===A.id&&g){A.farm=g;_configureModelForFarm(A);applyFarmNdvi();initFAO56VWC();if(typeof mfRender==='function'&&mfMode==='farm')mfRender();}
+  }finally{A.loading=false;}
+}
+setInterval(()=>{if(window.ACTIVE&&!window.ACTIVE.campus)ensureFarmData(window.ACTIVE);},30*60*1000);
+
 function applyActiveFarm(){
   const A=window.ACTIVE,fmtLat=Math.abs(A.lat).toFixed(3)+'°'+(A.lat>=0?'N':'S'),fmtLng=Math.abs(A.lng).toFixed(3)+'°'+(A.lng>=0?'E':'W');
   const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
@@ -2093,7 +2131,7 @@ function applyActiveFarm(){
   window._central=null;
   weatherData=null;fetchWeather();                                   // weather + forecast + charts for THIS coordinate
   if(A.campus){window._ndviZones=null;window._ndviAgeDays=null;if(window._ndviPoll)window._ndviPoll();fetchCentral();}
-  else{applyFarmNdvi();}
+  else{applyFarmNdvi();ensureFarmData(A);}
   initFAO56VWC();
   // Analytics page: show the matching NDVI view
   if(typeof setNdviMode==='function'){if(!A.campus){mfFarmId=A.id;mfIdx=0;}setNdviMode(A.campus?'campus':'farm');}
