@@ -294,5 +294,10 @@ balance as the daily job. Farm outlines, names and notes stay in the phone's `lo
 - Warnings for fields under 0.2 ha / 0.1 ha; pin + area fallback; optional pump flow (L/h) turns depth into hours.
 - "I irrigated" / "It rained" / "Soil is full today" notes correct the balance (stored per farm on the phone).
 - Advice only: it does not control valves (that needs the Pi + daily job for a specific farm).
-- Limits: no per-farm crop table yet (generic Kcb/p/root depth), English only, soil values are estimates, the start state
-  is assumed unless the farmer taps "Soil is full today". Tests: `node tests/test_farmer_core.js`.
+- **Crops:** Cotton, wheat, maize, groundnut, tomato, sugarcane, banana, vegetables or "general" (typical FAO-56 Kcb, depletion
+  fraction p, representative root depth, stage lengths). An optional planting date enables a crop-stage Kc curve when satellite
+  pictures are stale. These are TYPICAL values — confirm with the faculty / extension officer before relying on them.
+- **Languages:** English, हिन्दी, ગુજરાતી (`farmer/i18n.js`, chosen from the browser language, switchable in the header). The Hindi and
+  Gujarati texts were written for this project and should be reviewed by a native speaker.
+- The first screen asks how the soil feels (wet / moist / dry) instead of assuming a start state; every network step has a deadline.
+- Limits: soil values are estimates; no valve control. Tests: `node tests/test_farmer_core.js`, `node tests/test_i18n.js`.

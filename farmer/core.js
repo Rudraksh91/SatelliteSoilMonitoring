@@ -214,6 +214,36 @@
     if (next && next.t > last.t) return { ndvi: last.v + (next.v - last.v) * (d - last.t) / (next.t - last.t), age };
     return { ndvi: last.v, age };
   }
+  // Typical FAO-56 (Allen et al. 1998) basal coefficients, depletion fraction p, a representative effective root depth for
+  // irrigation scheduling, and stage lengths in days [initial, development, mid, late]. TYPICAL values only — the farm's
+  // variety, climate and growth stage change them; confirm locally (faculty / extension officer).
+  const CROPS = {
+    general:    { kcb_ini: 0.30, kcb_mid: 1.15, kcb_end: 0.60, p: 0.50, zr: 0.40, stages: null },
+    cotton:     { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.50, p: 0.65, zr: 1.00, stages: [30, 50, 60, 55] },
+    wheat:      { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.20, p: 0.55, zr: 1.00, stages: [20, 30, 60, 30] },
+    maize:      { kcb_ini: 0.15, kcb_mid: 1.15, kcb_end: 0.25, p: 0.55, zr: 0.90, stages: [20, 35, 40, 30] },
+    groundnut:  { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.55, p: 0.50, zr: 0.50, stages: [25, 35, 45, 25] },
+    tomato:     { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.60, p: 0.40, zr: 0.60, stages: [30, 40, 40, 25] },
+    sugarcane:  { kcb_ini: 0.15, kcb_mid: 1.20, kcb_end: 0.50, p: 0.65, zr: 1.20, stages: [50, 70, 220, 140] },
+    banana:     { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.90, p: 0.35, zr: 0.70, stages: [120, 90, 120, 60] },
+    vegetables: { kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.80, p: 0.40, zr: 0.40, stages: [25, 30, 30, 15] }
+  };
+  function stageKc(dap, curve) {                       // linear interpolation over [[dap, kc], ...]
+    if (dap <= curve[0][0]) return curve[0][1];
+    for (let i = 1; i < curve.length; i++) if (dap <= curve[i][0]) { const a = curve[i - 1], b = curve[i]; return a[1] + (b[1] - a[1]) * (dap - a[0]) / (b[0] - a[0]); }
+    return curve[curve.length - 1][1];
+  }
+  /** Crop object for advise(): NDVI->Kc limits from the crop's Kcb, p, root depth, and a days-after-planting stage curve. */
+  function cropParams(id, plantingDate) {
+    const c = CROPS[id] || CROPS.general, o = Object.assign({}, DEFAULT_CROP, { kcb_min: c.kcb_ini, kcb_max: c.kcb_mid, p: c.p, root_depth_m: c.zr });
+    o.kc_fallback = (c.kcb_ini + c.kcb_mid) / 2;
+    if (c.stages && plantingDate) {
+      const [a, b, m, l] = c.stages;
+      o.planting_date = plantingDate;
+      o.stage_curve = [[0, c.kcb_ini], [a, c.kcb_ini], [a + b, c.kcb_mid], [a + b + m, c.kcb_mid], [a + b + m + l, c.kcb_end]];
+    }
+    return o;
+  }
   const DEFAULT_CROP = { kcb_min: 0.30, kcb_max: 1.15, p: 0.5, ndvi_soil: 0.15, ndvi_full: 0.85, root_depth_m: 0.4, kc_fallback: 0.60, stale_days: 20 };
   const addDays = (iso, n) => new Date(new Date(iso + 'T00:00:00Z').getTime() + n * 864e5).toISOString().slice(0, 10);
 
@@ -224,7 +254,8 @@
     const taw = tawMm(soil.theta_fc, soil.theta_wp, crop.root_depth_m), p = crop.p, raw = p * taw;
     const idx = {}; a.weather.time.forEach((t, i) => { idx[t] = i; });
     const start = a.start && a.start.date >= a.weather.time[0] ? a.start : { date: a.weather.time[0], depletion_mm: 0, assumed: true };
-    const startMm = start.frac != null ? start.frac * taw : (start.depletion_mm || 0);   // frac = share of TAW already used (farmer's soil check)
+    // Starting depletion: fracRaw = multiple of RAW (farmer's soil check: wet .1, moist .5, dry 1.2), frac = share of TAW, else mm
+    const startMm = start.fracRaw != null ? start.fracRaw * raw : start.frac != null ? start.frac * taw : (start.depletion_mm || 0);
     let dr = Math.min(taw, startMm), lastKc = null, stale = false, lastNdvi = null, age = null, rows = [];
     const evSum = (day, type) => (a.events || []).filter(e => e.date === day && e.type === type).reduce((s, e) => s + e.value, 0);
     const yesterday = addDays(a.today, -1);
@@ -232,28 +263,36 @@
       const i = idx[day]; if (i === undefined) continue;
       const nd = interpNdvi(a.ndvi || [], day);
       stale = nd.ndvi === null || nd.age > crop.stale_days;
-      const kc = stale ? crop.kc_fallback : kcFromNdvi(nd.ndvi, crop);
+      let kc;
+      if (!stale) kc = kcFromNdvi(nd.ndvi, crop);
+      else if (crop.stage_curve && crop.planting_date) kc = stageKc(Math.max(0, Math.round((new Date(day) - new Date(crop.planting_date)) / 864e5)), crop.stage_curve);   // NDVI too old: crop-stage curve
+      else kc = crop.kc_fallback;
       let rain = a.weather.rain[i] || 0; const farmerRain = evSum(day, 'rain_mm'); if (farmerRain > 0) rain = farmerRain;   // local report beats the grid
       const irrig = evSum(day, 'irrigation_mm');
       const r = step(dr, a.weather.et0[i] || 0, kc, rain, irrig, taw, p); dr = r.dr;
       lastKc = kc; lastNdvi = nd.ndvi; age = nd.age; rows.push({ date: day, dr, rain, et0: a.weather.et0[i] });
     }
+    if (lastKc == null) {                               // nothing balanced yet (start is today): still report today's Kc / NDVI
+      const nd = interpNdvi(a.ndvi || [], yesterday); stale = nd.ndvi === null || nd.age > crop.stale_days; lastNdvi = nd.ndvi; age = nd.age;
+      lastKc = !stale ? kcFromNdvi(nd.ndvi, crop) : (crop.stage_curve && crop.planting_date ? stageKc(Math.max(0, Math.round((new Date(yesterday) - new Date(crop.planting_date)) / 864e5)), crop.stage_curve) : crop.kc_fallback);
+    }
     const fwd = [0, 1].reduce((s, k) => { const i = idx[addDays(a.today, k)]; return s + (i === undefined ? 0 : (a.weather.rain[i] || 0)); }, 0);
     let decision, reason;
-    if (fwd > 10) { decision = 'WAIT_RAIN'; reason = 'About ' + fwd.toFixed(0) + ' mm of rain is forecast in the next 2 days.'; }
-    else if (dr >= raw) { decision = 'IRRIGATE'; reason = 'The root zone has lost ' + dr.toFixed(0) + ' mm; plants start to struggle at ' + raw.toFixed(0) + ' mm.'; }
-    else { decision = 'OK'; reason = 'Soil water is fine (' + dr.toFixed(0) + ' mm used of ' + raw.toFixed(0) + ' mm comfortable limit).'; }
+    let reasonKey, rp;
+    if (fwd > 10) { decision = 'WAIT_RAIN'; reasonKey = 'rWait'; rp = { mm: fwd.toFixed(0) }; reason = 'About ' + fwd.toFixed(0) + ' mm of rain is forecast in the next 2 days.'; }
+    else if (dr >= raw) { decision = 'IRRIGATE'; reasonKey = 'rIrrigate'; rp = { dr: dr.toFixed(0), raw: raw.toFixed(0) }; reason = 'The root zone has lost ' + dr.toFixed(0) + ' mm; plants start to struggle at ' + raw.toFixed(0) + ' mm.'; }
+    else { decision = 'OK'; reasonKey = 'rOk'; rp = { dr: dr.toFixed(0), raw: raw.toFixed(0) }; reason = 'Soil water is fine (' + dr.toFixed(0) + ' mm used of ' + raw.toFixed(0) + ' mm comfortable limit).'; }
     const eff = a.efficiency || 0.88, grossMm = decision === 'IRRIGATE' ? dr / eff : 0, areaM2 = a.areaM2 || 0;
     const litres = grossMm * areaM2;
     const hours = a.flowLph && litres ? litres / a.flowLph : null;
     // days until the comfortable limit is reached at today's use
     const useMm = Math.max(0.1, (lastKc == null ? crop.kc_fallback : lastKc) * (a.weather.et0[idx[a.today]] || a.weather.et0[idx[yesterday]] || 4));
     const daysLeft = decision === 'OK' ? Math.max(0, (raw - dr) / useMm) : 0;
-    return { decision, reason, dr, taw, raw, pct: 100 * dr / taw, grossMm, litres, hours, daysLeft, kc: lastKc, ndvi: lastNdvi, ndviAge: age, ndviStale: stale,
+    return { decision, reason, reasonKey, rp, dr, taw, raw, pct: 100 * dr / taw, grossMm, litres, hours, daysLeft, kc: lastKc, ndvi: lastNdvi, ndviAge: age, ndviStale: stale,
              forecastRain2d: fwd, soil, startAssumed: !!start.assumed, needsSetup: !!start.assumed, rows };
   }
 
   return { centroid, bbox, polygonAreaM2, squareFromArea, pointInPolygon, distToEdges, utmZone, toUTM, farmPixels,
            searchScenes, sceneNdvi, ndviSeries, saxtonRawls, depthWeighted, soilFromSoilGrids, fetchSoil,
-           tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP };
+           tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP, CROPS, cropParams, stageKc };
 });

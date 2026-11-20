@@ -60,9 +60,23 @@ const noRain = C.advise({ today, weather: w0, soil, ndvi: [], start: { date: '20
 check('farmer-reported local rain counts (40 mm -> 32 mm effective)', noRain.dr - withRain.dr > 25 && noRain.dr - withRain.dr < 40);
 check('stale / missing NDVI is flagged and a fallback Kc is used', C.advise({ today, weather: w0, soil, ndvi: [], start: { date: '2026-11-01', depletion_mm: 0 } }).ndviStale === true);
 check('start date older than the weather window is flagged as assumed', C.advise({ today, weather: w0, soil, ndvi: [] }).startAssumed === true);
-const anch = C.advise({ today, weather: w0, soil, ndvi: [], start: { date: today, frac: 0.05 } });
-check('farmer says soil is WET today: anchored at 5% of TAW, no setup prompt', anch.needsSetup === false && near(anch.dr, 0.05 * anch.taw, 1e-6) && anch.decision === 'OK');
-const dryA = C.advise({ today, weather: w0, soil, ndvi: [], start: { date: today, frac: 0.65 }, areaM2: 5000 });
+const anch = C.advise({ today, weather: w0, soil, ndvi: [], start: { date: today, fracRaw: 0.1 } });
+check('farmer says soil is WET today: anchored at 0.1 x RAW, no setup prompt', anch.needsSetup === false && near(anch.dr, 0.1 * anch.raw, 1e-6) && anch.decision === 'OK');
+const dryA = C.advise({ today, weather: w0, soil, ndvi: [], start: { date: today, fracRaw: 1.2 }, areaM2: 5000 });
 check('farmer says soil is DRY today: irrigate', dryA.needsSetup === false && dryA.decision === 'IRRIGATE' && dryA.litres > 0);
 check('no starting information -> needsSetup (the page asks instead of guessing litres)', C.advise({ today, weather: w0, soil, ndvi: [] }).needsSetup === true);
+// ── crops ──
+const cot = C.cropParams('cotton', '2026-08-01');
+check('cotton: Kcb .15..1.10, p .65, root 1.0 m, stage curve to 195 days', near(cot.kcb_min, 0.15) && near(cot.kcb_max, 1.10) && near(cot.p, 0.65) && near(cot.root_depth_m, 1.0) && cot.stage_curve[4][0] === 195);
+check('unknown crop id falls back to general', near(C.cropParams('xyz').kcb_max, 1.15) && C.cropParams('xyz').stage_curve === undefined);
+check('stage curve interpolates (cotton at day 55 = midway .15 -> 1.10)', near(C.stageKc(55, cot.stage_curve), 0.15 + (1.10 - 0.15) * 25 / 50));
+const staleCotton = C.advise({ today, weather: w0, soil, ndvi: [], crop: cot, start: { date: '2026-11-01', depletion_mm: 0 } });
+check('NDVI missing + planting date: uses the crop-stage curve (day ~110 -> Kc 1.10)', staleCotton.ndviStale && near(staleCotton.kc, 1.10, 0.02));
+const wheatNoDate = C.advise({ today, weather: w0, soil, ndvi: [], crop: C.cropParams('wheat'), start: { date: '2026-11-01', depletion_mm: 0 } });
+check('NDVI missing + no planting date: mid-value fallback (not the stage curve)', wheatNoDate.ndviStale && near(wheatNoDate.kc, (0.15 + 1.10) / 2, 1e-9));
+const deepRoot = C.advise({ today, weather: w0, soil, ndvi: [], crop: C.cropParams('sugarcane'), start: { date: today, fracRaw: 0.2 } });
+const shallow = C.advise({ today, weather: w0, soil, ndvi: [], crop: C.cropParams('vegetables'), start: { date: today, fracRaw: 0.2 } });
+check('deeper-rooted crop has a bigger water store (TAW) than vegetables', deepRoot.taw > 2.5 * shallow.taw);
+check('reason carries a translation key and parameters', typeof a1.reasonKey === 'string' && a1.rp && a1.rp.dr !== undefined);
+check('Kc and NDVI are reported even when the start is today (no days balanced)', anch.kc != null && anch.ndvi === null && anch.ndviStale === true && C.advise({ today, weather: w0, soil, ndvi: [{ date: '2026-11-17', ndvi: 0.5 }], start: { date: today, fracRaw: 0.5 } }).ndvi > 0.4);
 console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);
