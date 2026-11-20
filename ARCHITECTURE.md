@@ -243,12 +243,38 @@ trusted to keep strangers out. Valve commands are therefore authenticated at the
 - Not covered: the `.../data` topic is still readable by anyone, and `hardware/esp32/esp32_agrisat_cloud.ino`
   still acts on **unsigned** commands. Do not deploy that firmware against the public broker as-is.
 
+## Decision architecture (follows the project's Solutions Report / Architecture Blueprint)
+
+```
+Sentinel-2 (Earth Engine) + Open-Meteo + farmer / gateway-confirmed events
+        │   GitHub Actions, daily 07:00 IST  (.github/workflows/ndvi.yml  <- scripts/workflow_agrisat_daily.yml)
+        ▼
+scripts/run_daily.py  +  scripts/agrisat_model.py      settings: config/farm_config.json
+   NDVI -> Kc (stage-curve fallback after 20 days) -> FAO-56 depletion per zone -> rain-skip / RAW rule -> run time
+        ▼
+data/decision.json (48 h validity)  data/state.json (depletion, NDVI history)  data/log.csv (append-only daily log)
+        ▼ HTTP pull                                    ▲ data/confirmed_runs.json (verified minutes, from the Pi)
+Pi gateway (hardware/raspberry_pi/brain.py): executes zones one at a time, re-applies run-time limits,
+stops model decisions when the file is > 48 h old, closes on node loss, E-stop, reports only CONFIRMED flow
+```
+
+- **One brain:** only the daily job decides. The dashboard shows `decision.json`; its in-browser balance is a
+  fallback used when that file is missing or older than 48 h. The Pi makes no hydrological decisions.
+- **Calibration gate:** `decision.json` says `calibrated:false` while `config/farm_config.json` still holds
+  estimates (soil θFC/θWP, crop Kcb/p, start anchor, zone area/flow). The Pi refuses to run valves on an
+  uncalibrated decision (`AGRISAT_REQUIRE_CALIBRATED=0` overrides — not recommended).
+- **Not built yet:** Telegram needs `TELEGRAM_TOKEN`/`TELEGRAM_CHAT_ID` secrets; the "I irrigated / it rained"
+  form needs a published CSV URL in `inputs.farmer_events_csv_url`; satellite soil-moisture check (M7),
+  soil-evaporation term (M10), 4th zone and 865 MHz radio change are not implemented.
+
 ## Pi start-up safety and configuration (`brain.py`)
 
 - **Starts in MANUAL mode** after every start or reboot. Automatic irrigation begins only when auto mode is
   switched on from the dashboard (signed command) or `AGRISAT_AUTO_START=1` is set.
-- `AGRISAT_ANCHOR="YYYY-MM-DD:VWC"` (e.g. `2026-11-20:24`) restarts the water balance from a measured soil
-  moisture instead of the "full 30 days ago" assumption.
-- `AGRISAT_CMD_KEY` is the shared secret that authenticates dashboard commands (see above).
-- Decisions use the FAO-56 water balance (same parameters as the dashboard's `FAO56_PARAMS`); soil-moisture
-  sensors are not used. Tests: `python3 tests/test_balance.py` and `node tests/test_fao56.js`.
+- `AGRISAT_START_HOUR` (default 8, IST): earliest hour the day's run may start (the job publishes ~07:00).
+- `AGRISAT_STALE_DEFAULT_MIN` (default 0): minutes per zone per day when the decision file is > 48 h old.
+- `AGRISAT_GITHUB_TOKEN`: lets the Pi publish confirmed runs to `data/confirmed_runs.json` (fine-grained token,
+  contents:write on this repo only). Without it confirmed runs are NOT fed back into the balance.
+- `AGRISAT_CMD_KEY`: shared secret that authenticates dashboard commands (see above).
+- Limits enforced at the gateway regardless of the JSON: 10 min minimum, 120 min per run, 240 min per zone per day.
+- Tests: `python3 tests/test_agrisat_model.py`, `python3 tests/test_gateway.py`, `node tests/test_fao56.js`.

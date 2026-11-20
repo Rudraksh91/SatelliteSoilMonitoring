@@ -196,6 +196,17 @@ def analyse_zones(ndvi, crs, transform, weather):
     return out
 
 
+def farm_geojson():
+    """Farm polygon for the NDVI time series = union of the zone shapes (each buffered ~8 m, as in zone analysis)."""
+    from shapely.geometry import shape, mapping
+    from shapely.ops import unary_union
+    polys = []
+    with open(ZONES_CSV) as fh:
+        for row in csv.DictReader(fh):
+            polys.append(shape(json.loads(row[".geo"])).buffer(0.000072))
+    return mapping(unary_union(polys))
+
+
 def main():
     out_dir = Path(os.environ.get("NDVI_OUT_DIR", ROOT))
     (out_dir / "ndvi_archive").mkdir(parents=True, exist_ok=True)
@@ -241,9 +252,23 @@ def main():
     log(f"Done — scene {scene_date} ({age} d old), {len(zones)} zones written to {out_dir}")
 
 
+def run_decision_job():
+    """Daily water-balance decision (scripts/run_daily.py). The NDVI image/status above are already written,
+    so a failure here must not discard them: it is reported loudly and only fails the run when STRICT=1."""
+    try:
+        import run_daily
+        run_daily.main()
+    except Exception as exc:
+        print(f"::error::Decision job failed: {exc}", flush=True)
+        if os.environ.get("STRICT") == "1":
+            raise
+
+
 if __name__ == "__main__":
     try:
         main()
     except Exception as exc:
         log(f"FAILED: {exc}")
         raise
+    if os.environ.get("NDVI_OUT_DIR") is None:      # real run (not a scratch test)
+        run_decision_job()

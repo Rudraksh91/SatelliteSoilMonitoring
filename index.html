@@ -2324,6 +2324,18 @@ function updateVWC(){
   set('ndvi-vwc-status',parseFloat(avg)>25?'OPTIMAL':parseFloat(avg)>20?'ADEQUATE':'LOW — IRRIGATION DUE');
   // Refill depth = mean root-zone depletion (mm); next cycle = time until the driest zone reaches the drip threshold
   const keys=['vA','vB','vC'];
+  if(centralFresh()){
+    const c=window._central, zs=c.zones.slice(0,3);
+    set('irrig-depth',Math.round(zs.reduce((a,z)=>a+z.dr_mm,0)/Math.max(1,zs.length))+'mm');
+    const due=zs.filter(z=>z.decision==='IRRIGATE');
+    if(due.length)set('next-irrig','TODAY');
+    else{
+      const z0=zs.reduce((a,z)=>z.dr_mm>a.dr_mm?z:a,zs[0]), kc=c.farm.kc||0.6;
+      const days=Math.max(0,(z0.raw_mm-z0.dr_mm)/Math.max(0.1,kc*S.et0));
+      set('next-irrig',c.zones.some(z=>z.decision==='SKIP_RAIN')?'RAIN HOLD':'T+'+(days<2?Math.round(days*24)+'H':Math.round(days)+'D'));
+    }
+    return;
+  }
   set('irrig-depth',Math.round(keys.reduce((a,k)=>a+zoneDepletionMm(k),0)/3)+'mm');
   const dripAt=_liveVwcThreshold();
   let nextTxt='—';
@@ -2409,7 +2421,44 @@ function farmerEvent(kind){
 }
 _loadIrrigLog();
 
+// ── Central decision (single source of truth) ─────────────────────────
+// The daily GitHub Actions job (scripts/run_daily.py) computes depletion, the decision and run times and
+// publishes data/decision.json. The dashboard shows THAT; the in-browser balance below is only a fallback
+// when the file is missing or older than 48 h.
+const CENTRAL_URL='https://raw.githubusercontent.com/rudraksh91/SatelliteSoilMonitoring/main/data/decision.json';
+window._central=null;
+function centralFresh(){const c=window._central;return !!(c&&c._ageH<=48);}
+function centralZone(key){const c=window._central;return c&&c.zones?c.zones[['vA','vB','vC'].indexOf(key)]:null;}
+async function fetchCentral(){
+  try{
+    const r=await fetch(CENTRAL_URL+'?_='+Date.now());
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    d._ageH=(Date.now()-new Date(d.generated_at).getTime())/36e5;
+    const first=!window._central;
+    window._central=d;
+    if(d._ageH>48){
+      if(typeof logSystemEvent==='function')logSystemEvent(`CENTRAL DECISION IS ${d._ageH.toFixed(0)} H OLD (>48 H) — USING LOCAL ESTIMATE`);
+      return;
+    }
+    applyCentral();
+    if(first&&typeof logSystemEvent==='function')
+      logSystemEvent(`CENTRAL DECISION ${d.date} LOADED — ${d.calibrated?'CALIBRATED':'ESTIMATED PARAMETERS (NOT CALIBRATED)'}`);
+  }catch(e){/* no decision.json yet (first job not run) or offline: keep the local estimate */}
+}
+function applyCentral(){
+  const c=window._central;
+  if(!centralFresh()||!c.zones)return;
+  const fc=c.soil.theta_fc*100, wp=c.soil.theta_wp*100;
+  c.zones.slice(0,3).forEach((z,i)=>{
+    S[['vA','vB','vC'][i]]=clamp(fc-z.dr_mm/(c.soil.root_depth_m*1000)*100,wp,fc);
+  });
+  updateVWC();
+  renderTimeline();
+}
+
 async function initFAO56VWC(){
+  if(centralFresh())return;   // the central balance is authoritative
   try{
     const P=FAO56_PARAMS;
     const resp=await fetch(
@@ -2419,6 +2468,7 @@ async function initFAO56VWC(){
       +'&past_days=30&forecast_days=0&timezone=Asia%2FKolkata'
     );
     const d=await resp.json();
+    if(centralFresh())return;   // the central decision arrived while this request was in flight
     const ET0d=d.daily.et0_fao_evapotranspiration;
     const RAINd=d.daily.precipitation_sum;
     const days=d.daily.time;
@@ -2455,6 +2505,7 @@ async function initFAO56VWC(){
 
 const VWC_TICK_S=5, VWC_ROOT_M=0.4;   // matches setInterval(tickVWC,5000)
 function tickVWC(){
+  if(centralFresh())return;   // central values are daily; no simulated drift on top of them
   // Sub-daily drift between full recalculations (initFAO56VWC runs every 30 min and
   // rebuilds from the irrigation log, so anything added here is not lost).
   const P=FAO56_PARAMS, TAW=fao56TAW(P), RAW=P.p*TAW;
@@ -2758,6 +2809,17 @@ function evaluateFieldAction(vwc,fieldKey){
     return {label:'MANUAL OVERRIDE · AUTO DISABLED',cls:'bg-white/5 border-white/10 text-on-surface-variant/40',spanCols:2.4};
   if(hwWaterOn(fieldKey))
     return {label:'DRIP ACTIVE · VALVE CONFIRMED OPEN · '+vwc.toFixed(1)+'%',cls:'bg-primary/20 border-primary/40 text-primary aglow',spanCols:2.6,boost:S.tmp>38 && AUTO_OPT_LIVE.et0Comp};
+  const cz=centralFresh()?centralZone(fieldKey):null;
+  if(cz){   // decision computed centrally (daily job)
+    const est=window._central.calibrated?'':' · ESTIMATE';
+    if(cz.decision==='IRRIGATE'&&cz.run_minutes)
+      return {label:'IRRIGATE TODAY · '+Math.round(cz.run_minutes)+' min · '+vwc.toFixed(1)+'%'+est,cls:'bg-secondary/20 border-secondary/40 text-secondary',spanCols:3.2};
+    if(cz.decision==='IRRIGATE')
+      return {label:'IRRIGATION DUE · NO RUN TIME (set zone area/flow)',cls:'bg-white/5 border-white/10 text-on-surface-variant/60',spanCols:3.4};
+    if(cz.decision==='SKIP_RAIN')
+      return {label:'SKIP · RAIN FORECAST · '+vwc.toFixed(1)+'%',cls:'bg-secondary-container/10 border-secondary-container/30 text-secondary-container',spanCols:3};
+    return {label:'MONITORING · '+vwc.toFixed(1)+'%'+est,cls:'bg-white/5 border-white/10 text-on-surface-variant/60',spanCols:2.2};
+  }
   if(rainGuardActive())
     return {label:'RAIN GUARD HOLD',cls:'bg-secondary-container/10 border-secondary-container/30 text-secondary-container',spanCols:4};
   const dripAt=_liveVwcThreshold();
@@ -3583,7 +3645,9 @@ setInterval(()=>{
 fetchWeather();
 setInterval(fetchWeather, 10*60*1000); // refresh every 10 min
 setTimeout(()=>{updateVWC();renderTimeline();pushLog();renderAutoOptUI();},500);
-initFAO56VWC();  // seed VWC from 30-day FAO-56 balance on first load (before NDVI zones arrive)
+initFAO56VWC();  // local fallback balance on first load (before NDVI zones arrive)
+fetchCentral();  // central daily decision (authoritative when fresh)
+setInterval(fetchCentral,15*60*1000);
 setInterval(initFAO56VWC,30*60*1000); // refresh the 3-field VWC chart + balance every 30 min
 setInterval(tickVWC,5000);
 setInterval(pushLog,6000);

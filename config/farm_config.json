@@ -1,0 +1,41 @@
+{
+  "_readme": "Single settings file for the daily job. Every value marked ESTIMATE is a placeholder: replace it with a lab/FAO-56 value, then set soil.calibrated and crop.confirmed to true. Until then decision.json says calibrated=false and the Pi gateway refuses to run valves automatically.",
+  "farm": { "name": "CAET Dediapada", "lat": 21.62707, "lng": 73.5854, "timezone": "Asia/Kolkata" },
+  "crop": {
+    "name": "ESTIMATE: ornamental / campus planting",
+    "confirmed": false,
+    "kcb_min": 0.30, "kcb_max": 1.15,
+    "p": 0.50,
+    "ndvi_soil": 0.15, "ndvi_full": 0.85,
+    "planting_date": null,
+    "stage_kc_by_dap": [[0, 0.40], [30, 0.70], [60, 1.00], [100, 0.90], [140, 0.60]],
+    "senescence_dap": null
+  },
+  "soil": {
+    "calibrated": false,
+    "theta_fc": 0.28, "theta_wp": 0.13, "root_depth_m": 0.40,
+    "source": "ESTIMATE (textbook clay loam, FAO-56 Table 5). Replace with 105 C oven-dry core results / lab pressure plate"
+  },
+  "start": { "date": null, "depletion_mm": 0.0, "note": "Set date + depletion_mm from a soil sample or a day after full irrigation/heavy rain (M4)" },
+  "irrigation": {
+    "efficiency": 0.88,
+    "min_run_min": 10, "max_run_min": 120, "max_daily_min": 240,
+    "rain_skip_mm": 10.0, "rain_skip_hours": 48,
+    "effective_rain": { "min_mm": 5.0, "fraction": 0.80 },
+    "stress_trigger_fraction_of_raw": 0.70
+  },
+  "ndvi": {
+    "stale_days": 20, "alert_days": 7, "min_clean_pixels": 8, "shrink_m": 10,
+    "stress_noise": 0.03, "stress_scenes": 3
+  },
+  "zones": [
+    { "id": 1, "name": "Zone 1 – Boys Hostel",    "area_m2": null, "flow_lph": null, "rate_mm_hr": 3.0 },
+    { "id": 2, "name": "Zone 2 – Main College",   "area_m2": null, "flow_lph": null, "rate_mm_hr": 3.0 },
+    { "id": 3, "name": "Zone 3 – Diploma College", "area_m2": null, "flow_lph": null, "rate_mm_hr": 3.0 }
+  ],
+  "_zones_note": "Run time uses area_m2 + flow_lph when both are set (measure the flow once with a bucket); otherwise rate_mm_hr (3 mm/h is the dashboard's ESTIMATE).",
+  "inputs": {
+    "farmer_events_csv_url": null,
+    "_farmer_events_format": "CSV with columns date,type,value,zone  (type = irrigated_min | rain_mm; zone = 1,2,3 or blank for all)"
+  }
+}

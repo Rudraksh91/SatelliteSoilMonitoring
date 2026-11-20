@@ -43,3 +43,9 @@ SPRERI_Extension_Training.pptx
 # NDVI cloud pipeline inputs (zones are not secret)
 !scripts/farm_zones.csv
 !ndvi_archive/ndvi_history.csv
+
+# Central decision job outputs and settings (tracked on purpose)
+!data/*.json
+!data/raw/*.json
+!data/log.csv
+!config/farm_config.json
