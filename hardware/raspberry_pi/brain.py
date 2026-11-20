@@ -38,8 +38,12 @@ Run:
 ══════════════════════════════════════════════════════════════════════
 """
 
+import collections
 import csv
+import hashlib
+import hmac
 import json
+import os
 import time
 import logging
 from datetime import datetime, date
@@ -120,6 +124,15 @@ MQTT_PORT  = 1883
 TOPIC_DATA = f"agrisat/{FARM_ID}/data"
 TOPIC_CMD  = f"agrisat/{FARM_ID}/cmd"     # listen for manual dashboard overrides
 TOPIC_NDVI = f"agrisat/{FARM_ID}/ndvi"   # push NDVI analysis
+
+# ── Command authentication ───────────────────────────────────────────
+# The broker is public (broker.hivemq.com), so anyone could publish to TOPIC_CMD. Every command
+# must therefore carry an HMAC-SHA256 signature made with a shared secret that lives ONLY on this
+# Pi (env var AGRISAT_CMD_KEY) and in the farmer's browser. No key configured = ALL commands refused.
+#   generate one with:  openssl rand -hex 32
+CMD_KEY         = os.environ.get("AGRISAT_CMD_KEY", "").strip().encode()
+CMD_MAX_SKEW_S  = 120                 # reject commands whose timestamp is further than this from now
+_seen_nonces    = collections.OrderedDict()   # replay protection (last 500 nonces)
 
 # ── DHT22 sensor pin ─────────────────────────────────────────────────
 DHT_PIN  = 4   # GPIO4 on Pi
@@ -518,6 +531,36 @@ def decide_irrigation():
 # MQTT — Dashboard cloud bridge
 # ══════════════════════════════════════════════════════════════════════
 
+def verify_command(raw):
+    """Return the command dict if the MQTT payload is authentic and fresh, else None.
+    Wire format: {"m": "<inner JSON string>", "sig": "<hex HMAC-SHA256 of m>"};
+    inner JSON carries the command plus "ts" (ms since epoch) and a random "nonce"."""
+    if not CMD_KEY:
+        log.warning("[MQTT] AGRISAT_CMD_KEY is not set — command refused (fail closed)")
+        return None
+    try:
+        env = json.loads(raw)
+        inner, sig = env["m"], env["sig"]
+        expect = hmac.new(CMD_KEY, inner.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expect, str(sig)):
+            log.warning("[MQTT] Command REJECTED: bad signature")
+            return None
+        d = json.loads(inner)
+        if abs(time.time() - float(d["ts"]) / 1000.0) > CMD_MAX_SKEW_S:
+            log.warning("[MQTT] Command REJECTED: stale or future timestamp (replay?)")
+            return None
+        nonce = str(d["nonce"])
+        if nonce in _seen_nonces:
+            log.warning("[MQTT] Command REJECTED: replayed nonce")
+            return None
+        _seen_nonces[nonce] = True
+        while len(_seen_nonces) > 500:
+            _seen_nonces.popitem(last=False)
+        return d
+    except Exception as e:
+        log.warning(f"[MQTT] Command REJECTED: malformed ({e})")
+        return None
+
 def mqtt_on_connect(client, userdata, flags, rc):
     if rc == 0:
         log.info(f"[MQTT] Connected to {MQTT_HOST}")
@@ -533,7 +576,9 @@ def mqtt_on_message(client, userdata, msg):
     """
     global auto_mode
     try:
-        d = json.loads(msg.payload)
+        d = verify_command(msg.payload)
+        if d is None:
+            return
         if d.get("emergency_stop"):
             log.info("[MQTT] Dashboard: EMERGENCY STOP")
             stop_all_valves()

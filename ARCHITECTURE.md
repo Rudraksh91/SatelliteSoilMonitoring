@@ -228,3 +228,17 @@ Every 60 seconds:
     IF moisture > 65% AND valve is OPEN:
       → Send LoRa: CMD:Z{n}:CLOSE
 ```
+
+## Cloud command security (MQTT)
+
+The dashboard and the Raspberry Pi talk over the **public** HiveMQ broker, so the broker cannot be
+trusted to keep strangers out. Valve commands are therefore authenticated at the application layer:
+
+- Every command published to `agrisat/<farm>/cmd` is `{"m": "<inner JSON>", "sig": "<hex HMAC-SHA256>"}`.
+  The inner JSON holds the command plus `ts` (ms) and a random `nonce`.
+- `brain.py` accepts a command only if the signature matches, `ts` is within 2 minutes of now, and the
+  nonce was not seen before. With no key configured it refuses everything (fail closed).
+- The shared secret is `AGRISAT_CMD_KEY` on the Pi (`openssl rand -hex 32`) and is typed once into the
+  dashboard's **CMD KEY** button (kept in that browser's localStorage only — never in the repo).
+- Not covered: the `.../data` topic is still readable by anyone, and `hardware/esp32/esp32_agrisat_cloud.ino`
+  still acts on **unsigned** commands. Do not deploy that firmware against the public broker as-is.

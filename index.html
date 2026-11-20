@@ -1199,6 +1199,7 @@ header{
           <div class="flex gap-xs">
             <button type="button" onclick="farmerEvent('irrig')" class="font-label-caps text-[9px] px-2 py-1 rounded border border-primary/40 text-primary hover:bg-primary/10">I IRRIGATED</button>
             <button type="button" onclick="farmerEvent('rain')" class="font-label-caps text-[9px] px-2 py-1 rounded border border-secondary/40 text-secondary hover:bg-secondary/10">IT RAINED</button>
+            <button type="button" onclick="changeCmdKey()" title="Set the secret used to sign valve commands" class="font-label-caps text-[9px] px-2 py-1 rounded border border-white/20 text-on-surface-variant hover:bg-white/5">CMD KEY</button>
           </div>
         </div>
         <!-- Zone health panel — populated by fetchNdviStatus() -->
@@ -4304,12 +4305,46 @@ function connectMQTT(farmId) {
     _hwSetStatus('error', '☁ MQTT init error: ' + e.message);
   }
 
-  // Expose publish helper
+  // Expose publish helper — every command is HMAC-signed (see signCommand) because the broker is public
   window._mqttPublish = function(payload) {
     if (_mqttConnected && _mqttClient) {
-      _mqttClient.publish(topicCmd, JSON.stringify(payload), {qos:0, retain:false});
+      signCommand(payload).then(msg => {
+        if (msg) _mqttClient.publish(topicCmd, msg, {qos:0, retain:false});
+        else logValve('MQTT COMMAND NOT SENT — NO COMMAND KEY SET');
+      }).catch(e => logValve('MQTT SIGN ERROR: ' + e.message));
     }
   };
+}
+
+// ── Command signing: the public broker accepts anyone's messages, so the Pi only obeys
+// commands signed with a shared secret (AGRISAT_CMD_KEY on the Pi). The secret is typed in
+// once per browser and kept in localStorage — it is never in the repo or the page source.
+const CMD_KEY_STORAGE = 'agrisat_cmd_key';
+function getCmdKey(promptIfMissing = true) {
+  try {
+    let k = localStorage.getItem(CMD_KEY_STORAGE);
+    if (!k && promptIfMissing) {
+      k = window.prompt('Enter the farm COMMAND KEY (same value as AGRISAT_CMD_KEY on the Raspberry Pi). It is stored only in this browser.');
+      if (k && k.trim()) { k = k.trim(); localStorage.setItem(CMD_KEY_STORAGE, k); } else k = null;
+    }
+    return k || null;
+  } catch (e) { return null; }
+}
+function changeCmdKey() {
+  try { localStorage.removeItem(CMD_KEY_STORAGE); } catch (e) {}
+  const k = getCmdKey(true);
+  logValve(k ? 'COMMAND KEY UPDATED' : 'COMMAND KEY CLEARED — CLOUD COMMANDS DISABLED');
+}
+const _hex = buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+async function signCommand(obj) {
+  const key = getCmdKey(true);
+  if (!key) return null;
+  const nonce = _hex(crypto.getRandomValues(new Uint8Array(8)));
+  const inner = JSON.stringify({...obj, ts: Date.now(), nonce});
+  const enc = new TextEncoder();
+  const k = await crypto.subtle.importKey('raw', enc.encode(key), {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+  const sig = _hex(await crypto.subtle.sign('HMAC', k, enc.encode(inner)));
+  return JSON.stringify({m: inner, sig});
 }
 
 function disconnectMQTT() {
