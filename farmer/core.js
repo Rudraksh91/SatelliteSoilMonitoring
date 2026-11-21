@@ -1,4 +1,4 @@
-/* AgriSat farmer core — geometry, Sentinel-2 NDVI (STAC + COG, in the browser), soil estimate, FAO-56 balance.
+/* AgriSat farmer core — geometry, Sentinel-2 NDVI and Sentinel-1 radar (STAC + COG, in the browser), soil estimate, FAO-56 balance.
  * UMD: works in the browser (window.AgriCore) and in Node (tests/test_farmer_core.js). No network code here
  * except via the fetch / GeoTIFF objects passed in. */
 (function (root, factory) {
@@ -217,6 +217,122 @@
     return out.sort((p, q) => (p.date < q.date ? 1 : -1)).slice(0, o.maxScenes);
   }
 
+
+  // ───────────────────────── Sentinel-1 radar (sees through cloud) ─────────────────────────
+  // Microsoft Planetary Computer "sentinel-1-rtc": terrain-corrected radar backscatter (gamma0, linear power, 10 m), VV + VH.
+  // Radar is not blocked by cloud, so it keeps reporting on the crop in the monsoon weeks when optical pictures are missing.
+  // It is a CHECK on the crop, not a trigger: it does not change the irrigation decision (that relation is not calibrated here).
+  const RADAR_STAC = 'https://planetarycomputer.microsoft.com/api/stac/v1/search';
+  const RADAR_TOKEN = 'https://planetarycomputer.microsoft.com/api/sas/v1/token/sentinel-1-rtc';   // one short-lived read token for the whole collection (not one signing call per file)
+  let radarTok = null;                                    // {promise, until}: the in-flight request is shared, so parallel passes ask once
+  const resetRadarToken = () => { radarTok = null; };
+  function radarToken(fetchFn) {
+    if (radarTok && radarTok.until > Date.now() + 60e3) return radarTok.promise;
+    const entry = { until: Date.now() + 10 * 60e3 };
+    entry.promise = (async () => {
+      const r = await fetchFn(RADAR_TOKEN);
+      if (!r.ok) throw new Error('radar token ' + r.status);
+      const j = await r.json();
+      if (!j.token) throw new Error('radar token missing');
+      if (j['msft:expiry']) entry.until = new Date(j['msft:expiry']).getTime();
+      return j.token;
+    })();
+    radarTok = entry;
+    entry.promise.catch(() => { if (radarTok === entry) radarTok = null; });   // a failure is not remembered
+    return entry.promise;
+  }
+  const signed = async (href, fetchFn) => href + (href.indexOf('?') < 0 ? '?' : '&') + await radarToken(fetchFn);
+  const RADAR_MIN_NOISE_DB = 0.7;    // never call a VH change smaller than this a real change
+  const RADAR_ENL = 5;               // effective number of looks of one 10 m Sentinel-1 IW pixel (about 4-5)
+  const RADAR_RELIABLE_PIXELS = 16;  // fewer averaged pixels than this: the picture is noisy (small field)
+  /** Size of a VH change (dB) that could still be speckle: about 2 standard deviations of the difference of two passes, each averaged over n pixels. */
+  const radarNoiseDb = n => Math.max(RADAR_MIN_NOISE_DB, 2 * Math.SQRT2 * 4.34 / Math.sqrt(RADAR_ENL * Math.max(1, n)));
+  const RADAR_BRIDGE_DAYS = 10;      // optical picture older than this: say so, and lean on radar to show what the crop is doing
+  const toDb = v => 10 * Math.log10(v);
+  const radarRvi = (vv, vh) => 4 * vh / (vv + vh);   // Radar Vegetation Index on linear power: ~0 bare and smooth, towards 1 with dense plant material
+  const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5);
+
+  async function searchRadar(bboxLL, days, fetchFn) {
+    const end = new Date(), start = new Date(end.getTime() - days * 864e5);
+    const body = { collections: ['sentinel-1-rtc'], bbox: bboxLL, limit: 50,
+      datetime: start.toISOString().slice(0, 10) + 'T00:00:00Z/' + end.toISOString().slice(0, 10) + 'T23:59:59Z',
+      sortby: [{ field: 'datetime', direction: 'desc' }] };
+    const r = await fetchFn(RADAR_STAC, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error('radar STAC ' + r.status);
+    return ((await r.json()).features || []).filter(f => f.assets && f.assets.vv && f.assets.vh && (!f.properties['sar:instrument_mode'] || f.properties['sar:instrument_mode'] === 'IW'));
+  }
+
+  /** Mean VV / VH backscatter over the farm's pixels in one radar pass (linear power averaged first, then converted to dB). */
+  async function sceneRadar(feature, farm, GeoTIFF, fetchFn) {
+    const a = feature.assets, epsg = feature.properties['proj:epsg'];
+    if (!a.vv || !a.vh || !epsg || epsg < 32601 || epsg > 32660) return null;
+    const fp = farmPixels(farm.latlngs, epsg - 32600, farm.opts), px = fp.pixels;
+    if (!px.length) return null;
+    const open = async asset => (await GeoTIFF.fromUrl(await signed(asset.href, fetchFn))).getImage();
+    const [vvI, vhI] = await Promise.all([open(a.vv), open(a.vh)]);
+    const xs = fp.all.map(p => p[0]), ys = fp.all.map(p => p[1]);
+    const bb = [Math.min(...xs) - 10, Math.min(...ys) - 10, Math.max(...xs) + 10, Math.max(...ys) + 10];
+    const win = img => {
+      const [ox, oy] = img.getOrigin(), [rx, ry] = img.getResolution();
+      return { ox, oy, rx, ry, x0: Math.floor((bb[0] - ox) / rx), x1: Math.ceil((bb[2] - ox) / rx), y0: Math.floor((bb[3] - oy) / ry), y1: Math.ceil((bb[1] - oy) / ry), w: img.getWidth(), h: img.getHeight() };
+    };
+    const wv = win(vvI), wh = win(vhI);
+    if (wv.x0 < 0 || wv.y0 < 0 || wv.x1 > wv.w || wv.y1 > wv.h) return null;             // farm not fully inside this strip
+    const [VV, VH] = await Promise.all([
+      vvI.readRasters({ window: [wv.x0, wv.y0, wv.x1, wv.y1], samples: [0] }),
+      vhI.readRasters({ window: [wh.x0, wh.y0, wh.x1, wh.y1], samples: [0] })]);
+    let sv = 0, sh = 0, n = 0;
+    for (const [x, y] of px) {
+      const i = Math.floor((x - wv.ox) / wv.rx) - wv.x0, j = Math.floor((y - wv.oy) / wv.ry) - wv.y0;
+      const k = Math.floor((x - wh.ox) / wh.rx) - wh.x0, l = Math.floor((y - wh.oy) / wh.ry) - wh.y0;
+      const v = VV[0][j * (wv.x1 - wv.x0) + i], h = VH[0][l * (wh.x1 - wh.x0) + k];
+      if (!(v > 0 && v < 3 && h > 0 && h < 3)) continue;                                  // nodata / impossible values
+      sv += v; sh += h; n++;
+    }
+    if (!n || n < 0.8 * px.length) return null;                                          // farm only partly inside this pass
+    const vv = sv / n, vh = sh / n;
+    return { date: feature.properties.datetime.slice(0, 10), orbit: feature.properties['sat:orbit_state'] || null, rel: feature.properties['sat:relative_orbit'] || null,
+             vvDb: toDb(vv), vhDb: toDb(vh), crossDb: toDb(vh) - toDb(vv), rvi: radarRvi(vv, vh), n, shrunk: fp.shrunk };
+  }
+
+  /** Radar passes over the farm (newest first, one per date). Only passes of ONE orbit track are used, so each pass looks at the farm
+   *  from the same angle and the numbers can be compared with each other. */
+  async function radarSeries(latlngs, GeoTIFF, fetchFn, opts) {
+    const o = Object.assign({ days: 60, maxScenes: 4, minPixels: 4, concurrency: 2 }, opts || {});
+    const bb = bbox(latlngs);
+    const feats = await searchRadar(bb, o.days, fetchFn);          // no bbox pre-filter: frame boxes are loose, the pixel checks in sceneRadar decide coverage
+    const groups = {};
+    feats.forEach(f => { const k = (f.properties['sat:orbit_state'] || '?') + '|' + (f.properties['sat:relative_orbit'] || '?'); (groups[k] = groups[k] || []).push(f); });
+    const best = Object.values(groups).sort((p, q) => q.length - p.length || (q[0].properties.datetime > p[0].properties.datetime ? 1 : -1))[0] || [];
+    const seen = new Set(), cand = [];
+    best.forEach(f => { const d = f.properties.datetime.slice(0, 10); if (!seen.has(d)) { seen.add(d); cand.push(f); } });
+    const out = [];
+    for (let i = 0; i < cand.length && out.length < o.maxScenes; i += o.concurrency) {
+      const res = await Promise.all(cand.slice(i, i + o.concurrency).map(f => sceneRadar(f, { latlngs, opts: { minPixels: 8 } }, GeoTIFF, fetchFn).catch(() => null)));
+      res.forEach(r => { if (r && r.n >= o.minPixels) out.push(r); });
+    }
+    return out.sort((p, q) => (p.date < q.date ? 1 : -1)).slice(0, o.maxScenes);
+  }
+
+  /** Newest radar pass against this field's own earlier passes. dir: 'up' | 'down' | 'flat' (change inside the noise band). Needs >= 2 passes. */
+  function radarTrend(series) {
+    const v = (series || []).filter(s => s && s.vhDb != null && isFinite(s.vhDb)).slice().sort((a, b) => (a.date < b.date ? -1 : 1));
+    if (v.length < 2) return null;
+    const last = v[v.length - 1], prev = v.slice(Math.max(0, v.length - 3), -1);
+    const base = prev.reduce((t, s) => t + s.vhDb, 0) / prev.length, rb = prev.reduce((t, s) => t + (s.rvi || 0), 0) / prev.length, d = last.vhDb - base;
+    const nMin = Math.min(...[last].concat(prev).map(s => s.n || 1)), noise = radarNoiseDb(nMin);
+    return { date: last.date, vhDb: last.vhDb, vvDb: last.vvDb, rvi: last.rvi, base, delta: d, rviDelta: last.rvi == null ? null : last.rvi - rb,
+             dir: d > noise ? 'up' : d < -noise ? 'down' : 'flat', noiseDb: noise, reliable: nMin >= RADAR_RELIABLE_PIXELS, pixels: nMin, n: v.length, since: prev[0].date };
+  }
+
+  /** How the radar fills the gap left by cloud: ages of the newest clear optical picture and the newest radar pass. */
+  function radarBridge(radar, optical, todayISO) {
+    const rs = (radar || []).filter(s => s && s.date).slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+    const os = (optical || []).filter(s => s && s.date && s.ndvi != null).slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+    const opticalAge = os.length ? daysBetween(os[0].date, todayISO) : null, radarAge = rs.length ? daysBetween(rs[0].date, todayISO) : null;
+    return { opticalDate: os.length ? os[0].date : null, opticalAge, radarDate: rs.length ? rs[0].date : null, radarAge,
+             opticalOld: opticalAge === null || opticalAge >= RADAR_BRIDGE_DAYS, radarNewer: rs.length > 0 && (os.length === 0 || rs[0].date > os[0].date) };
+  }
 
   // ───────────────────────── multi-index model (NDVI + NDMI + NDRE) ─────────────────────────
   const sortedBy = (series, key) => (series || []).filter(s => s && s[key] != null).slice().sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -445,5 +561,6 @@
 
   return { centroid, bbox, polygonAreaM2, squareFromArea, pointInPolygon, distToEdges, utmZone, toUTM, farmPixels,
            fromUTM, searchScenes, sceneNdvi, ndviSeries, saxtonRawls, depthWeighted, soilFromSoilGrids, fetchSoil,
-           tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP, CROPS, CROP_CATS, cropParams, pumpFlowLph, pumpHoursFor, indexTrend, ndmiAnomaly, NDVI_SATURATED, stageKc };
+           tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP, CROPS, CROP_CATS, cropParams, pumpFlowLph, pumpHoursFor, indexTrend, ndmiAnomaly, NDVI_SATURATED, stageKc,
+           searchRadar, sceneRadar, radarSeries, radarTrend, radarBridge, radarRvi, toDb, radarNoiseDb, resetRadarToken, RADAR_BRIDGE_DAYS };
 });

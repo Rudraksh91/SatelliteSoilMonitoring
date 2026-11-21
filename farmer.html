@@ -271,8 +271,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261121x"></script>
-<script src="farmer/i18n.js?v=20261121y"></script>
+<script src="farmer/core.js?v=20261121r"></script>
+<script src="farmer/i18n.js?v=20261121r"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
 <script src="farmer/chat-config.js?v=1"></script>
 <script src="farmer/ndvimap.js?v=20261121x"></script>
@@ -325,10 +325,12 @@ function setLang(l){lang=l;try{localStorage.setItem(LKEY,l);}catch(e){}applyStat
   if(view==='home')renderHome();else if(view==='edit'){const cur=$('pumpUnit').value;$('pumpUnit').innerHTML=unitOptions(cur);pumpFormUpdate();redraw();}else if(view==='farm'&&last)renderAdvice(last.f,last.a,last.w,last.warn);else if(view==='multi')renderMulti();else if(view==='auto')renderAuto();}
 
 // ── consent (P3) ──
+const CONSENT_V=2;   // v2 also names the Sentinel-1 radar service (Microsoft Planetary Computer). v1 users keep everything else working and are asked only for the radar.
 const needConsent=()=>!db.consent;
+const radarAllowed=()=>!!db.consent&&(db.consent.v||0)>=2;
 function askConsent(){const d=$('consent');if(d.showModal)d.showModal();else d.setAttribute('open','');}
 $('consentChk').onchange=()=>{$('consentBtn').disabled=!$('consentChk').checked;};
-$('consentBtn').onclick=()=>{db.consent={at:new Date().toISOString(),v:1};save();$('consent').close&&$('consent').close();$('consent').removeAttribute('open');};
+$('consentBtn').onclick=()=>{db.consent={at:new Date().toISOString(),v:CONSENT_V};save();$('consent').close&&$('consent').close();$('consent').removeAttribute('open');};
 
 // ── home ──
 const picked=new Set();
@@ -748,6 +750,40 @@ function indicesCard(f,a){
     ${flags.map(t=>`<p class="flag">⚠ ${esc(t)}</p>`).join('')}<p class="note" style="margin:8px 0 0">${esc(T('idxNote'))}</p></div>`;
 }
 
+// ── radar check (Sentinel-1): works through cloud; a check on the crop, never an input to the irrigation decision ──
+const radarBusy={};
+function radarBody(f){
+  const c=f.cache||{},rs=c.radar;
+  if(!radarAllowed())return `<p style="margin:0 0 10px">${esc(T('radarAsk'))}</p><button id="radarAllow" class="sec">${esc(T('radarAllow'))}</button>`;
+  if(!rs&&!c.radarTry)return `<p class="note" style="margin:0">${esc(T('radarLoading'))}</p>`;
+  if(!rs||!rs.length)return `<p class="note" style="margin:0">${esc(T('radarNone'))}</p><p class="note" style="margin:8px 0 0">${esc(T('radarNote'))}</p>`;
+  const br=C.radarBridge(rs,c.ndvi||[],today()),tr=C.radarTrend(rs),loc=lang==='hi'?'hi-IN':lang==='gu'?'gu-IN':'en-IN';
+  const short=d=>new Date(d+'T00:00:00').toLocaleDateString(loc,{day:'numeric',month:'short'});
+  let h='';
+  if(br.opticalOld)h+=`<p class="flag" style="margin:0 0 8px">${esc(br.opticalAge==null?T('radarOptNone'):T('radarOptOld',{n:br.opticalAge}))}</p>`;
+  if(tr){
+    const k={up:'radarUp',down:'radarDown',flat:'radarFlat'}[tr.dir];
+    h+=`<p style="margin:0 0 8px"><span class="idxd ${tr.dir}">${tr.dir==='up'?'▲':tr.dir==='down'?'▼':'►'}</span> ${esc(T(k,{date:short(tr.date),since:short(tr.since),d:fmt(Math.abs(tr.delta),1),noise:fmt(tr.noiseDb,1)}))}</p>`;
+    if(!tr.reliable)h+=`<p class="note" style="margin:0 0 8px">${esc(T('radarSmall'))}</p>`;
+  }else h+=`<p style="margin:0 0 8px">${esc(T('radarOne',{date:short(rs[0].date)}))}</p>`;
+  h+=`<div class="note" style="margin:0 0 4px">${esc(T('radarPasses'))}</div><div class="fc">${rs.map(x=>`<div><b>${esc(short(x.date))}</b><br>${fmt(x.vhDb,1)} dB</div>`).join('')}</div>`;
+  return h+`<p class="note" style="margin:8px 0 0">${esc(T('radarNote'))}</p>`;
+}
+const radarCard=f=>`<div class="card" id="radarCard"><h2>${esc(T('radarTitle'))}</h2><div id="radarBody">${radarBody(f)}</div></div>`;
+async function ensureRadar(f){
+  if(!radarAllowed()){const b=$('radarAllow');if(b)b.onclick=()=>{db.consent={at:new Date().toISOString(),v:CONSENT_V};save();const el=$('radarBody');if(el)el.innerHTML=radarBody(f);ensureRadar(f);};return;}
+  const c=f.cache||(f.cache={}),now=Date.now();
+  if(c.radar&&c.radarAt&&now-c.radarAt<24*3600e3)return;                    // fresh (a pass arrives about every 6-12 days)
+  if(!c.radar&&c.radarTry&&now-c.radarTry<30*60e3)return;                   // failed a moment ago: do not hammer the public service
+  if(radarBusy[f.id])return;radarBusy[f.id]=true;
+  try{
+    const sr=await withTimeout(C.radarSeries(f.latlngs,window.GeoTIFF,(u,o)=>tfetch(u,o,25000),{days:60,maxScenes:4}),70000,'radar');
+    c.radar=sr.map(x=>({date:x.date,orbit:x.orbit,rel:x.rel,vvDb:+x.vvDb.toFixed(2),vhDb:+x.vhDb.toFixed(2),crossDb:+x.crossDb.toFixed(2),rvi:+x.rvi.toFixed(3),n:x.n}));
+    c.radarAt=Date.now();
+  }catch(e){c.radarTry=Date.now();}
+  finally{radarBusy[f.id]=false;save();const el=$('radarBody');if(el&&farm()===f)el.innerHTML=radarBody(f);}
+}
+
 function renderAdvice(f,a,w,warn){
   const warnHtml=warn.length?`<div class="card"><p class="note" style="margin:0;color:var(--amber)">${warn.map(k=>esc(T(k))).join('<br>')}</p></div>`:'';
   if(a.needsSetup){   // never give a confident litres figure from an assumed starting state
@@ -776,7 +812,7 @@ function renderAdvice(f,a,w,warn){
    `<div class="card"><h2>${esc(T('soilWater'))} <span class="pill">${esc(T('estimate'))}</span></h2><div class="bar"><i style="width:${Math.min(100,a.pct).toFixed(0)}%"></i><b style="left:${(100*a.raw/a.taw).toFixed(0)}%"></b></div>
      <div class="note">${esc(T('used',{dr:fmt(a.dr),taw:fmt(a.taw),raw:fmt(a.raw)}))}</div></div>`+
    `<div class="card"><h2>${esc(T('nextDays'))}</h2><div class="fc">${fc}</div></div>`+
-   indicesCard(f,a)+
+   indicesCard(f,a)+radarCard(f)+
    `<div class="card"><h2 id="idxMapTitle">${esc(T('ndviMapTitle'))}</h2><div class="chips" id="idxChips" style="margin:0 0 10px"></div><div id="ndviMapBox"></div>
       <div class="leg" id="ndviLeg"></div><div class="legl" id="ndviLegl"></div>
       <div class="note" style="margin-top:6px"><span class="sw" style="background:#9aa0a6"></span>${esc(T('ndviCloud'))} &nbsp; <span class="sw" style="background:rgba(120,180,120,.35)"></span>${esc(T('ndviEdge'))}</div>
@@ -789,7 +825,7 @@ function renderAdvice(f,a,w,warn){
       <span>${esc(T('kSoil'))}</span><span>${a.soil&&a.soil.clay!=null?esc(T('soilVal',{clay:fmt(a.soil.clay*100),sand:fmt(a.soil.sand*100)})):esc(T('soilGeneral'))}</span>
       <span>${esc(T('kRain2'))}</span><span>${fmt(a.forecastRain2d,0)} mm</span></div>
       <p class="note">${esc(T('srcNote'))}</p></div>`;
-  drawNdvi(f);
+  drawNdvi(f);ensureRadar(f);
   $('logCard').hidden=false;$('mgmt').hidden=false;
   $('logNote').textContent=f.events.length?T('logNoteN',{n:f.events.length}):T('logNote0');
 }

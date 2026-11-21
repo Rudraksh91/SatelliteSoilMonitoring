@@ -55,9 +55,9 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261121x"></script>
+<script src="farmer/core.js?v=20261121r"></script>
 <script src="farmer/ndvimap.js?v=20261121x"></script>
-<script src="farmer/i18n.js?v=20261121x"></script>
+<script src="farmer/i18n.js?v=20261121r"></script>
 <script src="farmer/link.js?v=20261121x"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -337,19 +337,7 @@ body{
 }
 @keyframes cineBreathe{0%,100%{opacity:.6;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.08)}}
 
-/* Astronaut: gentle zero-gravity tumble — bob + slight rotate + drift */
-.cine-astronaut{
-  opacity:0;
-  animation:cineAstroIn 1.4s ease-out .2s forwards, cineTumble 7s ease-in-out 1.6s infinite;
-}
-@keyframes cineAstroIn{to{opacity:.92}}
-@keyframes cineTumble{
-  0%,100%{transform:translate(0,0) rotate(-4deg)}
-  25%{transform:translate(-6px,-14px) rotate(2deg)}
-  50%{transform:translate(2px,-22px) rotate(6deg)}
-  75%{transform:translate(6px,-8px) rotate(-2deg)}
-}
-/* Planet: near-imperceptible parallax drift, much slower than the astronaut */
+/* Planet: near-imperceptible parallax drift, slow and subtle */
 .cine-planet{
   opacity:0;
   animation:cinePlanetIn 1.8s ease-out .4s forwards, cinePlanetDrift 22s ease-in-out 2.2s infinite;
@@ -360,7 +348,7 @@ body{
   50%{transform:translate(6px,-10px)}
 }
 @media(prefers-reduced-motion:reduce){
-  .cine-astronaut,.cine-planet{animation:none!important;opacity:.75!important}
+  .cine-planet{animation:none!important;opacity:.75!important}
 }
 
 .cine-in{opacity:0;transform:translateY(18px);animation:cineFadeUp .9s cubic-bezier(.16,1,.3,1) forwards}
@@ -751,9 +739,7 @@ html.farmer-mode [data-page="health"],html.farmer-mode [data-page="pipeline"]{di
   #page-title{font-size:14px!important;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* Hide live status badge on very small screens */
   header .rounded-full{display:none!important}
-  /* Welcome screen: shrink + tuck the astronaut/planet so they don't
-     collide with the title/subtitle or the Skip button on narrow phones */
-  .cine-astronaut{width:66px!important;top:4%!important;right:0!important}
+  /* Welcome screen: tuck the planet so it doesn't collide with the title or Skip button on narrow phones */
   .cine-planet{width:70px!important;bottom:2%!important;left:-24px!important}
 }
 
@@ -1075,42 +1061,6 @@ button,.pc-btn,.mode-toggle,.wtab{transition:background .15s ease,border-color .
     <ellipse cx="65" cy="65" rx="16" ry="8" fill="#3a6a4a" opacity=".5" transform="rotate(-20 65 65)"/>
   </svg>
 
-  <!-- Floating astronaut, drifting slowly upper-right -->
-  <svg class="cine-astronaut" viewBox="0 0 140 180" xmlns="http://www.w3.org/2000/svg" style="position:absolute;right:2%;top:9%;width:96px;height:auto;z-index:0;pointer-events:none;filter:drop-shadow(0 0 14px rgba(76,195,138,.18))">
-    <!-- Tether -->
-    <path d="M70,120 C40,140 20,110 -10,150" fill="none" stroke="#5a7a68" stroke-width="1.5" stroke-dasharray="3 4" opacity=".5"/>
-    <!-- Backpack -->
-    <rect x="52" y="70" width="36" height="46" rx="8" fill="#c9d4cc"/>
-    <!-- Legs -->
-    <path d="M58,140 Q50,162 40,172" fill="none" stroke="#e8ede9" stroke-width="16" stroke-linecap="round"/>
-    <path d="M82,140 Q92,160 100,168" fill="none" stroke="#e8ede9" stroke-width="16" stroke-linecap="round"/>
-    <ellipse cx="37" cy="175" rx="10" ry="7" fill="#8a9a90"/>
-    <ellipse cx="103" cy="171" rx="10" ry="7" fill="#8a9a90"/>
-    <!-- Torso (suit) -->
-    <rect x="42" y="78" width="56" height="66" rx="24" fill="#f2f5f2"/>
-    <!-- Chest control panel -->
-    <rect x="56" y="98" width="28" height="18" rx="3" fill="#2a3a30"/>
-    <circle cx="62" cy="107" r="2.4" fill="#4cc38a"/>
-    <circle cx="70" cy="107" r="2.4" fill="#52c2d8"/>
-    <circle cx="78" cy="107" r="2.4" fill="#ffb432"/>
-    <!-- Arms -->
-    <path d="M44,90 Q14,96 10,128" fill="none" stroke="#f2f5f2" stroke-width="17" stroke-linecap="round"/>
-    <circle cx="9" cy="131" r="10" fill="#c9d4cc"/>
-    <path d="M96,90 Q120,84 118,58" fill="none" stroke="#f2f5f2" stroke-width="17" stroke-linecap="round"/>
-    <circle cx="119" cy="55" r="10" fill="#c9d4cc"/>
-    <!-- Helmet -->
-    <circle cx="70" cy="52" r="34" fill="#eef2ef"/>
-    <ellipse cx="70" cy="52" rx="26" ry="27" fill="#0a1f14"/>
-    <ellipse cx="70" cy="52" rx="26" ry="27" fill="url(#visorSheen)"/>
-    <path d="M52,38 Q70,26 88,38" fill="none" stroke="#4cc38a" stroke-width="2" opacity=".55"/>
-    <defs>
-      <linearGradient id="visorSheen" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#4dffb0" stop-opacity=".55"/>
-        <stop offset="45%" stop-color="#0a1f14" stop-opacity="0"/>
-        <stop offset="100%" stop-color="#0a1f14" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-  </svg>
 
   <div class="cine-vignette"></div>
 
@@ -1124,121 +1074,6 @@ button,.pc-btn,.mode-toggle,.wtab{transition:background .15s ease,border-color .
   <p class="cine-in" style="animation-delay:.45s;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:6px;color:rgba(106,211,232,.6);text-align:center;margin-top:4px;margin-bottom:8px;position:relative;z-index:2">AGRISAT</p>
   <div class="cine-in" style="animation-delay:.6s;width:48px;height:1px;background:rgba(76,195,138,.25);margin-bottom:24px;position:relative;z-index:2"></div>
 
-  <!-- RRM LOGO — animated -->
-  <div class="cine-in" style="animation-delay:.65s;margin-bottom:20px;filter:drop-shadow(0 0 16px rgba(26,80,40,.45));position:relative;z-index:2">
-    <svg width="220" height="220" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="display:block">
-      <defs>
-        <!-- NOTE: the sway/float animations previously here used
-             transform-box:fill-box on <g> elements, which several browsers
-             compute inconsistently — it was flinging the wheat/plant/leaf
-             groups outside the 512x512 canvas (visible as a stray leaf
-             poking out top-left of the logo). Keeping only the signal-wave
-             pulse, which animates opacity only and has no transform-box
-             dependency. -->
-        <style>
-          .rrm-sig{animation:rrmSig 1.8s ease-in-out infinite}
-          .rrm-sig2{animation:rrmSig 1.8s ease-in-out infinite;animation-delay:.3s}
-          .rrm-sig3{animation:rrmSig 1.8s ease-in-out infinite;animation-delay:.6s}
-          @keyframes rrmSig{0%,100%{opacity:.15}50%{opacity:.95}}
-        </style>
-      </defs>
-
-      <!-- Blue orbit arc — from lower-left, over top, to lower-right (~270°) -->
-      <path d="M 110,396 A 208,208 0 1,1 402,396" fill="none" stroke="#1a3a8a" stroke-width="11" stroke-linecap="round"/>
-
-      <!-- Farm terrain bands -->
-      <path d="M 122,186 Q 189,162 256,164 Q 324,162 390,186 Q 324,178 256,180 Q 189,178 122,186 Z" fill="#3a8a36"/>
-      <path d="M 94,206 Q 175,182 256,184 Q 337,182 418,206 Q 337,198 256,200 Q 175,198 94,206 Z" fill="#2a6a28"/>
-      <path d="M 76,225 Q 165,202 256,204 Q 347,202 436,225 Q 347,218 256,220 Q 165,218 76,225 Z" fill="#1a4e1a"/>
-      <!-- Terrain grid lines -->
-      <line x1="158" y1="167" x2="105" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
-      <line x1="196" y1="164" x2="157" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
-      <line x1="227" y1="163" x2="208" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
-      <line x1="256" y1="163" x2="256" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
-      <line x1="286" y1="163" x2="305" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
-      <line x1="317" y1="164" x2="357" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
-      <line x1="356" y1="167" x2="409" y2="225" stroke="#0a280a" stroke-width="1.5" opacity=".5"/>
-      <path d="M 93,195 Q 174,180 256,182 Q 338,180 420,195" fill="none" stroke="#0a280a" stroke-width="1.2" opacity=".45"/>
-      <path d="M 78,213 Q 165,200 256,202 Q 347,200 435,213" fill="none" stroke="#0a280a" stroke-width="1.2" opacity=".45"/>
-
-      <!-- Satellite (floating group) -->
-      <g id="rrm-sat-g">
-        <g transform="translate(130,88) rotate(-32)">
-          <!-- Left solar panel -->
-          <rect x="-80" y="-14" width="56" height="28" rx="3" fill="#1a3a8a"/>
-          <line x1="-63" y1="-14" x2="-63" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
-          <line x1="-46" y1="-14" x2="-46" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
-          <line x1="-29" y1="-14" x2="-29" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
-          <line x1="-80" y1="-5" x2="-24" y2="-5" stroke="#3a5aaa" stroke-width="1"/>
-          <line x1="-80" y1="5" x2="-24" y2="5" stroke="#3a5aaa" stroke-width="1"/>
-          <rect x="-24" y="-5" width="14" height="10" rx="2" fill="#0e2068"/>
-          <!-- Right solar panel -->
-          <rect x="24" y="-14" width="56" height="28" rx="3" fill="#1a3a8a"/>
-          <line x1="41" y1="-14" x2="41" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
-          <line x1="58" y1="-14" x2="58" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
-          <line x1="75" y1="-14" x2="75" y2="14" stroke="#3a5aaa" stroke-width="1.2"/>
-          <line x1="24" y1="-5" x2="80" y2="-5" stroke="#3a5aaa" stroke-width="1"/>
-          <line x1="24" y1="5" x2="80" y2="5" stroke="#3a5aaa" stroke-width="1"/>
-          <rect x="10" y="-5" width="14" height="10" rx="2" fill="#0e2068"/>
-          <!-- Body -->
-          <rect x="-22" y="-30" width="44" height="62" rx="5" fill="#1a3a8a"/>
-          <rect x="-15" y="-24" width="30" height="14" rx="3" fill="#2a4aaa" opacity=".7"/>
-          <circle cx="0" cy="12" r="9" fill="#0e2068"/>
-          <circle cx="0" cy="12" r="5" fill="#081848"/>
-          <!-- Dish arm + bowl -->
-          <line x1="-2" y1="32" x2="6" y2="52" stroke="#1a3a8a" stroke-width="3.5"/>
-          <path d="M -12,52 Q 5,44 22,52" fill="none" stroke="#1a3a8a" stroke-width="5" stroke-linecap="round"/>
-        </g>
-        <!-- Signal waves from dish tip (~163,140) -->
-        <g transform="translate(163,142)">
-          <path class="rrm-sig" d="M -3,-3 A 10,10 0 0,1 10,6" fill="none" stroke="#2d8a3a" stroke-width="2.8" stroke-linecap="round"/>
-          <path class="rrm-sig2" d="M -7,-7 A 18,18 0 0,1 18,12" fill="none" stroke="#2d8a3a" stroke-width="2.2" stroke-linecap="round"/>
-          <path class="rrm-sig3" d="M -12,-12 A 28,28 0 0,1 27,18" fill="none" stroke="#2d8a3a" stroke-width="1.6" stroke-linecap="round"/>
-        </g>
-      </g>
-
-      <!-- RRM Text — R1 dark green, R2 bright green, M dark green -->
-      <text x="50" y="372" font-family="'Arial Black','Franklin Gothic Heavy',Impact,sans-serif"
-            font-size="200" font-weight="900" font-style="italic" fill="#0d4820">R</text>
-      <text x="185" y="372" font-family="'Arial Black','Franklin Gothic Heavy',Impact,sans-serif"
-            font-size="200" font-weight="900" font-style="italic" fill="#52b840">R</text>
-      <text x="310" y="372" font-family="'Arial Black','Franklin Gothic Heavy',Impact,sans-serif"
-            font-size="200" font-weight="900" font-style="italic" fill="#0d4820">M</text>
-
-      <!-- Lower green arc -->
-      <path d="M 90,402 Q 256,466 422,402" fill="none" stroke="#2a6a28" stroke-width="7" stroke-linecap="round"/>
-
-      <!-- Wheat stalk (right side) -->
-      <g id="rrm-wheat-g" transform="translate(388,270)">
-        <path d="M 0,120 C -2,75 -2,30 0,0" stroke="#2a6a28" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        <ellipse cx="-9" cy="12" rx="7" ry="13" fill="#3a8a36" transform="rotate(-22,-9,12)"/>
-        <ellipse cx="9" cy="12" rx="7" ry="13" fill="#2a6a28" transform="rotate(22,9,12)"/>
-        <ellipse cx="-8" cy="32" rx="6" ry="12" fill="#3a8a36" transform="rotate(-18,-8,32)"/>
-        <ellipse cx="8" cy="32" rx="6" ry="12" fill="#2a6a28" transform="rotate(18,8,32)"/>
-        <ellipse cx="-7" cy="50" rx="6" ry="11" fill="#4a9840" transform="rotate(-15,-7,50)"/>
-        <ellipse cx="7" cy="50" rx="6" ry="11" fill="#3a8a36" transform="rotate(15,7,50)"/>
-        <ellipse cx="-6" cy="67" rx="5" ry="10" fill="#4a9840" transform="rotate(-12,-6,67)"/>
-        <ellipse cx="6" cy="67" rx="5" ry="10" fill="#3a8a36" transform="rotate(12,6,67)"/>
-        <ellipse cx="0" cy="-5" rx="5" ry="8" fill="#3a8a36"/>
-      </g>
-
-      <!-- Seedling (bottom center) -->
-      <g id="rrm-plant-g" transform="translate(256,382)">
-        <path d="M 0,60 C 1,38 0,14 0,0" stroke="#2a6a28" stroke-width="3" fill="none" stroke-linecap="round"/>
-        <path d="M 0,28 C -38,14 -46,-8 -24,-22 C -16,-8 -6,10 0,28 Z" fill="#4aa840"/>
-        <path d="M 0,28 C 38,14 46,-8 24,-22 C 16,-8 6,10 0,28 Z" fill="#3a9830"/>
-        <path d="M 0,6 C -10,-2 -12,-14 -5,-22 C -1,-16 0,-5 0,6 Z" fill="#52b840"/>
-        <path d="M 0,6 C 10,-2 12,-14 5,-22 C 1,-16 0,-5 0,6 Z" fill="#42a830"/>
-      </g>
-
-      <!-- Grass blades (bottom left) -->
-      <g id="rrm-leaf-g" transform="translate(155,392)">
-        <path d="M 0,45 C -36,18 -50,-8 -28,-32 C -22,-8 -10,14 0,45 Z" fill="#3a9830"/>
-        <path d="M 0,45 C -4,12 -2,-16 0,-38 C 2,-16 4,12 0,45 Z" fill="#4aa840"/>
-        <path d="M 0,45 C 34,16 46,-12 22,-32 C 16,-8 6,14 0,45 Z" fill="#2a7828"/>
-      </g>
-    </svg>
-  </div>
 
   <p class="cine-in" style="animation-delay:.85s;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(var(--muted-rgb),.5);text-align:center;letter-spacing:.06em;margin-bottom:28px;max-width:280px;position:relative;z-index:2">Enter your ESP32 IP address to connect the dashboard to your field hardware</p>
 

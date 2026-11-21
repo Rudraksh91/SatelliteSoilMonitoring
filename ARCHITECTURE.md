@@ -294,6 +294,20 @@ balance as the daily job. Farm outlines, names and notes stay in the phone's `lo
 - Warnings for fields under 0.2 ha / 0.1 ha; pin + area fallback; optional pump flow (L/h) turns depth into hours.
 - "I irrigated" / "It rained" / "Soil is full today" notes correct the balance (stored per farm on the phone).
 - Advice only: it does not control valves (that needs the Pi + daily job for a specific farm).
+
+### Radar check for cloudy weeks (Sentinel-1)
+Optical Sentinel-2 pictures can be missing for weeks in the monsoon. The farmer app therefore also reads **Sentinel-1 radar**, which
+sees through cloud, and shows a **Radar check** card next to the satellite indices (`farmer/core.js`: `radarSeries`, `radarTrend`, `radarBridge`).
+- Data: Microsoft Planetary Computer `sentinel-1-rtc` (terrain-corrected gamma0, VV + VH, 10 m), found through its STAC search and read as COG
+  windows in the browser with one short-lived read token for the collection. Roughly one pass every 12 days over Dediapada.
+- Method: mean VV/VH over the field's pixels (linear power, then dB), using only passes of the **same orbit track** so they are comparable.
+  The newest VH value is compared with the field's own earlier passes. A change counts only if it is bigger than a speckle noise band that
+  shrinks with the number of pixels averaged (about 2.7 dB for 4 pixels, 0.7 dB from ~100 pixels); fields under 16 pixels are flagged as noisy.
+- When the last clear optical picture is 10+ days old (or missing) the card says so and leans on the radar trend.
+- It is a **check, not a trigger**: it never changes the irrigation decision, because no radar-to-water relation is calibrated here (see "Honest status").
+- Privacy: the approximate field location goes to one more public service. The consent text now names it (consent v2); people who agreed
+  under v1 keep everything else working and are asked once, on the radar card, before any radar request is made.
+- Not yet archived by the daily GitHub job, and not used by the dashboard's campus pages.
 - **Crops:** Cotton, wheat, maize, groundnut, tomato, sugarcane, banana, vegetables or "general" (typical FAO-56 Kcb, depletion
   fraction p, representative root depth, stage lengths). An optional planting date enables a crop-stage Kc curve when satellite
   pictures are stale. These are TYPICAL values — confirm with the faculty / extension officer before relying on them.
