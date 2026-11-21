@@ -1198,8 +1198,61 @@ header{
       ctx.fillStyle='rgba(0,238,252,'+(.5*(1-k/26)).toFixed(3)+')';ctx.beginPath();ctx.arc(p[0],p[1],Math.max(.6,(2.2-k*.07)*R/110),0,6.283);ctx.fill();}
   }
 
+  // ── Agri-space backdrop: aurora sky, curved planet horizon with crop rows, swaying wheat ──
+  function hash(n){var x=Math.sin(n*12.9898)*43758.5453;return x-Math.floor(x);}
+  function drawAurora(t){
+    var blobs=[[.25,.18,.55,'0,255,65',.09],[.75,.30,.5,'0,238,252',.07],[.5,.08,.6,'0,255,120',.06]];
+    for(var b=0;b<blobs.length;b++){var o=blobs[b],bx=W*(o[0]+.08*Math.sin(t*.12+b*2)),by=H*(o[1]+.04*Math.cos(t*.1+b)),br=Math.max(W,H)*o[2]*.7;
+      var g=ctx.createRadialGradient(bx,by,0,bx,by,br);g.addColorStop(0,'rgba('+o[3]+','+o[4]+')');g.addColorStop(1,'rgba('+o[3]+',0)');
+      ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+  }
+  function drawField(t){
+    var hy=H*.79,sag=H*.045,hx=W/2,x;
+    function hyAt(x){var u=(x-hx)/hx;return hy+sag*u*u;}
+    function limb(){ctx.moveTo(0,hyAt(0));for(var x=0;x<=W;x+=W/24)ctx.lineTo(x,hyAt(x));ctx.lineTo(W,hyAt(W));}
+    ctx.save();ctx.beginPath();limb();ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+    var gf=ctx.createLinearGradient(0,hy,0,H);gf.addColorStop(0,'rgba(8,36,22,.95)');gf.addColorStop(1,'rgba(3,14,9,.98)');
+    ctx.fillStyle=gf;ctx.fill();ctx.clip();
+    // strip-crop bands flowing toward the viewer, tinted like a stylised NDVI map
+    var nb=9,sc=t*.05,s=sc%1,cnt=Math.floor(sc),span=H-hy+sag;
+    for(var i=-1;i<nb;i++){
+      var d0=Math.max(0,(i+s)/nb),d1=Math.min(1,(i+1+s)/nb);if(d1<=d0)continue;
+      var y0=hy+span*d0*d0,y1=hy+span*d1*d1,h=hash(i-cnt),
+          col=h<.33?'255,200,60':(h<.66?'120,230,60':'0,255,65'),al=(h<.33?.07:(h<.66?.09:.12))*(.4+.6*d1);
+      ctx.fillStyle='rgba('+col+','+al.toFixed(3)+')';ctx.fillRect(0,y0,W,y1-y0+1);
+    }
+    // furrows converging toward the horizon
+    ctx.strokeStyle='rgba(0,255,65,.11)';ctx.lineWidth=1;ctx.beginPath();
+    for(var k=-14;k<=14;k++){var xh=hx+k*W*.06,xb=hx+k*W*.3;ctx.moveTo(xh,hyAt(xh));ctx.lineTo(xb,H);}
+    ctx.stroke();
+    // satellite scan sweep across the land
+    var sx=((t*.16)%1.4-.2)*W,sg=ctx.createLinearGradient(sx-90,0,sx+90,0);
+    sg.addColorStop(0,'rgba(0,238,252,0)');sg.addColorStop(.5,'rgba(0,238,252,.16)');sg.addColorStop(1,'rgba(0,238,252,0)');
+    ctx.fillStyle=sg;ctx.fillRect(sx-90,hy-4,180,H-hy+8);
+    ctx.fillStyle='rgba(160,250,255,.35)';ctx.fillRect(sx-.5,hy-4,1,H-hy+8);
+    ctx.restore();
+    // glowing planet limb + atmosphere
+    var ag=ctx.createLinearGradient(0,hy-H*.08,0,hy+sag);ag.addColorStop(0,'rgba(0,238,252,0)');ag.addColorStop(1,'rgba(0,255,65,.10)');
+    ctx.fillStyle=ag;ctx.fillRect(0,hy-H*.08,W,H*.08+sag);
+    ctx.save();ctx.beginPath();limb();ctx.strokeStyle='rgba(0,238,252,.55)';ctx.lineWidth=1.5;ctx.shadowColor='#00eefc';ctx.shadowBlur=22;ctx.stroke();ctx.restore();
+  }
+  function drawStalks(t){
+    for(var side=0;side<2;side++)for(var j=0;j<8;j++){
+      var dir=side?-1:1,bx=side?W-(j*W*.014+(j%3)*6)-4:(j*W*.014+(j%3)*6)+4,
+          len=H*(.10+.09*hash(j+side*20)),sway=Math.sin(t*1.2+j*.8+side*2)*len*.06,
+          tx=bx+dir*len*.14+sway,ty=H-len;
+      ctx.strokeStyle='rgba(70,170,70,.55)';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(bx,H+4);ctx.quadraticCurveTo(bx+dir*len*.02,H-len*.55,tx,ty);ctx.stroke();
+      ctx.fillStyle='rgba(255,190,60,.6)';
+      for(var g=0;g<5;g++){var gy=ty+g*7,gx=tx-dir*g*.5;
+        ctx.beginPath();ctx.ellipse(gx-3.5,gy,2.1,5,-.4,0,6.283);ctx.fill();
+        ctx.beginPath();ctx.ellipse(gx+3.5,gy,2.1,5,.4,0,6.283);ctx.fill();}
+      ctx.beginPath();ctx.ellipse(tx,ty-6,2,5,0,0,6.283);ctx.fill();
+    }
+  }
+
   function draw(t){
     ctx.clearRect(0,0,W,H);
+    drawAurora(t);
     // stars
     for(var s=0;s<stars.length;s++){var st=stars[s],x=(st.x*W+t*st.d*5)%W,al=.25+.75*(.5+.5*Math.sin(t*st.s+st.p));
       ctx.fillStyle='rgba('+st.c+','+al.toFixed(3)+')';ctx.fillRect(x,st.y*H,st.r,st.r);}
@@ -1209,6 +1262,8 @@ header{
       g.addColorStop(0,'rgba(255,255,255,.9)');g.addColorStop(1,'rgba(255,255,255,0)');
       ctx.strokeStyle=g;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(shoot.x,shoot.y);ctx.lineTo(shoot.x-shoot.vx*.14,shoot.y-shoot.vy*.14);ctx.stroke();
       if(shoot.l>.9){shoot=null;nextShoot=t+3+Math.random()*3;}}
+
+    drawField(t);
 
     // globe pose: spins in, eases to face the project region
     var p=Math.min(1,t/4.2),e=1-Math.pow(1-p,3);
@@ -1258,6 +1313,7 @@ header{
         ctx.strokeStyle=bm;ctx.lineWidth=1.2;ctx.setLineDash([4,6]);ctx.lineDashOffset=-t*30;ctx.beginPath();ctx.moveTo(sp[0],sp[1]);ctx.lineTo(mx,my);ctx.stroke();ctx.setLineDash([]);}
       drawSat(sp[0],sp[1],R/60*1.15,1);
     }
+    drawStalks(t);
   }
 
   function frame(now){if(done)return;draw((now-t0)/1000);raf=requestAnimationFrame(frame);}
