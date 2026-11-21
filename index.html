@@ -430,6 +430,56 @@ body{
 #welcome-screen.wl-static .wl-sub{letter-spacing:.7em}
 @media(max-height:560px){.wl-orb{height:26vh}.wl-chips{display:none}.wl-btn{margin-top:16px;padding:12px 32px}}
 
+/* ═══════════════════════════════════════════════════════════
+   TAB INTROS — short robot animations when the Auto / Climate tab opens
+   Auto: robot thinking.  Climate: robot standing in a field reading the sky.
+   ═══════════════════════════════════════════════════════════ */
+#tab-intro{position:fixed;z-index:36;left:0;right:0;top:calc(var(--hdr-h,64px) + var(--safe-top,0px));bottom:calc(var(--nav-h,56px) + var(--safe-bottom,0px));overflow:hidden;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:'JetBrains Mono',monospace;transition:opacity .45s ease}
+@media(min-width:768px){#tab-intro{left:80px;bottom:32px}}
+#tab-intro[hidden]{display:none}
+#tab-intro.ti-out{opacity:0;pointer-events:none}
+#tab-intro.ti-auto{background:radial-gradient(ellipse 70% 60% at 50% 42%,#0f2a1f 0%,#070d0b 70%)}
+#tab-intro.ti-auto::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,65,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.05) 1px,transparent 1px);background-size:40px 40px;
+  -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 45%,#000,transparent);mask-image:radial-gradient(ellipse 70% 60% at 50% 45%,#000,transparent)}
+#tab-intro.ti-day{background:linear-gradient(180deg,#3f9bf0 0%,#8fd0ff 52%,#d9f2ff 100%)}
+#tab-intro.ti-night{background:linear-gradient(180deg,#040a1c 0%,#102a52 60%,#1d4a73 100%)}
+.ti-robot{position:relative;z-index:2;height:min(46vh,310px);width:auto;filter:drop-shadow(0 0 18px rgba(0,238,252,.25));animation:tiPop .7s cubic-bezier(.2,1.3,.4,1) both}
+.ti-cap{position:relative;z-index:3;margin-top:14px;font-size:12px;font-weight:700;letter-spacing:.28em;padding-left:.28em}
+.ti-auto .ti-cap{color:#6fe39a}.ti-day .ti-cap{color:#0c3d6b;position:absolute;top:6%;left:0;right:0;margin:0}.ti-night .ti-cap{color:#bfe3ff;position:absolute;top:6%;left:0;right:0;margin:0}
+.ti-cap i{font-style:normal;display:inline-block;animation:tiDot 1.2s infinite}.ti-cap i:nth-child(2){animation-delay:.2s}.ti-cap i:nth-child(3){animation-delay:.4s}
+.ti-hint{position:absolute;z-index:3;bottom:10px;left:0;right:0;font-size:9px;letter-spacing:.2em;color:rgba(255,255,255,.4)}
+.ti-day .ti-hint{color:rgba(12,61,107,.55)}
+/* climate scene */
+.ti-sun{position:absolute;right:12%;top:8%;width:84px;height:84px;border-radius:50%;background:radial-gradient(circle,#fff6c9 0%,#ffd45a 45%,rgba(255,200,60,0) 72%);animation:tiSpin 12s linear infinite}
+.ti-moon{position:absolute;right:14%;top:9%;width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff 0%,#dfe8ff 55%,#aebde0 100%);box-shadow:0 0 30px rgba(190,215,255,.6)}
+.ti-stars{position:absolute;inset:0 0 40% 0;background-image:radial-gradient(1.5px 1.5px at 12% 20%,#fff 50%,transparent),radial-gradient(1px 1px at 30% 48%,#fff 50%,transparent),radial-gradient(1.5px 1.5px at 48% 14%,#fff 50%,transparent),radial-gradient(1px 1px at 66% 40%,#fff 50%,transparent),radial-gradient(1.5px 1.5px at 82% 24%,#fff 50%,transparent),radial-gradient(1px 1px at 92% 52%,#fff 50%,transparent);animation:tiTw 2.5s ease-in-out infinite alternate}
+.ti-cloud{position:absolute;width:110px;height:32px;border-radius:30px;background:rgba(255,255,255,.92);animation:tiDrift linear infinite;opacity:.95}
+.ti-cloud::before,.ti-cloud::after{content:"";position:absolute;background:inherit;border-radius:50%}
+.ti-cloud::before{width:46px;height:46px;left:16px;top:-22px}.ti-cloud::after{width:34px;height:34px;left:56px;top:-14px}
+.ti-night .ti-cloud{background:rgba(160,185,225,.45)}
+.ti-rain{position:absolute;width:2px;height:14px;background:linear-gradient(180deg,rgba(210,235,255,0),rgba(210,235,255,.9));animation:tiRain .9s linear infinite}
+.ti-chip{position:absolute;z-index:3;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:14px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.55);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#06324f;box-shadow:0 6px 22px rgba(0,40,90,.18);opacity:0;animation:tiChip .7s cubic-bezier(.2,1.2,.4,1) forwards,tiFloat 3.4s ease-in-out infinite alternate}
+.ti-night .ti-chip{background:rgba(255,255,255,.1);border-color:rgba(190,220,255,.4);color:#e6f2ff}
+.ti-chip .material-symbols-outlined{font-size:22px}
+.ti-chip b{font-size:15px;font-weight:800;display:block;line-height:1.1}.ti-chip small{display:block;font-size:8px;letter-spacing:.18em;opacity:.7;text-align:left}
+.ti-ground{position:absolute;left:-10%;right:-10%;bottom:0;height:27%;border-radius:50% 50% 0 0 / 22% 22% 0 0;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.14) 0 3px,transparent 3px 36px),linear-gradient(180deg,#3a9a52 0%,#23653a 45%,#10391f 100%)}
+.ti-field-robot{position:absolute;z-index:2;left:0;right:0;margin:0 auto;bottom:9%;height:min(46%,330px);width:auto;animation:tiPop .8s cubic-bezier(.2,1.3,.4,1) .15s both;filter:drop-shadow(0 8px 10px rgba(0,0,0,.28))}
+.ti-stalk{position:absolute;bottom:-4px;width:3px;border-radius:2px;background:linear-gradient(180deg,#e0b84e,#3e8a55);transform-origin:50% 100%;animation:tiSway 3s ease-in-out infinite alternate;z-index:1}
+.ti-stalk::before{content:"";position:absolute;left:-3px;top:-10px;width:9px;height:18px;border-radius:50%;background:#f0c24b;box-shadow:0 7px 0 -1px #e4b440,0 13px 0 -2px #d9a936}
+@keyframes tiPop{from{opacity:0;transform:translateY(24px) scale(.8)}to{opacity:1;transform:none}}
+@keyframes tiDot{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes tiChip{from{opacity:0;transform:translateY(16px) scale(.85)}to{opacity:1;transform:none}}
+@keyframes tiFloat{from{margin-top:0}to{margin-top:-9px}}
+@keyframes tiDrift{from{transform:translateX(-160px)}to{transform:translateX(110vw)}}
+@keyframes tiSpin{to{transform:rotate(360deg)}}
+@keyframes tiTw{from{opacity:.5}to{opacity:1}}
+@keyframes tiRain{from{transform:translateY(-10px);opacity:0}20%{opacity:1}to{transform:translateY(120px);opacity:0}}
+@keyframes tiSway{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+@media(prefers-reduced-motion:reduce){#tab-intro *{animation:none!important;opacity:1!important}}
+
 /* ── PULSE & GLOW ── */
 .pulse-node{animation:pnode 2.2s infinite}
 @keyframes pnode{0%{transform:scale(.95);box-shadow:0 0 0 0 var(--pg)}70%{transform:scale(1);box-shadow:0 0 0 10px rgba(0,255,65,0)}100%{transform:scale(.95);box-shadow:0 0 0 0 rgba(0,255,65,0)}}
@@ -3749,6 +3799,7 @@ function nav(id){
   if(id==='climate')setTimeout(()=>Object.values(charts).forEach(c=>c.resize()),100);
   // Timeline auto-scroll to "now" needs the tab actually visible/measurable
   if(id==='auto'){applyFarmToAutoPage();ensureFarmerPlan();setTimeout(()=>{if(typeof renderTimeline==='function')renderTimeline();},50);}
+  if(typeof tabIntro==='function')tabIntro(id);   // robot intro for the Auto and Climate tabs
 }
 
 // ══════════════════════════════════════════════════
@@ -4637,6 +4688,98 @@ updateClock();
     <button onclick="nav('farmers')" class="font-label-caps px-4 py-2 rounded border border-primary/50 text-primary bg-primary/10">ADD MY FARM</button>
   </div>
 </div>
+
+<!-- ═══ TAB INTROS: robot animations for the Auto and Climate tabs ═══ -->
+<div id="tab-intro" hidden aria-hidden="true"></div>
+<script>
+// Short intro when the Auto tab (robot thinking) or the Climate tab (robot in a field reading the sky) opens. Tap anywhere to skip.
+// The climate numbers shown in the sky are the real current Open-Meteo readings for the active location; "—" when they are not loaded.
+(function(){
+  var timer=null,last=null;
+  var el=function(){return document.getElementById('tab-intro');};
+  var THINK='<svg class="ti-robot" viewBox="0 0 240 260" aria-hidden="true"><defs><linearGradient id="tiM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f8f5"/><stop offset="1" stop-color="#a7b8ad"/></linearGradient></defs>'
+  +'<g transform="translate(46,56)"><g><circle r="17" fill="none" stroke="#6fe39a" stroke-width="7" stroke-dasharray="5.34 5.34"/><circle r="11" fill="#0e2a1d" stroke="#6fe39a" stroke-width="2"/><circle r="3" fill="#6fe39a"/><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="6s" repeatCount="indefinite"/></g></g>'
+  +'<g transform="translate(84,30)"><g><circle r="12" fill="none" stroke="#00dbe9" stroke-width="6" stroke-dasharray="3.77 3.77"/><circle r="7" fill="#0b2a30" stroke="#00dbe9" stroke-width="2"/><animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="4.4s" repeatCount="indefinite"/></g></g>'
+  +'<circle cx="178" cy="80" r="3.5" fill="#d9fbe6"><animate attributeName="opacity" values=".2;.9;.2" dur="1.6s" repeatCount="indefinite"/></circle>'
+  +'<circle cx="188" cy="66" r="5.5" fill="#d9fbe6"><animate attributeName="opacity" values=".2;.9;.2" begin=".3s" dur="1.6s" repeatCount="indefinite"/></circle>'
+  +'<ellipse cx="196" cy="30" rx="38" ry="22" fill="#d9fbe6"/>'
+  +'<circle cx="180" cy="30" r="4" fill="#0f7a42"><animate attributeName="r" values="3;6;3" dur="1.2s" repeatCount="indefinite"/></circle>'
+  +'<circle cx="196" cy="30" r="4" fill="#0f7a42"><animate attributeName="r" values="3;6;3" begin=".2s" dur="1.2s" repeatCount="indefinite"/></circle>'
+  +'<circle cx="212" cy="30" r="4" fill="#0f7a42"><animate attributeName="r" values="3;6;3" begin=".4s" dur="1.2s" repeatCount="indefinite"/></circle>'
+  +'<rect x="84" y="168" width="72" height="72" rx="22" fill="url(#tiM)"/><rect x="100" y="186" width="40" height="24" rx="8" fill="#0e2a1d"/>'
+  +'<circle cx="112" cy="198" r="3" fill="#6fe39a"><animate attributeName="opacity" values="1;.3;1" dur="1.1s" repeatCount="indefinite"/></circle>'
+  +'<circle cx="120" cy="198" r="3" fill="#00eefc"><animate attributeName="opacity" values="1;.3;1" begin=".25s" dur="1.1s" repeatCount="indefinite"/></circle>'
+  +'<circle cx="128" cy="198" r="3" fill="#ffb432"><animate attributeName="opacity" values="1;.3;1" begin=".5s" dur="1.1s" repeatCount="indefinite"/></circle>'
+  +'<path d="M88 184 Q62 204 72 232" fill="none" stroke="#c6d3cb" stroke-width="13" stroke-linecap="round"/><circle cx="72" cy="234" r="9" fill="#9fb0a5"/>'
+  +'<g><line x1="120" y1="80" x2="120" y2="58" stroke="#8fa398" stroke-width="4" stroke-linecap="round"/><circle cx="120" cy="52" r="7" fill="#ff9b3d"><animate attributeName="opacity" values="1;.35;1" dur="1s" repeatCount="indefinite"/></circle>'
+  +'<rect x="58" y="108" width="12" height="30" rx="6" fill="#8fa398"/><rect x="170" y="108" width="12" height="30" rx="6" fill="#8fa398"/>'
+  +'<rect x="66" y="78" width="108" height="84" rx="28" fill="url(#tiM)"/><rect x="78" y="94" width="84" height="46" rx="18" fill="#08150f"/>'
+  +'<g><ellipse cx="102" cy="117" rx="7" ry="7" fill="#00eefc"><animate attributeName="ry" values="7;7;1;7;7" keyTimes="0;.88;.92;.96;1" dur="3.4s" repeatCount="indefinite"/></ellipse>'
+  +'<ellipse cx="138" cy="117" rx="7" ry="7" fill="#00eefc"><animate attributeName="ry" values="7;7;1;7;7" keyTimes="0;.88;.92;.96;1" dur="3.4s" repeatCount="indefinite"/></ellipse>'
+  +'<animateTransform attributeName="transform" type="translate" values="0 0;6 -4;-6 -4;0 0" dur="4s" repeatCount="indefinite"/></g>'
+  +'<path d="M112 150 q8 5 16 0" stroke="#4a5b51" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
+  +'<animateTransform attributeName="transform" type="rotate" values="-3 120 170;3 120 170;-3 120 170" dur="3.2s" repeatCount="indefinite"/></g>'
+  +'<path d="M152 186 Q184 182 156 160" fill="none" stroke="#c6d3cb" stroke-width="13" stroke-linecap="round"/><circle cx="154" cy="158" r="9" fill="#9fb0a5"/></svg>';
+  var FIELDBOT='<svg class="ti-field-robot" viewBox="0 0 160 250" aria-hidden="true"><defs><linearGradient id="tiM2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f8f5"/><stop offset="1" stop-color="#a7b8ad"/></linearGradient></defs>'
+  +'<ellipse cx="80" cy="244" rx="46" ry="6" fill="rgba(0,0,0,.25)"/>'
+  +'<rect x="58" y="196" width="16" height="44" rx="7" fill="#9fb0a5"/><rect x="86" y="196" width="16" height="44" rx="7" fill="#9fb0a5"/><ellipse cx="66" cy="241" rx="15" ry="7" fill="#6f8176"/><ellipse cx="94" cy="241" rx="15" ry="7" fill="#6f8176"/>'
+  +'<rect x="48" y="126" width="64" height="78" rx="20" fill="url(#tiM2)"/><rect x="62" y="146" width="36" height="22" rx="7" fill="#0e2a1d"/>'
+  +'<circle cx="70" cy="157" r="3" fill="#6fe39a"/><circle cx="80" cy="157" r="3" fill="#00eefc"/><circle cx="90" cy="157" r="3" fill="#ffb432"/>'
+  +'<path d="M52 142 Q32 168 40 196" fill="none" stroke="#c6d3cb" stroke-width="12" stroke-linecap="round"/><circle cx="40" cy="198" r="8" fill="#9fb0a5"/>'
+  +'<g><path d="M108 142 Q136 126 130 86" fill="none" stroke="#c6d3cb" stroke-width="12" stroke-linecap="round"/><circle cx="130" cy="82" r="8" fill="#9fb0a5"/>'
+  +'<animateTransform attributeName="transform" type="rotate" values="0 108 142;-7 108 142;0 108 142" dur="2.6s" repeatCount="indefinite"/></g>'
+  +'<g><line x1="80" y1="52" x2="80" y2="34" stroke="#8fa398" stroke-width="4" stroke-linecap="round"/><circle cx="80" cy="28" r="6" fill="#ff9b3d"><animate attributeName="opacity" values="1;.35;1" dur="1s" repeatCount="indefinite"/></circle>'
+  +'<rect x="26" y="78" width="9" height="24" rx="4" fill="#8fa398"/><rect x="125" y="78" width="9" height="24" rx="4" fill="#8fa398"/>'
+  +'<rect x="32" y="52" width="96" height="74" rx="26" fill="url(#tiM2)"/><rect x="44" y="62" width="72" height="42" rx="16" fill="#08150f"/>'
+  +'<g><ellipse cx="64" cy="80" rx="6" ry="6" fill="#00eefc"/><ellipse cx="96" cy="80" rx="6" ry="6" fill="#00eefc"/><animateTransform attributeName="transform" type="translate" values="2 -2;5 -4;2 -2" dur="3s" repeatCount="indefinite"/></g>'
+  +'<ellipse cx="80" cy="114" rx="4" ry="5" fill="#4a5b51"/>'
+  +'<animateTransform attributeName="transform" type="rotate" values="6 80 128;10 80 128;6 80 128" dur="3s" repeatCount="indefinite"/></g></svg>';
+
+  function climate(e){
+    var c=(typeof weatherData!=='undefined'&&weatherData&&weatherData.current)||null;
+    var day=!(c&&c.is_day===0);
+    e.classList.add(day?'ti-day':'ti-night');
+    var f=function(v,d,u){return(v==null||isNaN(v))?'—':Number(v).toFixed(d)+u;};
+    var chip=function(pos,icon,val,lbl,delay){return '<div class="ti-chip" style="'+pos+';animation-delay:'+delay+'s,'+(delay+.7)+'s"><span class="material-symbols-outlined">'+icon+'</span><span><b>'+val+'</b><small>'+lbl+'</small></span></div>';};
+    var h=(day?'<div class="ti-sun"></div>':'<div class="ti-stars"></div><div class="ti-moon"></div>');
+    h+='<div class="ti-cloud" style="top:14%;animation-duration:19s;animation-delay:-4s"></div><div class="ti-cloud" style="top:30%;transform:scale(.8);animation-duration:26s;animation-delay:-14s"></div><div class="ti-cloud" style="top:46%;animation-duration:22s;animation-delay:-9s;opacity:.7"></div>';
+    if(c&&c.precipitation>0){for(var i=0;i<16;i++)h+='<div class="ti-rain" style="left:'+(6+i*5.8).toFixed(1)+'%;top:'+(18+(i*7)%22)+'%;animation-delay:'+((i*.13)%1).toFixed(2)+'s"></div>';}
+    h+='<div class="ti-cap">CHECKING THE SKY<i>.</i><i>.</i><i>.</i></div>';
+    h+=chip('left:7%;top:17%','thermostat',f(c&&c.temperature_2m,1,'°C'),'TEMPERATURE',.5);
+    h+=chip('right:7%;top:23%','water_drop',f(c&&c.relative_humidity_2m,0,'%'),'HUMIDITY',.8);
+    h+=chip('left:12%;top:36%','air',f(c&&c.wind_speed_10m,0,' km/h'),'WIND',1.1);
+    h+=chip('right:11%;top:41%','rainy',f(c&&c.precipitation,1,' mm'),'RAIN NOW',1.4);
+    h+='<div class="ti-ground"></div><div class="ti-stalks" style="position:absolute;left:0;right:0;bottom:0;height:80px;z-index:1">';
+    for(var j=0;j<24;j++){var hh=36+((j*37)%40);h+='<div class="ti-stalk" style="left:'+(j*4.2+1).toFixed(1)+'%;height:'+hh+'px;animation-delay:'+((j*.37)%3).toFixed(2)+'s"></div>';}
+    h+='</div>'+FIELDBOT+'<div class="ti-hint">TAP TO SKIP</div>';
+    e.innerHTML=h;
+  }
+  function show(id){
+    var e=el();if(!e)return;clearTimeout(timer);
+    var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+    e.className='';
+    if(id==='auto'){e.classList.add('ti-auto');e.innerHTML=THINK+'<div class="ti-cap">AUTOPILOT IS THINKING<i>.</i><i>.</i><i>.</i></div><div class="ti-hint">TAP TO SKIP</div>';}
+    else climate(e);
+    e.hidden=false;
+    if(reduce){var s=e.querySelectorAll('svg');for(var k=0;k<s.length;k++)if(s[k].pauseAnimations)s[k].pauseAnimations();}
+    timer=setTimeout(function(){hide();},reduce?1200:(id==='auto'?2800:3300));
+  }
+  function hide(instant){
+    var e=el();if(!e||e.hidden)return;clearTimeout(timer);
+    if(instant){e.hidden=true;e.classList.remove('ti-out');return;}
+    e.classList.add('ti-out');timer=setTimeout(function(){e.hidden=true;e.classList.remove('ti-out');},450);
+  }
+  window.tabIntro=function(id){
+    var again=(id===last);last=id;
+    if(id!=='auto'&&id!=='climate'){hide(true);return;}
+    if(again)return;                                   // clicking the tab that is already open does nothing
+    if(document.getElementById('welcome-screen'))return; // the welcome screen is still up
+    show(id);
+  };
+  document.addEventListener('DOMContentLoaded',function(){var e=el();if(e)e.addEventListener('click',function(){hide();});});
+  document.addEventListener('keydown',function(ev){if(ev.key==='Escape')hide();});
+})();
+</script>
 
 <!-- ═══ SCREEN ROTATION HINT ═══ -->
 <div id="rotation-hint" role="status" aria-live="polite">
