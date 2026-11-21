@@ -462,6 +462,12 @@ body{
 .ti-chip{position:absolute;z-index:3;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:14px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.55);
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#06324f;box-shadow:0 6px 22px rgba(0,40,90,.18);opacity:0;animation:tiChip .7s cubic-bezier(.2,1.2,.4,1) forwards,tiFloat 3.4s ease-in-out infinite alternate}
 .ti-night .ti-chip{background:rgba(255,255,255,.1);border-color:rgba(190,220,255,.4);color:#e6f2ff}
+.ti-card{position:absolute;z-index:3;width:clamp(116px,30vw,150px);padding:7px 10px 6px;border-radius:14px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.6);color:#06324f;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 6px 22px rgba(0,40,90,.18);opacity:0;animation:tiChip .7s cubic-bezier(.2,1.2,.4,1) forwards,tiFloat 3.6s ease-in-out infinite alternate}
+.ti-night .ti-card{background:rgba(255,255,255,.1);border-color:rgba(190,220,255,.4);color:#e6f2ff}
+.ti-card .ti-ct{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px}
+.ti-card .ti-ct span{font-size:8px;letter-spacing:.12em;font-weight:700;opacity:.75}.ti-card .ti-ct b{font-size:11px;font-weight:800;white-space:nowrap}
+.ti-card svg{display:block;width:100%;height:auto;overflow:visible}
 .ti-chip .material-symbols-outlined{font-size:22px}
 .ti-chip b{font-size:15px;font-weight:800;display:block;line-height:1.1}.ti-chip small{display:block;font-size:8px;letter-spacing:.18em;opacity:.7;text-align:left}
 .ti-ground{position:absolute;left:-10%;right:-10%;bottom:0;height:27%;border-radius:50% 50% 0 0 / 22% 22% 0 0;
@@ -4735,7 +4741,39 @@ updateClock();
   +'<ellipse cx="80" cy="114" rx="4" ry="5" fill="#4a5b51"/>'
   +'<animateTransform attributeName="transform" type="rotate" values="6 80 128;10 80 128;6 80 128" dur="3s" repeatCount="indefinite"/></g></svg>';
 
-  function climate(e){
+  // ── mini charts for the Analytics intro: drawn only from real data already on the page (Open-Meteo hourly series, the zone NDVI values); empty axes when a series is missing ──
+  function hourly(key){
+    try{var hd=weatherData&&weatherData.hourly;if(!hd||!hd[key]||!hd.time)return null;
+      var i0=now_idx(hd.time),v=hd[key].slice(i0,i0+24).filter(function(x){return typeof x==='number';});return v.length>=4?v:null;}catch(err){return null;}
+  }
+  var CW=130,CH=52;
+  function axes(){return '<line x1="2" y1="'+(CH-2)+'" x2="'+(CW-2)+'" y2="'+(CH-2)+'" stroke="currentColor" stroke-opacity=".35" stroke-width="1"/>';}
+  function lineSvg(v,col,fill){
+    if(!v)return '<svg viewBox="0 0 '+CW+' '+CH+'">'+axes()+'<line x1="4" y1="'+(CH/2)+'" x2="'+(CW-4)+'" y2="'+(CH/2)+'" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="3 4"/></svg>';
+    var mn=Math.min.apply(null,v),mx=Math.max.apply(null,v),rg=(mx-mn)||1,pts=v.map(function(y,i){return[(4+i*(CW-8)/(v.length-1)).toFixed(1),(CH-8-(y-mn)/rg*(CH-16)).toFixed(1)];});
+    var d='M'+pts.map(function(p){return p.join(' ');}).join(' L');
+    return '<svg viewBox="0 0 '+CW+' '+CH+'">'+axes()+(fill?'<path d="'+d+' L'+(CW-4)+' '+(CH-2)+' L4 '+(CH-2)+' Z" fill="'+col+'" opacity="0"><animate attributeName="opacity" from="0" to=".22" begin="1s" dur=".8s" fill="freeze"/></path>':'')
+      +'<path d="'+d+'" pathLength="1" fill="none" stroke="'+col+'" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1" stroke-dashoffset="1"><animate attributeName="stroke-dashoffset" from="1" to="0" begin=".5s" dur="1.3s" fill="freeze"/></path></svg>';
+  }
+  function barSvg(v,max,col){
+    if(!v)return '<svg viewBox="0 0 '+CW+' '+CH+'">'+axes()+'</svg>';
+    var n=v.length,bw=(CW-8)/n,out='<svg viewBox="0 0 '+CW+' '+CH+'">'+axes();
+    for(var i=0;i<n;i++){var h=Math.max(0,Math.min(1,v[i]/max))*(CH-10),x=4+i*bw+bw*.16,y=CH-2-h;
+      if(h>.4)out+='<rect x="'+x.toFixed(1)+'" y="'+(CH-2)+'" width="'+(bw*.68).toFixed(1)+'" height="0" rx="2" fill="'+col+'"><animate attributeName="y" from="'+(CH-2)+'" to="'+y.toFixed(1)+'" begin="'+(.5+i*.07).toFixed(2)+'s" dur=".5s" fill="freeze"/><animate attributeName="height" from="0" to="'+h.toFixed(1)+'" begin="'+(.5+i*.07).toFixed(2)+'s" dur=".5s" fill="freeze"/></rect>';}
+    return out+'</svg>';
+  }
+  function card(pos,title,val,svg,delay){return '<div class="ti-card" style="'+pos+';animation-delay:'+delay+'s,'+(delay+.7)+'s"><div class="ti-ct"><span>'+title+'</span><b>'+val+'</b></div>'+svg+'</div>';}
+  function cards(){
+    var t=hourly('temperature_2m'),hu=hourly('relative_humidity_2m'),r=hourly('precipitation'),rb=null,rsum=null;
+    if(r){rb=[];for(var i=0;i+1<r.length&&rb.length<12;i+=2)rb.push((r[i]||0)+(r[i+1]||0));rsum=r.reduce(function(a,b){return a+b;},0);}
+    var nd=[];for(var z=0;z<3;z++){var el0=document.getElementById('zone-ndvi-'+z),x=el0?parseFloat(el0.textContent):NaN;if(!isNaN(x))nd.push(x);}
+    var rng=function(a,u){return a?Math.round(Math.min.apply(null,a))+'–'+Math.round(Math.max.apply(null,a))+u:'—';};
+    return card('left:5%;top:11%','TEMP · 24H',rng(t,'°C'),lineSvg(t,'#ff9b3d',true),.5)
+      +card('right:5%;top:16%','HUMIDITY · 24H',rng(hu,'%'),lineSvg(hu,'#1a8fd8',true),.8)
+      +card('left:5%;top:27%','RAIN · 24H',rsum==null?'—':rsum.toFixed(1)+' mm',barSvg(rb,Math.max(2,rb?Math.max.apply(null,rb):0),'#2a7bd8'),1.1)
+      +card('right:5%;top:32%','NDVI · ZONES',nd.length?(nd.reduce(function(a,b){return a+b;},0)/nd.length).toFixed(2)+' avg':'—',barSvg(nd.length?nd:null,1,'#2fae5a'),1.4);
+  }
+  function climate(e,mode){
     var c=(typeof weatherData!=='undefined'&&weatherData&&weatherData.current)||null;
     var day=!(c&&c.is_day===0);
     e.classList.add(day?'ti-day':'ti-night');
@@ -4744,11 +4782,15 @@ updateClock();
     var h=(day?'<div class="ti-sun"></div>':'<div class="ti-stars"></div><div class="ti-moon"></div>');
     h+='<div class="ti-cloud" style="top:14%;animation-duration:19s;animation-delay:-4s"></div><div class="ti-cloud" style="top:30%;transform:scale(.8);animation-duration:26s;animation-delay:-14s"></div><div class="ti-cloud" style="top:46%;animation-duration:22s;animation-delay:-9s;opacity:.7"></div>';
     if(c&&c.precipitation>0){for(var i=0;i<16;i++)h+='<div class="ti-rain" style="left:'+(6+i*5.8).toFixed(1)+'%;top:'+(18+(i*7)%22)+'%;animation-delay:'+((i*.13)%1).toFixed(2)+'s"></div>';}
-    h+='<div class="ti-cap">CHECKING THE SKY<i>.</i><i>.</i><i>.</i></div>';
-    h+=chip('left:7%;top:17%','thermostat',f(c&&c.temperature_2m,1,'°C'),'TEMPERATURE',.5);
-    h+=chip('right:7%;top:23%','water_drop',f(c&&c.relative_humidity_2m,0,'%'),'HUMIDITY',.8);
-    h+=chip('left:12%;top:36%','air',f(c&&c.wind_speed_10m,0,' km/h'),'WIND',1.1);
-    h+=chip('right:11%;top:41%','rainy',f(c&&c.precipitation,1,' mm'),'RAIN NOW',1.4);
+    if(mode==='analytics'){
+      h+='<div class="ti-cap">READING THE GRAPHS<i>.</i><i>.</i><i>.</i></div>'+cards();
+    }else{
+      h+='<div class="ti-cap">CHECKING THE SKY<i>.</i><i>.</i><i>.</i></div>';
+      h+=chip('left:7%;top:17%','thermostat',f(c&&c.temperature_2m,1,'°C'),'TEMPERATURE',.5);
+      h+=chip('right:7%;top:23%','water_drop',f(c&&c.relative_humidity_2m,0,'%'),'HUMIDITY',.8);
+      h+=chip('left:12%;top:36%','air',f(c&&c.wind_speed_10m,0,' km/h'),'WIND',1.1);
+      h+=chip('right:11%;top:41%','rainy',f(c&&c.precipitation,1,' mm'),'RAIN NOW',1.4);
+    }
     h+='<div class="ti-ground"></div><div class="ti-stalks" style="position:absolute;left:0;right:0;bottom:0;height:80px;z-index:1">';
     for(var j=0;j<24;j++){var hh=36+((j*37)%40);h+='<div class="ti-stalk" style="left:'+(j*4.2+1).toFixed(1)+'%;height:'+hh+'px;animation-delay:'+((j*.37)%3).toFixed(2)+'s"></div>';}
     h+='</div>'+FIELDBOT+'<div class="ti-hint">TAP TO SKIP</div>';
@@ -4759,10 +4801,10 @@ updateClock();
     var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
     e.className='';
     if(id==='auto'){e.classList.add('ti-auto');e.innerHTML=THINK+'<div class="ti-cap">AUTOPILOT IS THINKING<i>.</i><i>.</i><i>.</i></div><div class="ti-hint">TAP TO SKIP</div>';}
-    else climate(e);
+    else climate(e,id==='ndvi'?'analytics':'climate');
     e.hidden=false;
     if(reduce){var s=e.querySelectorAll('svg');for(var k=0;k<s.length;k++)if(s[k].pauseAnimations)s[k].pauseAnimations();}
-    timer=setTimeout(function(){hide();},reduce?1200:(id==='auto'?2800:3300));
+    timer=setTimeout(function(){hide();},reduce?1200:(id==='auto'?2800:(id==='ndvi'?3800:3300)));
   }
   function hide(instant){
     var e=el();if(!e||e.hidden)return;clearTimeout(timer);
@@ -4771,7 +4813,7 @@ updateClock();
   }
   window.tabIntro=function(id){
     var again=(id===last);last=id;
-    if(id!=='auto'&&id!=='climate'){hide(true);return;}
+    if(id!=='auto'&&id!=='climate'&&id!=='ndvi'){hide(true);return;}
     if(again)return;                                   // clicking the tab that is already open does nothing
     if(document.getElementById('welcome-screen'))return; // the welcome screen is still up
     show(id);
