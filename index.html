@@ -54,9 +54,9 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261121l"></script>
-<script src="farmer/ndvimap.js?v=20261121l"></script>
-<script src="farmer/i18n.js?v=20261121l"></script>
+<script src="farmer/core.js?v=20261121m"></script>
+<script src="farmer/ndvimap.js?v=20261121m"></script>
+<script src="farmer/i18n.js?v=20261121m"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -801,6 +801,7 @@ header{
   mix-blend-mode:screen;
   opacity:.85;
 }
+@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes map-rainfall{
   0%{background-position:0 -20px,0 -30px}
   100%{background-position:-40px 100px,-60px 140px}
@@ -1134,7 +1135,7 @@ header{
   <div class="flex items-center gap-md">
     <span class="font-label-caps text-label-caps text-on-surface-variant/60 text-[10px] hidden xl:block" id="api-status">API: CONNECTING...</span>
     <div class="flex items-center gap-sm text-on-surface-variant">
-      <span class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">rss_feed</span>
+      <span id="feed-btn" role="button" tabindex="0" aria-label="Live data feeds" title="Live data feeds: weather, satellite, soil, controller" onclick="openFeedsModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openFeedsModal();}" class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">rss_feed</span>
       <span class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">speed</span>
       <!-- Theme toggle -->
       <span id="theme-toggle-icon" onclick="toggleTheme()" class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">dark_mode</span>
@@ -2319,6 +2320,8 @@ async function fetchWeather(){
     buildAllCharts(d);
     const t=new Date().toLocaleTimeString('en-GB',{hour12:false});
     set('api-status','API: LIVE ✓ '+t);
+    _wxOkAt=Date.now();_wxErr='';{const fb=document.getElementById('feed-btn');if(fb)fb.style.color='#00ff41';}
+    if(document.getElementById('feeds-modal').classList.contains('show'))renderFeeds();
     set('api-time',t);
     set('health-api-time','Last fetch: '+t);
     set('health-api','LIVE');
@@ -2331,6 +2334,7 @@ async function fetchWeather(){
       logSystemEvent(`OPEN METEO SYNC COMPLETE — TEMP ${S.tmp.toFixed(1)}°C · PRECIP PROB ${S.precip_prob.toFixed(0)}% (FARM-WIDE)`);
   }catch(e){
     set('api-status','API: ERROR — '+e.message);
+    _wxErr=e.message;{const fb=document.getElementById('feed-btn');if(fb)fb.style.color='#ff6e6e';}
     set('health-api','ERROR');
     set('cc-uplink','ERROR');
     console.warn('Open-Meteo fetch failed:',e);
@@ -3472,6 +3476,57 @@ function nav(id){
 }
 
 // ══════════════════════════════════════════════════
+// LIVE DATA FEEDS sheet (header rss icon): where each data source stands, and a "refresh all" button
+// ══════════════════════════════════════════════════
+var _wxOkAt=0,_wxErr='';
+function _ago(ms){if(!ms)return '—';const m=Math.round((Date.now()-ms)/60000);if(m<1)return 'just now';if(m<60)return m+' min ago';const h=Math.round(m/60);if(h<48)return h+' h ago';return Math.round(h/24)+' days ago';}
+function _dayAge(iso){if(!iso)return null;return Math.max(0,Math.round((Date.now()+5.5*3600e3-new Date(iso+'T00:00:00Z').getTime())/864e5));}
+function _feedRow(name,state,detail,sub){
+  const col={ok:'#00ff41',warn:'#ffb74d',bad:'#ff6e6e',off:'rgba(var(--muted-rgb),.4)'}[state]||'#999',lbl={ok:'LIVE',warn:'WAITING',bad:'PROBLEM',off:'OFF'}[state];
+  return '<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:12px;border:1px solid rgba(var(--overlay-rgb),.08);background:rgba(var(--overlay-rgb),.03)">'
+   +'<span style="flex:0 0 10px;height:10px;border-radius:50%;margin-top:5px;background:'+col+';box-shadow:0 0 8px '+col+'"></span>'
+   +'<div style="min-width:0;flex:1"><div style="display:flex;justify-content:space-between;gap:8px"><span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;font-weight:700;letter-spacing:.04em">'+_esc(name)+'</span><span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;font-weight:700;color:'+col+'">'+lbl+'</span></div>'
+   +'<div style="font-size:12px;color:var(--body-text);margin-top:2px">'+_esc(detail)+'</div>'+(sub?'<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:rgba(var(--muted-rgb),.6);margin-top:2px">'+_esc(sub)+'</div>':'')+'</div></div>';
+}
+function renderFeeds(){
+  const list=document.getElementById('feeds-list');if(!list)return;
+  const A=window.ACTIVE||{},farm=_autoFarm(),rows=[];
+  document.getElementById('feeds-where').textContent=farm?('Selected farm: '+String(A.short||'').toUpperCase()+' · '+A.lat.toFixed(3)+'°N '+A.lng.toFixed(3)+'°E'):'Campus · '+(A.lat?A.lat.toFixed(3)+'°N '+A.lng.toFixed(3)+'°E':'');
+  // weather
+  rows.push(_wxErr?_feedRow('Weather & forecast','bad','Open-Meteo could not be reached: '+_wxErr,'Showing the last values; will retry on refresh'):
+    _wxOkAt?_feedRow('Weather & forecast','ok','Open-Meteo · rain, evaporation (ET₀), temperature, 7-day forecast','Updated '+_ago(_wxOkAt)):_feedRow('Weather & forecast','warn','Waiting for the first reading…',''));
+  // satellite
+  if(farm){
+    const sc=((farm.farm.cache&&farm.farm.cache.ndvi)||[]).filter(x=>x.ndvi!=null).sort((a,b)=>a.date<b.date?1:-1),n=sc[0];
+    if(n){const age=_dayAge(n.date),has=[n.ndvi!=null?'NDVI':'',n.ndmi!=null?'NDMI':'',n.ndre!=null?'NDRE':''].filter(Boolean).join(' · '),checked=farm.farm.cache.ndviAt;
+      rows.push(_feedRow('Satellite · Sentinel-2',age>20?'warn':'ok','Newest clear picture '+n.date+' ('+age+' day'+(age===1?'':'s')+' old) · '+has,'Checked '+_ago(checked)+' · next picture about 5 days after '+n.date+', if the sky is clear'));}
+    else rows.push(_feedRow('Satellite · Sentinel-2','warn','No clear picture loaded yet for this farm','Open it in Farmers once, or press Refresh'));
+    const sa=farm.farm.cache&&farm.farm.cache.soilAt;
+    rows.push(sa?_feedRow('Soil · SoilGrids','ok','Soil water-holding estimate for this place','Read '+_ago(sa)+' · refreshed every 60 days (soil changes slowly)'):_feedRow('Soil · SoilGrids','warn','Using a general soil value until the first read','' ));
+    const d=_farmerDb(),p=d.autopilot&&d.autopilot.plan,today=toIST(new Date()).toISOString().slice(0,10);
+    rows.push(p&&p.date===today?_feedRow('Autopilot plan','ok','Today\'s plan is ready','Calculated '+_ago(p.at)):_feedRow('Autopilot plan','warn','No plan for today yet','Calculated when the Automation page or Farmers is opened'));
+  }else{
+    const age=window._ndviAgeDays,u=(document.getElementById('ndvi-updated')||{}).textContent;
+    rows.push(_feedRow('Satellite · Sentinel-2',age==null?'warn':(age>20?'warn':'ok'),age==null?'Waiting for the daily campus run…':'Campus NDVI image '+(u&&u!=='—'?u+' · ':'')+age+' day'+(age===1?'':'s')+' old','The campus pipeline runs by itself every morning at 7:00 IST'));
+  }
+  // controller
+  const on=typeof _mqttConnected!=='undefined'&&_mqttConnected;
+  rows.push(on?_feedRow('Pump controller (MQTT)','ok','Connected to the broker','Commands are signed with your command key'):_feedRow('Pump controller (MQTT)','off','Not connected','Tap HW in the top bar to connect your controller'));
+  list.innerHTML=rows.join('');
+}
+function openFeedsModal(){renderFeeds();openMacSheet('feeds-modal');}
+function closeFeedsModal(){closeMacSheet('feeds-modal');}
+async function refreshAllFeeds(){
+  const ic=document.getElementById('feeds-refresh-ic'),tx=document.getElementById('feeds-refresh-tx'),btn=document.getElementById('feeds-refresh');
+  if(btn.disabled)return;btn.disabled=true;btn.style.opacity='.6';tx.textContent='REFRESHING…';ic.style.animation='spin 1s linear infinite';
+  try{await fetchWeather();}catch(e){}
+  if(_autoFarm()){try{refreshAutopilotPlan();}catch(e){}}                                // farmer app re-reads satellite + soil and re-plans
+  else if(window.CAMPUS_MODE){try{window._ndviPoll&&window._ndviPoll();if(typeof fetchCentral==='function')fetchCentral();}catch(e){}}
+  renderFeeds();
+  const t=setInterval(renderFeeds,2000);
+  setTimeout(()=>{clearInterval(t);renderFeeds();btn.disabled=false;btn.style.opacity='';tx.textContent='REFRESH ALL NOW';ic.style.animation='';},9000);
+}
+// ══════════════════════════════════════════════════
 // LOG STREAM + SYSTEM_LOG // LIVE — driven by real state, not a script.
 // Weather (S.tmp/S.precip_prob/S.et0) and soil VWC are both ONE shared
 // reading for the whole farm (fields are ~150m apart, no per-field sensor
@@ -4180,6 +4235,21 @@ updateClock();
 
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- ═══════ SETTINGS MODAL ═══════ -->
+<!-- LIVE DATA FEEDS -->
+<div id="feeds-modal" class="macos-sheet-backdrop" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeFeedsModal()">
+  <div class="macos-sheet-panel" style="position:absolute;top:50%;left:50%;width:min(480px,94vw);max-height:88vh;overflow-y:auto;background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:24px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div><p style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:rgba(var(--muted-rgb),.55);margin-bottom:4px">TERRA-CORE · AGRISAT</p>
+        <p style="font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--body-text)">Live data feeds</p></div>
+      <button onclick="closeFeedsModal()" aria-label="Close" style="min-width:40px;min-height:40px;border-radius:10px;border:1px solid rgba(var(--overlay-rgb),.14);background:transparent;color:inherit;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px">close</span></button>
+    </div>
+    <p id="feeds-where" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(var(--muted-rgb),.7);margin-bottom:12px"></p>
+    <div id="feeds-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button id="feeds-refresh" onclick="refreshAllFeeds()" style="margin-top:16px;width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;border:1.5px solid rgba(0,255,65,.3);background:rgba(0,255,65,.08);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.06em;color:#00ff41"><span id="feeds-refresh-ic" class="material-symbols-outlined" style="font-size:20px">sync</span><span id="feeds-refresh-tx">REFRESH ALL NOW</span></button>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(var(--muted-rgb),.5);margin-top:10px;line-height:1.5">Weather updates by itself every time you open the app. New satellite pictures arrive about every 5 days (clouds can delay them); the app picks them up automatically the next time it is opened.</p>
+  </div>
+</div>
+
 <div id="settings-modal" class="macos-sheet-backdrop" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closeSettingsModal()">
   <div class="macos-sheet-panel" style="position:absolute;top:50%;left:50%;width:min(420px,92vw);background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:28px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(48px) saturate(2) brightness(1.08);-webkit-backdrop-filter:blur(48px) saturate(2) brightness(1.08)">
     <!-- Header -->
