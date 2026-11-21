@@ -308,6 +308,13 @@ sees through cloud, and shows a **Radar check** card next to the satellite indic
 - Privacy: the approximate field location goes to one more public service. The consent text now names it (consent v2); people who agreed
   under v1 keep everything else working and are asked once, on the radar card, before any radar request is made.
 - Not yet archived by the daily GitHub job, and not used by the dashboard's campus pages.
+
+### WhatsApp advice (Gujarati)
+- **Share button** in the farmer app (`farmer/share.js`): turns today's advice into a short message in the farmer's language and opens
+  WhatsApp (`wa.me`) so the farmer picks the recipient. Nothing is sent from the page; no account or server is involved.
+- **Daily message** (`scripts/whatsapp_notify.py`, last step of the daily GitHub job): one Gujarati template message per opted-in number
+  through the WhatsApp Business Cloud API, for the campus farm's decision. Dry run unless three secrets are set; never sends a stale
+  decision; at most once per date. Setup, the template text and the consent rules are in `scripts/WHATSAPP_SETUP.md`. Not yet run against the live API.
 - **Crops:** Cotton, wheat, maize, groundnut, tomato, sugarcane, banana, vegetables or "general" (typical FAO-56 Kcb, depletion
   fraction p, representative root depth, stage lengths). An optional planting date enables a crop-stage Kc curve when satellite
   pictures are stale. These are TYPICAL values — confirm with the faculty / extension officer before relying on them.

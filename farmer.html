@@ -271,8 +271,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261121r"></script>
-<script src="farmer/i18n.js?v=20261121r"></script>
+<script src="farmer/core.js?v=20261121w"></script>
+<script src="farmer/i18n.js?v=20261121w"></script>
+<script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
 <script src="farmer/chat-config.js?v=1"></script>
 <script src="farmer/ndvimap.js?v=20261121x"></script>
@@ -784,6 +785,19 @@ async function ensureRadar(f){
   finally{radarBusy[f.id]=false;save();const el=$('radarBody');if(el&&farm()===f)el.innerHTML=radarBody(f);}
 }
 
+// ── share today's advice on WhatsApp: the farmer picks who gets it, nothing is sent from here ──
+const SITE_URL='https://rudraksh91.github.io/SatelliteSoilMonitoring/farmer.html';
+function adviceHow(f,a){
+  if(a.decision==='IRRIGATE'){const time=a.hours?(a.hours<1?T('tMin',{n:fmt(a.hours*60)}):T('tHour',{n:fmt(a.hours,1)})):null;return T('apply',{mm:fmt(a.grossMm),litres:thousands(a.litres)})+(time?T('applyHours',{time,flow:f.flowLph}):'')+'.';}
+  if(a.decision==='OK')return a.daysLeft<1?T('checkDay'):T('checkAgain',{n:fmt(a.daysLeft)});
+  return '';
+}
+function shareWhatsApp(f,a){
+  const S=window.AgriShare;if(!S)return;
+  const text=S.whatsappText({title:f.name+' · '+today(),head:T({IRRIGATE:'hIrrigate',OK:'hOk',WAIT_RAIN:'hWait'}[a.decision]),
+    lines:[T(a.reasonKey,a.rp),adviceHow(f,a)],note:T('waNote'),url:SITE_URL});
+  window.open(S.whatsappUrl(text),'_blank','noopener');
+}
 function renderAdvice(f,a,w,warn){
   const warnHtml=warn.length?`<div class="card"><p class="note" style="margin:0;color:var(--amber)">${warn.map(k=>esc(T(k))).join('<br>')}</p></div>`:'';
   if(a.needsSetup){   // never give a confident litres figure from an assumed starting state
@@ -808,7 +822,8 @@ function renderAdvice(f,a,w,warn){
   const crop=C.cropParams(f.cropId||'general',f.plantingDate);
   const kcNote=a.ndviStale?(crop.stage_curve&&crop.planting_date?' '+T('kcStage'):' '+T('kcGeneral')):'';
   $('advice').innerHTML=
-   `<div class="big ${cls}"><div class="t">${esc(f.name)} · ${fmt(f.areaM2/10000,2)} ha · ${esc(T('crop_'+(f.cropId||'general')))}</div><div class="h">${esc(head)}</div><div class="r">${esc(T(a.reasonKey,a.rp))}</div>${how}</div>`+warnHtml+
+   `<div class="big ${cls}"><div class="t">${esc(f.name)} · ${fmt(f.areaM2/10000,2)} ha · ${esc(T('crop_'+(f.cropId||'general')))}</div><div class="h">${esc(head)}</div><div class="r">${esc(T(a.reasonKey,a.rp))}</div>${how}</div>`+
+   `<div class="card"><button id="waShare" class="sec">${esc(T('waBtn'))}</button><p class="note" style="margin:8px 0 0">${esc(T('waHint'))}</p></div>`+warnHtml+
    `<div class="card"><h2>${esc(T('soilWater'))} <span class="pill">${esc(T('estimate'))}</span></h2><div class="bar"><i style="width:${Math.min(100,a.pct).toFixed(0)}%"></i><b style="left:${(100*a.raw/a.taw).toFixed(0)}%"></b></div>
      <div class="note">${esc(T('used',{dr:fmt(a.dr),taw:fmt(a.taw),raw:fmt(a.raw)}))}</div></div>`+
    `<div class="card"><h2>${esc(T('nextDays'))}</h2><div class="fc">${fc}</div></div>`+
@@ -825,7 +840,7 @@ function renderAdvice(f,a,w,warn){
       <span>${esc(T('kSoil'))}</span><span>${a.soil&&a.soil.clay!=null?esc(T('soilVal',{clay:fmt(a.soil.clay*100),sand:fmt(a.soil.sand*100)})):esc(T('soilGeneral'))}</span>
       <span>${esc(T('kRain2'))}</span><span>${fmt(a.forecastRain2d,0)} mm</span></div>
       <p class="note">${esc(T('srcNote'))}</p></div>`;
-  drawNdvi(f);ensureRadar(f);
+  drawNdvi(f);ensureRadar(f);{const b=$('waShare');if(b)b.onclick=()=>shareWhatsApp(f,a);}
   $('logCard').hidden=false;$('mgmt').hidden=false;
   $('logNote').textContent=f.events.length?T('logNoteN',{n:f.events.length}):T('logNote0');
 }
