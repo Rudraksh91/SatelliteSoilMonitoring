@@ -192,6 +192,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
       <button class="sec" id="btnUndo" data-i="undo"></button>
       <button class="sec" id="btnClear" data-i="clear"></button>
     </div>
+    <p id="gpsMsg" class="note" role="status" aria-live="polite" hidden style="margin:8px 0 0"></p>
     <label for="placeIn" data-i="findLabel"></label>
     <div class="row" style="flex-wrap:nowrap"><input id="placeIn" type="text" maxlength="200" data-ph="findPh" style="flex:1 1 auto"><button class="sec" id="btnFind" data-i="find" style="flex:0 0 auto"></button></div>
     <label for="stateIn" data-i="stateLabel"></label><select id="stateIn"></select>
@@ -271,8 +272,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261121w"></script>
-<script src="farmer/i18n.js?v=20261121w"></script>
+<script src="farmer/core.js?v=20261121g"></script>
+<script src="farmer/i18n.js?v=20261121g"></script>
 <script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
 <script src="farmer/chat-config.js?v=1"></script>
@@ -533,13 +534,28 @@ $('btnCancel').onclick=renderHome;
 function locate(highAccuracy){
   return new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:highAccuracy,timeout:highAccuracy?20000:10000,maximumAge:300000}));
 }
+let gpsMark=null;
+function gpsSay(t,warn){const m=$('gpsMsg');m.textContent=t||'';m.hidden=!t;m.style.color=warn?'var(--amber)':'';}   // inline, never a pop-up: embedded browsers often hide alert()
+function showHere(pos){
+  const ll=[pos.coords.latitude,pos.coords.longitude];
+  if(gpsMark&&map.hasLayer(gpsMark))map.removeLayer(gpsMark);
+  gpsMark=L.layerGroup([L.circle(ll,{radius:Math.max(10,pos.coords.accuracy||0),color:'#4cc38a',weight:1,fillOpacity:.12,interactive:false}),
+    L.circleMarker(ll,{radius:7,color:'#fff',weight:2,fillColor:'#1a73e8',fillOpacity:1,interactive:false})]).addTo(map);
+  map.setView(ll,(pos.coords.accuracy||0)>150?16:18);
+}
 $('btnGps').onclick=async()=>{
-  if(!navigator.geolocation){alert(T('alertNoGps'));$('placeIn').focus();return;}
-  let pos=null,err=null;
-  try{pos=await locate(false);}catch(e1){err=e1;if(e1.code!==1){try{pos=await locate(true);err=null;}catch(e2){err=e2;}}}
-  if(pos){map.setView([pos.coords.latitude,pos.coords.longitude],18);return;}
-  alert(T(err&&err.code===1?'gpsDenied':err&&err.code===3?'gpsTimeout':'gpsOff'));
-  $('placeIn').focus();
+  const b=$('btnGps');
+  if(b.disabled)return;
+  if(!navigator.geolocation){gpsSay(T('alertNoGps'),true);$('placeIn').focus();return;}
+  b.disabled=true;b.textContent='⏳ '+T('gpsBusy');gpsSay(T('gpsBusyNote'));
+  try{
+    // a quick network/Wi-Fi fix (works indoors) and a GPS fix are asked for at the same time: the first answer wins, so the wait is short
+    const errs=[];
+    const pos=await new Promise(res=>{let left=2;const fail=e=>{errs.push(e);if(--left===0)res(null);};locate(false).then(res,fail);locate(true).then(res,fail);});
+    if(pos){if(!map)return gpsSay('');try{showHere(pos);gpsSay(T('gpsOk',{m:fmt(pos.coords.accuracy||0)}));}catch(e){gpsSay(T('gpsOff'),true);}return;}
+    const err=errs.find(e=>e&&e.code===1)||errs.find(e=>e&&e.code===3)||errs[0];
+    gpsSay(T(err&&err.code===1?'gpsDenied':err&&err.code===3?'gpsTimeout':'gpsOff'),true);$('placeIn').focus();
+  }finally{b.disabled=false;b.textContent=T('myLocation');}
 };
 const STATES=['Andaman and Nicobar Islands','Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chandigarh','Chhattisgarh','Dadra and Nagar Haveli and Daman and Diu','Delhi','Goa','Gujarat','Haryana','Himachal Pradesh','Jammu and Kashmir','Jharkhand','Karnataka','Kerala','Ladakh','Lakshadweep','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Puducherry','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal'];
 function fillStates(){const sel=$('stateIn'),cur=sel.value;sel.innerHTML=`<option value="">${esc(T('allStates'))}</option>`+STATES.map(x=>`<option>${esc(x)}</option>`).join('');sel.value=cur;}
