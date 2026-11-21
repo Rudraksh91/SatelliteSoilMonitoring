@@ -181,11 +181,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261121r"></script>
-<script src="farmer/i18n.js?v=20261121r"></script>
-<script src="farmer/ndvimap.js?v=20261121r"></script>
-<script src="farmer/autopilot.js?v=20261121r"></script>
-<script src="farmer/link.js?v=20261121r"></script>
+<script src="farmer/core.js?v=20261121t"></script>
+<script src="farmer/i18n.js?v=20261121t"></script>
+<script src="farmer/ndvimap.js?v=20261121t"></script>
+<script src="farmer/autopilot.js?v=20261121t"></script>
+<script src="farmer/link.js?v=20261121t"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <script>
 (function(){
@@ -760,6 +760,11 @@ if(apCfg().enabled&&db.farms.length&&!needConsent())setTimeout(async()=>{await r
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;
   if(e.data.agrisat==='openAutopilot'&&db.farms.length&&!needConsent())openAuto();
   else if(e.data.agrisat==='plan'&&db.farms.length&&!needConsent())runAutopilot(!!e.data.force,true);});
+
+// the dashboard (Pump settings) can change the saved fields while this page is open: take its newest copy so a later save here never overwrites it
+window.addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue)return;
+  try{const d=JSON.parse(e.newValue);if(!d||!Array.isArray(d.farms))return;db=d;
+    if(view==='home')renderHome();else if(view==='auto')renderAuto();}catch(err){}});   // the dashboard re-plans itself via the 'plan' message
 
 // boot
 window.AgriApp={openMulti,_map:()=>map,_picked:()=>[...picked],_state:()=>({pts,pin}),db:()=>db,lang:()=>lang,setLang,refreshFarm,renderHome,openFarm,renderAdvice};
