@@ -46,6 +46,52 @@ THRESHOLDS = [
 ]
 
 
+# ── multi-index model (docs: AgriSat_Multi_Index_Model) ──────────────────────────────────────────────
+# NDMI = (B8 - B11)/(B8 + B11): water in the leaves (early water-stress signal, a CHECK not a trigger)
+# NDRE = (B8A - B5)/(B8A + B5): chlorophyll in a dense canopy where NDVI saturates
+# B11, B8A, B5 are 20 m bands; Earth Engine resamples them (nearest) to the 10 m grid, same as the farmer app.
+NDMI_FLAG_DROP = 0.06        # newest NDMI this far below the zone's own earlier trend -> "check the field"
+NDMI_MIN_PRIOR = 2           # needs at least 2 earlier clear observations to define a trend
+
+
+def normalised_difference(a, b):
+    """(a-b)/(a+b) with 0/0 -> nan; reflectances are never below 0 (as EE HARMONIZED)."""
+    a = np.maximum(a.astype("float32"), 0.0)
+    b = np.maximum(b.astype("float32"), 0.0)
+    s = a + b
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out = np.where(s > 0, (a - b) / s, np.nan)
+    return np.clip(out, -1.0, 1.0).astype("float32")
+
+
+def ndmi_anomaly(prior, now, thr=NDMI_FLAG_DROP, min_prior=NDMI_MIN_PRIOR):
+    """prior: this zone's earlier NDMI values (oldest..newest). Returns (flag, drop) or (False, None) when there is no trend yet."""
+    prior = [float(v) for v in prior if v is not None]
+    if now is None or len(prior) < min_prior:
+        return False, None
+    base = sum(prior) / len(prior)
+    return (base - float(now)) > thr, round(base - float(now), 3)
+
+
+def read_zone_history(path, zone, scene_date, limit=4):
+    """Earlier NDMI values for one zone from index_history.csv (one per distinct scene date, never today's scene)."""
+    vals, seen = [], set()
+    try:
+        with open(path, newline="") as fh:
+            for row in csv.DictReader(fh):
+                if row.get("zone") != zone or row.get("scene_date") in (scene_date, None):
+                    continue
+                d = row["scene_date"]
+                if d in seen or row.get("ndmi") in ("", None):
+                    continue
+                seen.add(d)
+                vals.append((d, float(row["ndmi"])))
+    except FileNotFoundError:
+        return []
+    vals.sort()
+    return [v for _, v in vals[-limit:]]
+
+
 def log(msg):
     print(f"[{datetime.now(IST):%Y-%m-%d %H:%M:%S}] {msg}", flush=True)
 
@@ -120,7 +166,23 @@ def fetch_ndvi(ee):
     log(f"Composite ready — {pct_valid:.1f}% valid pixels, shape {ndvi.shape}")
     if pct_valid < 5:
         raise RuntimeError(f"Composite almost empty ({pct_valid:.1f}% valid) — refusing to publish")
-    return ndvi, nodata, crs, transform, newest, n
+    extras = {}
+    try:   # optional: NDMI / NDRE from the same cloud-masked collection; a failure here must never lose the NDVI product
+        url2 = col.select(["B8", "B11", "B8A", "B5"]).median().getDownloadURL(
+            {"region": region, "scale": 10, "format": "GEO_TIFF"})
+        r2 = requests.get(url2, timeout=180)
+        r2.raise_for_status()
+        with rasterio.io.MemoryFile(r2.content) as mf, mf.open() as src:
+            if src.shape != ndvi.shape:
+                raise RuntimeError(f"grid mismatch {src.shape} vs {ndvi.shape}")
+            b8, b11, b8a, b5 = (src.read(i, out_dtype="float32") for i in (1, 2, 3, 4))
+        bad = (b8 == 0) & (b11 == 0)
+        extras["ndmi"] = np.where(bad, np.nan, normalised_difference(b8, b11))
+        extras["ndre"] = np.where((b8a == 0) & (b5 == 0), np.nan, normalised_difference(b8a, b5))
+        log("NDMI and NDRE composites ready")
+    except Exception as exc:
+        log(f"WARNING NDMI/NDRE not computed: {exc}")
+    return ndvi, nodata, crs, transform, newest, n, extras
 
 
 def render_jpeg(ndvi, nodata, path):
@@ -151,7 +213,7 @@ def get_weather():
         return {"et0_mm_day": 0, "rain_3d_mm": 0, "vpd_kpa": 0}
 
 
-def analyse_zones(ndvi, crs, transform, weather):
+def analyse_zones(ndvi, crs, transform, weather, extras=None):
     import rasterio.io
     from rasterio.mask import mask
     from rasterio.warp import transform_geom
@@ -191,8 +253,19 @@ def analyse_zones(ndvi, crs, transform, weather):
             elif status == "MODERATE" and vpd > 3.0:
                 status, action = "STRESSED", f"VPD critical ({vpd:.1f} kPa) — irrigate now"
             log(f"{z['name']}: NDVI={mean:.4f} [{px}px] -> {status} — {action}")
-            out.append({"zone": z["name"], "ndvi": round(mean, 4), "pixels": px,
-                        "status": status, "action": action})
+            rec = {"zone": z["name"], "ndvi": round(mean, 4), "pixels": px, "status": status, "action": action}
+            for key, arr in (extras or {}).items():       # NDMI / NDRE: same mask, same valid-pixel rule
+                try:
+                    prof = dict(profile)
+                    with rasterio.io.MemoryFile() as mf2, mf2.open(**prof) as ds2:
+                        ds2.write(np.where(np.isfinite(arr), arr, -9999.0).astype("float32"), 1)
+                        m2, _ = mask(ds2, [geom], crop=True, nodata=-9999, filled=True)
+                    v2 = m2[0].flatten()
+                    v2 = v2[(v2 > -1.0) & (v2 <= 1.0)]
+                    rec[key] = round(float(v2.mean()), 4) if len(v2) >= 3 else None
+                except Exception:
+                    rec[key] = None
+            out.append(rec)
     return out
 
 
@@ -214,9 +287,15 @@ def main():
     tag = now.strftime("%Y-%m-%d")
 
     ee = init_earth_engine()
-    ndvi, nodata, crs, transform, scene_date, n_scenes = fetch_ndvi(ee)
+    ndvi, nodata, crs, transform, scene_date, n_scenes, extras = fetch_ndvi(ee)
     weather = get_weather()
-    zones = analyse_zones(ndvi, crs, transform, weather)
+    zones = analyse_zones(ndvi, crs, transform, weather, extras)
+    idx_hist = out_dir / "ndvi_archive" / "index_history.csv"
+    for z in zones:   # NDMI anomaly vs the zone's own earlier trend (a flag, never a trigger)
+        prior = read_zone_history(idx_hist, z["zone"], scene_date)
+        z["ndmi_flag"], z["ndmi_drop"] = ndmi_anomaly(prior, z.get("ndmi"))
+        if z["ndmi_flag"]:
+            log(f"CHECK FIELD {z['zone']}: NDMI {z['ndmi']} is {z['ndmi_drop']} below its own recent level")
 
     jpeg_name = f"NDVI_Dediapada_{tag}.jpeg"
     render_jpeg(ndvi, nodata, out_dir / "ndvi_latest.jpeg")
@@ -247,6 +326,14 @@ def main():
         for z in zones:
             w.writerow([tag, scene_date, age, n_scenes, z["zone"], z["ndvi"], z["pixels"],
                         z["status"], weather["et0_mm_day"], weather["rain_3d_mm"], weather["vpd_kpa"]])
+    # Per-index history (one row per zone per run) feeds the NDMI trend above. Separate file: ndvi_history.csv keeps its columns.
+    new_idx = not idx_hist.exists()
+    with open(idx_hist, "a", newline="") as fh:
+        w = csv.writer(fh)
+        if new_idx:
+            w.writerow(["run_date", "scene_date", "zone", "ndvi", "ndmi", "ndre"])
+        for z in zones:
+            w.writerow([tag, scene_date, z["zone"], z["ndvi"], "" if z.get("ndmi") is None else z["ndmi"], "" if z.get("ndre") is None else z["ndre"]])
     if age > 20:   # M6: stale imagery warning, visible on the Actions run page
         print(f"::warning::Newest clean Sentinel-2 scene is {age} days old; the dashboard uses a stage Kc until a clearer pass arrives")
     log(f"Done — scene {scene_date} ({age} d old), {len(zones)} zones written to {out_dir}")

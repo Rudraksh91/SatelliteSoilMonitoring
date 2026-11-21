@@ -366,3 +366,29 @@ restarts) and run **by the Pi itself, with no phone and no open app**, for every
 **Limits to know**: the plan is computed in the app (that is where the farmer's fields live), so the Pi runs the days it was sent — up to 7.
 If the app is not opened for a week the Pi stops getting new plans and runs nothing after the last planned day. A fully server-side
 planner (fields stored centrally, planned by a scheduled job) would remove that need, but needs a place to keep farmers' field outlines.
+
+## Multi-index model — NDVI + NDMI + NDRE (from `AgriSat_Multi_Index_Model.pdf`)
+The daily FAO-56 soil-water balance stays the backbone; satellite indices adjust it and check it. They never replace it.
+
+| Index | Sentinel-2 bands | Role in AgriSat |
+|---|---|---|
+| NDVI | (B8 − B4)/(B8 + B4), 10 m | canopy greenness → crop coefficient Kc; the main stress trend while the canopy is young |
+| NDMI | (B8 − B11)/(B8 + B11), B11 is 20 m | water in the leaves. An independent **check**: if the newest NDMI is more than 0.06 below the field's own earlier trend (needs ≥ 2 earlier clear scenes) while the model says water is available (Dr < RAW), the app shows **"check this field"**. It never starts or stops watering. |
+| NDRE | (B8A − B5)/(B8A + B5), both 20 m | canopy health where NDVI saturates: once NDVI ≥ 0.75 and 3 clear scenes have NDRE, the stress trend is judged on NDRE instead of NDVI |
+
+Field-to-field comparison: with ≥ 3 fields of the same crop, a field whose NDMI is more than 0.12 below the median of the others is flagged.
+NDWI (McFeeters, green/NIR) is open-water only and is not used for crop water.
+
+**Farmer app / dashboard** — `farmer/core.js` reads B11, B8A and B5 next to B4/B8/SCL for every clear scene (same cloud mask, B11/B8A/B5 resampled
+by nearest neighbour to the 10 m pixel, medians over the same valid pixels). If the extra bands cannot be read the NDVI is still returned and the
+indices are left empty — never guessed. `indexTrend()` and `ndmiAnomaly()` are pure helpers; `farmer/autopilot.js` uses `stressCheck()` (NDVI or
+NDRE) and adds `flags` to each plan item. Screens: farm view "Satellite indices" card (value, change since the previous picture, meaning, check flag)
+and a map switch NDVI | NDMI | NDRE (own colour ramps); dashboard Analytics has the same switch; the Automation decision card shows NDMI, NDRE and the flag.
+Old cached NDVI series (without NDMI/NDRE) are re-read once automatically. Tests: `node tests/test_indices.js` (synthetic Sentinel-2 tile), `tests/test_autopilot.js`.
+
+**Campus pipeline** — `scripts/ndvi_pipeline.py` downloads B8/B11/B8A/B5 as a second, optional composite, writes `ndmi`, `ndre`, `ndmi_flag`, `ndmi_drop`
+per zone to `ndvi_status.json`, and appends `ndvi_archive/index_history.csv` (the NDMI trend comes from this file; `ndvi_history.csv` keeps its columns).
+The Command Center zone panel shows the farm average and ⚠ on a flagged zone. Tests: `python3 tests/test_indices.py`.
+
+**Not done (from the PDF's later phases)**: SAVI for bare early-season soil, Landsat gap-filling, Sentinel-1 radar, OPTRAM, per-crop calibration of Kc = a·NDVI + b,
+and validation against gravimetric soil samples. The index thresholds above (0.06, 0.12, 0.75) are starting values and need local calibration.

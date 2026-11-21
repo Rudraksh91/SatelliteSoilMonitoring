@@ -38,6 +38,7 @@ dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);paddi
 .fc{display:flex;gap:6px;overflow-x:auto}.fc div{flex:0 0 auto;text-align:center;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
 #ndviMapBox{height:270px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 .leg{height:12px;border-radius:6px;margin:10px 0 2px;background:linear-gradient(90deg,#a50026,#f46d43,#fee08b,#ffffbf,#a6d96a,#1a9850,#006837)}.legl{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
+.idx{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}.idx:last-of-type{border-bottom:0}.idx .n{text-align:right;flex:0 0 auto}.big2{font-size:22px;font-weight:800}.idxd{font-size:13px;font-weight:700}.idxd.down{color:var(--amber)}.idxd.up{color:var(--g)}.idxd.flat{color:var(--mut)}p.flag{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fff3d6;color:#7a4e00;font-size:14px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.chips button{min-height:34px;padding:4px 12px;font-size:13px;background:transparent;color:var(--g);border:1.5px solid var(--g)}.chips button.on{background:var(--g);color:var(--btnink)}
 .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
 /* field list with tick boxes, status chips, overview table */
@@ -163,11 +164,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261121c"></script>
-<script src="farmer/i18n.js?v=20261121c"></script>
-<script src="farmer/ndvimap.js?v=20261121c"></script>
-<script src="farmer/autopilot.js?v=20261121c"></script>
-<script src="farmer/link.js?v=20261121c"></script>
+<script src="farmer/core.js?v=20261121d"></script>
+<script src="farmer/i18n.js?v=20261121d"></script>
+<script src="farmer/ndvimap.js?v=20261121d"></script>
+<script src="farmer/autopilot.js?v=20261121d"></script>
+<script src="farmer/link.js?v=20261121d"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <script>
 (function(){
@@ -424,9 +425,9 @@ async function gatherInputs(f,force,tick){
   if(!soil||cache.soilZr!==crop.root_depth_m||(now-(cache.soilAt||0))>60*864e5){
     try{soil=await withTimeout(C.fetchSoil(la,ln,crop.root_depth_m,(u,o)=>tfetch(u,o,30000)),35000,'soil');cache.soilAt=now;cache.soilZr=crop.root_depth_m;tick(1,'done');}catch(e){tick(1,'fail');soil=soil||null;if(!soil)warn.push('wSoilFail');}
   }else tick(1,'done');
-  if(force||!cache.ndviAt||(now-cache.ndviAt)>24*3600e3||!ndvi.length){
+  if(force||!cache.ndviAt||(now-cache.ndviAt)>24*3600e3||!ndvi.length||ndvi[0].ndmi===undefined){   // old cache without NDMI/NDRE: read once more
     try{const sr=await withTimeout(C.ndviSeries(f.latlngs,window.GeoTIFF,(u,o)=>tfetch(u,o,25000),{days:45,maxScenes:3,minPixels:Math.min(8,Math.max(1,Math.floor(f.areaM2/100/4)))}),75000,'satellite');
-        ndvi=sr.map((x,i)=>({date:x.date,ndvi:x.ndvi,n:x.n,shrunk:x.shrunk,grid:(x.grid&&x.grid.cols*x.grid.rows<=2500)||i===0?x.grid:null}));cache.ndviAt=now;tick(2,'done');}
+        ndvi=sr.map((x,i)=>({date:x.date,ndvi:x.ndvi,ndmi:x.ndmi==null?null:x.ndmi,ndre:x.ndre==null?null:x.ndre,n:x.n,shrunk:x.shrunk,grid:(x.grid&&x.grid.cols*x.grid.rows<=2500)||i===0?x.grid:null}));cache.ndviAt=now;tick(2,'done');}
     catch(e){tick(2,'fail');warn.push('wSatFail');}
   }else tick(2,'done');
   if(weather){Object.assign(cache,{weather,soil,ndvi});f.cache=cache;save();}
@@ -480,13 +481,36 @@ $('mRefresh').onclick=()=>openMulti(null,true);
 
 // ── NDVI map of THIS farm: one coloured square per 10 m pixel inside the outline (same RdYlGn scale as the dashboard, -0.2..0.8) ──
 let ndviIdx=0;
+let idxKey='ndvi';
+const IDX_NAME={ndvi:'NDVI',ndmi:'NDMI',ndre:'NDRE'};
 function drawNdvi(f){
   const box=$('ndviMapBox');if(!box)return;
-  const r=window.AgriNdviMap.render(box,f,ndviIdx,L,C);
-  if(!r.scene){box.style.display='none';$('ndviNote').textContent=T('ndviNone');$('ndviDates').innerHTML='';return;}
+  $('idxChips').innerHTML=['ndvi','ndmi','ndre'].map(k=>`<button data-ix="${k}" class="${k===idxKey?'on':''}">${IDX_NAME[k]}</button>`).join('');
+  $('idxChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{idxKey=b.dataset.ix;ndviIdx=0;drawNdvi(f);});
+  $('idxMapTitle').textContent=T('idxMapTitle',{idx:IDX_NAME[idxKey]});
+  const lg=document.querySelector('#ndviLeg'),ll=$('ndviLegl');
+  lg.style.background=window.AgriNdviMap.gradient(idxKey);
+  const lo=idxKey==='ndmi'?T('idxLegNdmiLo'):idxKey==='ndre'?T('idxLegNdreLo'):T('ndviLow'),hi=idxKey==='ndmi'?T('idxLegNdmiHi'):idxKey==='ndre'?T('idxLegNdreHi'):T('ndviHigh'),I=window.AgriNdviMap.INDEX[idxKey];
+  ll.innerHTML=`<span>${I.lo} ${esc(lo)}</span><span>${((I.lo+I.hi)/2).toFixed(1)}</span><span>${I.hi} ${esc(hi)}</span>`;
+  const r=window.AgriNdviMap.render(box,f,ndviIdx,L,C,idxKey);
+  if(!r.scene){box.style.display='none';$('ndviNote').textContent=idxKey==='ndvi'?T('ndviNone'):T('idxMapNone');$('ndviDates').innerHTML='';return;}
+  box.style.display='';
   $('ndviDates').innerHTML=r.scenes.map((x,i)=>`<button data-k="${i}" class="${x===r.scene?'on':''}">${esc(x.date)}</button>`).join('');
   $('ndviDates').querySelectorAll('button').forEach(b=>b.onclick=()=>{ndviIdx=+b.dataset.k;drawNdvi(f);});
-  $('ndviNote').textContent=T('ndviMean',{v:fmt(r.scene.ndvi,2),date:r.scene.date});
+  $('ndviNote').textContent=idxKey==='ndvi'?T('ndviMean',{v:fmt(r.scene.ndvi,2),date:r.scene.date}):`${IDX_NAME[idxKey]} ${fmt(r.scene[idxKey],2)} · ${r.scene.date}`;
+}
+// the three indices as a small table: latest value, change since the previous clear picture, and what it means
+function indicesCard(f,a){
+  const IDX_KEYS={ndvi:['idxNdvi','meanNdvi'],ndmi:['idxNdmi','meanNdmi'],ndre:['idxNdre','meanNdre']};
+  const sc=(f.cache&&f.cache.ndvi)||[],rows=['ndvi','ndmi','ndre'].map(k=>{const t=C.indexTrend(sc,k),mean=T(IDX_KEYS[k][1]);
+    const dir=t&&t.dir?`<span class="idxd ${t.dir}">${t.dir==='up'?'▲':t.dir==='down'?'▼':'►'} ${esc(T({up:'idxUp',down:'idxDown',flat:'idxFlat'}[t.dir]))}</span>`:'';
+    return `<div class="idx"><div><b>${esc(T(IDX_KEYS[k][0]))}</b><br><span class="note">${esc(mean)}</span></div>
+      <div class="n">${t?`<span class="big2">${fmt(t.value,2)}</span><br>${dir}<br><span class="note">${esc(t.date)}</span>`:`<span class="note">${esc(T('idxNone'))}</span>`}</div></div>`;}).join('');
+  const an=C.ndmiAnomaly(sc),flags=[];
+  if(an&&an.flag&&a&&a.dr<a.raw)flags.push(T('idxFlagNdmi',{drop:fmt(an.drop,2)}));
+  const nd=C.indexTrend(sc,'ndvi'),useRe=nd&&nd.value>=C.NDVI_SATURATED&&sc.filter(x=>x.ndre!=null).length>=3;
+  return `<div class="card"><h2>${esc(T('idxTitle'))}</h2>${rows}${useRe?`<p class="note" style="margin:6px 0 0">${esc(T('idxUsedNdre'))}</p>`:''}
+    ${flags.map(t=>`<p class="flag">⚠ ${esc(t)}</p>`).join('')}<p class="note" style="margin:8px 0 0">${esc(T('idxNote'))}</p></div>`;
 }
 
 function renderAdvice(f,a,w,warn){
@@ -517,8 +541,9 @@ function renderAdvice(f,a,w,warn){
    `<div class="card"><h2>${esc(T('soilWater'))} <span class="pill">${esc(T('estimate'))}</span></h2><div class="bar"><i style="width:${Math.min(100,a.pct).toFixed(0)}%"></i><b style="left:${(100*a.raw/a.taw).toFixed(0)}%"></b></div>
      <div class="note">${esc(T('used',{dr:fmt(a.dr),taw:fmt(a.taw),raw:fmt(a.raw)}))}</div></div>`+
    `<div class="card"><h2>${esc(T('nextDays'))}</h2><div class="fc">${fc}</div></div>`+
-   `<div class="card"><h2>${esc(T('ndviMapTitle'))}</h2><div id="ndviMapBox"></div>
-      <div class="leg"></div><div class="legl"><span>−0.2 ${esc(T('ndviLow'))}</span><span>0.3</span><span>0.8 ${esc(T('ndviHigh'))}</span></div>
+   indicesCard(f,a)+
+   `<div class="card"><h2 id="idxMapTitle">${esc(T('ndviMapTitle'))}</h2><div class="chips" id="idxChips" style="margin:0 0 10px"></div><div id="ndviMapBox"></div>
+      <div class="leg" id="ndviLeg"></div><div class="legl" id="ndviLegl"></div>
       <div class="note" style="margin-top:6px"><span class="sw" style="background:#9aa0a6"></span>${esc(T('ndviCloud'))} &nbsp; <span class="sw" style="background:rgba(120,180,120,.35)"></span>${esc(T('ndviEdge'))}</div>
       <div class="chips" id="ndviDates"></div><p class="note" id="ndviNote"></p></div>`+
    `<div class="card"><h2>${esc(T('basedOn'))}</h2><div class="kv">
@@ -576,7 +601,7 @@ async function runAutopilot(force,silent){
   el.hidden=true;if(!silent)$('aPlan').disabled=false;
   const t=today(),inputs=fields.filter(f=>res[f.id]).map(f=>{const r=res[f.id],w=r.weather,i=w.time.indexOf(t);
     const rain14=i>0?w.rain.slice(Math.max(0,i-14),i).reduce((a,b)=>a+b,0):0;
-    return {id:f.id,name:f.name,areaM2:f.areaM2,flowLph:f.flowLph,zone:f.zone||null,adv:r.adv,ndvi:(f.cache&&f.cache.ndvi)||[],et0Today:i>=0?w.et0[i]:0,rain14,w};});
+    return {id:f.id,name:f.name,crop:f.cropId||'general',areaM2:f.areaM2,flowLph:f.flowLph,zone:f.zone||null,adv:r.adv,ndvi:(f.cache&&f.cache.ndvi)||[],et0Today:i>=0?w.et0[i]:0,rain14,w};});
   const S=apSettings(),plan=AP.plan({today:t,settings:S,fields:inputs}),outlooks={};
   inputs.forEach(x=>{outlooks[x.id]=AP.outlook(x,x.w,S,t,7);});
   apState={plan,outlooks,inputs,sched:AP.buildSchedule(plan,inputs,outlooks,nowMinIST()),at:Date.now(),failed:fields.length-inputs.length};
@@ -590,6 +615,7 @@ function apNotify(){
   const sc=apState.plan.schedule;if(!sc.length)return;
   try{new Notification(T('apTitle'),{body:T('apNotifyMsg',{n:sc.length,min:apState.plan.totalMinutes})});c.notified=today();save();}catch(e){}
 }
+const flagHtml=it=>(it.flags||[]).map(fl=>`<br><i style="color:var(--amber)">⚠ ${esc(fl.key==='ndmiDrop'?T('idxFlagNdmi',{drop:fl.drop}):T('idxFlagPeer',{gap:fl.gap}))}</i>`).join('');
 function apRuns(st){                                         // today's runs with the start time the controller will really use
   const p=st.plan,zoneOf={};st.inputs.forEach(x=>{zoneOf[x.id]=x.zone;});
   const todays=st.sched.days[p.date]||[],used=new Set();
@@ -600,9 +626,9 @@ function apRuns(st){                                         // today's runs wit
 function apPersist(st){
   const c=apCfg(),runs=apRuns(st),by={};runs.forEach(r=>{by[r.it.id]=r;});
   c.plan={date:st.plan.date,at:st.at,items:st.plan.items.map(i=>{const r=by[i.id],f=db.farms.find(x=>x.id===i.id)||{},inp=st.inputs.find(x=>x.id===i.id)||{};
-    const ser=((f.cache&&f.cache.ndvi)||[]).filter(x=>x.ndvi!=null).slice(0,3).map(x=>({date:x.date,ndvi:+x.ndvi.toFixed(3)}));
+    const ser=((f.cache&&f.cache.ndvi)||[]).filter(x=>x.ndvi!=null).slice(0,3).map(x=>({date:x.date,ndvi:+x.ndvi.toFixed(3),ndmi:x.ndmi!=null?+x.ndmi.toFixed(3):null,ndre:x.ndre!=null?+x.ndre.toFixed(3):null}));
     return {id:i.id,decision:i.decision,reasonKey:i.reasonKey,rp:i.rp||null,minutes:i.minutes||0,litres:i.litres||0,start:r?r.start:null,startMin:r?r.startMin:null,
-      crop:f.cropId||'general',flowLph:f.flowLph||null,ndvi:i.ndvi!=null?+i.ndvi.toFixed(3):null,kc:i.kc!=null?+i.kc.toFixed(2):null,stress:!!i.stress,
+      crop:f.cropId||'general',flowLph:f.flowLph||null,ndmi:i.ndmi!=null?+i.ndmi.toFixed(3):null,ndre:i.ndre!=null?+i.ndre.toFixed(3):null,stressIndex:i.stressIndex||'ndvi',flags:i.flags||[],ndvi:i.ndvi!=null?+i.ndvi.toFixed(3):null,kc:i.kc!=null?+i.kc.toFixed(2):null,stress:!!i.stress,
       dr:i.dr!=null?+i.dr.toFixed(1):null,raw:i.raw!=null?+i.raw.toFixed(1):null,taw:i.taw!=null?+i.taw.toFixed(1):null,et0:inp.et0Today!=null?+inp.et0Today.toFixed(1):null,
       ndviSeries:ser,outlook:(st.outlooks[i.id]||[]).map(o=>({date:o.date,irrigate:!!o.irrigate,minutes:o.minutes||0,skipRain:!!o.skipRain,rain:+(o.rain||0).toFixed(1)}))};})};
   save();
@@ -638,8 +664,8 @@ function renderAuto(){
   if(!st){$('aToday').innerHTML=`<p class="note" style="margin:0">${esc(db.farms.length?T('apNeedPlan'):T('apNoFields'))}</p>`;$('aTot').textContent='';$('aLast').textContent='';$('aOut').innerHTML='';$('aUnas').textContent='';return;}
   const p=st.plan,runs=apRuns(st);
   const reason=it=>esc(T(it.reasonKey,it.rp||{}));
-  const rows=runs.map(r=>`<div class="tl"><div class="tm">${r.start}<small>→ ${r.end}</small></div><div class="tw"><b>${esc(r.it.name)}</b><span>${esc(T('apMin',{n:r.it.minutes}))} · ${thousands(r.it.litres)} L<br>${reason(r.it)}${r.it.capped?`<br><i>${esc(T('apCapped'))}</i>`:''}</span></div></div>`).join('')
-   +p.items.filter(i=>!(i.minutes>0)).map(i=>`<div class="tl"><div class="tm">–</div><div class="tw"><b>${esc(i.name)}</b><span>${i.decision==='SETUP'?esc(T('apSetup')):reason(i)}</span></div></div>`).join('');
+  const rows=runs.map(r=>`<div class="tl"><div class="tm">${r.start}<small>→ ${r.end}</small></div><div class="tw"><b>${esc(r.it.name)}</b><span>${esc(T('apMin',{n:r.it.minutes}))} · ${thousands(r.it.litres)} L<br>${reason(r.it)}${flagHtml(r.it)}${r.it.capped?`<br><i>${esc(T('apCapped'))}</i>`:''}</span></div></div>`).join('')
+   +p.items.filter(i=>!(i.minutes>0)).map(i=>`<div class="tl"><div class="tm">–</div><div class="tw"><b>${esc(i.name)}</b><span>${i.decision==='SETUP'?esc(T('apSetup')):reason(i)}${flagHtml(i)}</span></div></div>`).join('');
   $('aToday').innerHTML=rows||`<p class="note" style="margin:0">${esc(T('apNone'))}</p>`;
   $('aTot').textContent=runs.length?T('apTotals',{n:runs.length,min:p.totalMinutes,litres:thousands(p.totalLitres)}):T('apNone');
   $('aLast').textContent=T('apLast',{time:new Date(st.at).toLocaleTimeString(lang==='hi'?'hi-IN':lang==='gu'?'gu-IN':'en-IN',{hour:'2-digit',minute:'2-digit'})});

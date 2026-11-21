@@ -147,7 +147,7 @@
     const at = (arr, w, i, j) => arr[0][j * (w.x1 - w.x0) + i];
     // dense grid over the farm's bounding box: v = NDVI*100 (int), null outside the farm; f: 0 clear+used, 1 clear but edge pixel (not used), 2 cloud/no data
     const cx0 = Math.min(...xs), cy0 = Math.max(...ys), cols = Math.round((Math.max(...xs) - cx0) / 10) + 1, rows = Math.round((cy0 - Math.min(...ys)) / 10) + 1;
-    const gv = new Array(cols * rows).fill(null), gf = new Array(cols * rows).fill(0);
+    const gv = new Array(cols * rows).fill(null), gf = new Array(cols * rows).fill(0), nRef = new Array(cols * rows).fill(null);
     const vals = []; let cloudy = 0;
     for (const [x, y] of allPx) {
       const i = Math.floor((x - wr.ox) / wr.rx) - wr.x0, j = Math.floor((y - wr.oy) / wr.ry) - wr.y0;
@@ -161,14 +161,41 @@
       const r1 = Math.max(0, dr * sclR + offR), n1 = Math.max(0, dn * sclN + offN);   // like EE HARMONIZED: reflectance never below 0
       if (r1 + n1 <= 0) { gf[gi] = 2; continue; }
       const nd = Math.max(-1, Math.min(1, (n1 - r1) / (n1 + r1)));
-      gv[gi] = Math.round(nd * 100); gf[gi] = isUsed ? 0 : 1;
+      gv[gi] = Math.round(nd * 100); gf[gi] = isUsed ? 0 : 1; nRef[gi] = n1;
       if (isUsed) vals.push(nd);
     }
     const grid = { zone, x0: cx0, y0: cy0, cols, rows, v: gv, f: gf };
     const date = feature.properties.datetime.slice(0, 10);
-    if (!vals.length) return { date, ndvi: null, n: 0, cloudy, total: px.length, grid };
+    // ── NDMI = (B8 - B11)/(B8 + B11) and NDRE = (B8A - B5)/(B8A + B5) (AgriSat multi-index model). B8 is 10 m; B11, B8A and B5 are 20 m and are
+    //    resampled to the 10 m pixel by nearest neighbour. Same cloud mask. Optional: if these bands cannot be read, NDVI is still returned. ──
+    let ndmi = null, ndre = null, nm = 0, nr = 0;
+    if (vals.length) try {
+      const A2 = feature.assets, want = { swir: A2.swir16, nir8a: A2.nir08, re1: A2.rededge1 };
+      const have = Object.keys(want).filter(k => want[k]);
+      const bands = {};
+      await Promise.all(have.map(async k => {
+        const img = await open(want[k]), w = win(img);
+        if (w.x0 < 0 || w.y0 < 0 || w.x1 > w.w || w.y1 > w.h) return;
+        const rb2 = want[k]['raster:bands'] ? want[k]['raster:bands'][0] : null;
+        bands[k] = { w, ras: await img.readRasters({ window: [w.x0, w.y0, w.x1, w.y1], samples: [0] }),
+          off: applied ? 0 : (rb2 && rb2.offset !== undefined ? rb2.offset : (feature.properties.datetime >= '2022-01-25' ? -0.1 : 0)), scl: rb2 && rb2.scale ? rb2.scale : 1e-4 };
+      }));
+      const refl = (b, x, y) => { const i = Math.floor((x - b.w.ox) / b.w.rx) - b.w.x0, j = Math.floor((y - b.w.oy) / b.w.ry) - b.w.y0, d = b.ras[0][j * (b.w.x1 - b.w.x0) + i]; return d ? Math.max(0, d * b.scl + b.off) : null; };
+      const gm = bands.swir ? new Array(cols * rows).fill(null) : null, gr = (bands.nir8a && bands.re1) ? new Array(cols * rows).fill(null) : null;
+      const vm = [], vr = [];
+      for (const [x, y] of allPx) {
+        const gi = Math.round((cy0 - y) / 10) * cols + Math.round((x - cx0) / 10);
+        if (gf[gi] === 2 || nRef[gi] === null) continue;
+        if (gm) { const s1 = refl(bands.swir, x, y); if (s1 !== null && nRef[gi] + s1 > 0) { const q = Math.max(-1, Math.min(1, (nRef[gi] - s1) / (nRef[gi] + s1))); gm[gi] = Math.round(q * 100); if (used.has(x + ',' + y)) vm.push(q); } }
+        if (gr) { const a1 = refl(bands.nir8a, x, y), r1 = refl(bands.re1, x, y); if (a1 !== null && r1 !== null && a1 + r1 > 0) { const q = Math.max(-1, Math.min(1, (a1 - r1) / (a1 + r1))); gr[gi] = Math.round(q * 100); if (used.has(x + ',' + y)) vr.push(q); } }
+      }
+      const med = arr => { arr.sort((p, q) => p - q); return arr[Math.floor(arr.length / 2)]; };
+      if (vm.length >= 3) { ndmi = med(vm); nm = vm.length; grid.vm = gm; }
+      if (vr.length >= 3) { ndre = med(vr); nr = vr.length; grid.vr = gr; }
+    } catch (e) { /* optional bands: keep NDVI */ }
+    if (!vals.length) return { date, ndvi: null, ndmi: null, ndre: null, n: 0, cloudy, total: px.length, grid };
     vals.sort((p, q) => p - q);
-    return { date, ndvi: vals[Math.floor(vals.length / 2)], n: vals.length, cloudy, total: px.length, shrunk: fp.shrunk, grid };
+    return { date, ndvi: vals[Math.floor(vals.length / 2)], ndmi, ndre, nm, nr, n: vals.length, cloudy, total: px.length, shrunk: fp.shrunk, grid };
   }
 
   /** Clean-scene NDVI series (newest first, one value per date). Only tiles that fully cover the farm are read, and
@@ -189,6 +216,25 @@
     }
     return out.sort((p, q) => (p.date < q.date ? 1 : -1)).slice(0, o.maxScenes);
   }
+
+
+  // ───────────────────────── multi-index model (NDVI + NDMI + NDRE) ─────────────────────────
+  const sortedBy = (series, key) => (series || []).filter(s => s && s[key] != null).slice().sort((a, b) => (a.date < b.date ? -1 : 1));
+  /** Latest value of an index and its change since the previous clear scene. dir: 'up' | 'down' | 'flat' (change smaller than `noise`). */
+  function indexTrend(series, key, noise) {
+    noise = noise == null ? 0.03 : noise;
+    const v = sortedBy(series, key); if (!v.length) return null;
+    const last = v[v.length - 1], prev = v.length > 1 ? v[v.length - 2] : null, d = prev ? last[key] - prev[key] : null;
+    return { value: last[key], date: last.date, prev: prev ? prev[key] : null, delta: d, dir: d == null ? null : (d > noise ? 'up' : d < -noise ? 'down' : 'flat'), n: v.length };
+  }
+  /** NDMI anomaly: is the newest NDMI clearly below this field's OWN earlier trend? (needs the newest + at least 2 earlier clear scenes) */
+  function ndmiAnomaly(series, thr) {
+    thr = thr == null ? 0.06 : thr;
+    const v = sortedBy(series, 'ndmi'); if (v.length < 3) return null;
+    const now = v[v.length - 1].ndmi, older = v.slice(0, -1).map(s => s.ndmi), base = older.reduce((a, b) => a + b, 0) / older.length;
+    return { now, base, drop: base - now, flag: base - now > thr, date: v[v.length - 1].date };
+  }
+  const NDVI_SATURATED = 0.75;   // above this the canopy is dense and NDVI stops separating healthy from stressed: NDRE takes over
 
   // ───────────────────────── soil estimate (SoilGrids + Saxton & Rawls 2006) ─────────────────────────
   const SG_LAYERS = [['0-5cm', 5], ['5-15cm', 15], ['15-30cm', 30], ['30-60cm', 60]];
@@ -399,5 +445,5 @@
 
   return { centroid, bbox, polygonAreaM2, squareFromArea, pointInPolygon, distToEdges, utmZone, toUTM, farmPixels,
            fromUTM, searchScenes, sceneNdvi, ndviSeries, saxtonRawls, depthWeighted, soilFromSoilGrids, fetchSoil,
-           tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP, CROPS, CROP_CATS, cropParams, pumpFlowLph, pumpHoursFor, stageKc };
+           tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP, CROPS, CROP_CATS, cropParams, pumpFlowLph, pumpHoursFor, indexTrend, ndmiAnomaly, NDVI_SATURATED, stageKc };
 });

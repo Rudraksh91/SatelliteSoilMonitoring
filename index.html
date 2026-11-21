@@ -54,9 +54,9 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261121c"></script>
-<script src="farmer/ndvimap.js?v=20261121c"></script>
-<script src="farmer/i18n.js?v=20261121c"></script>
+<script src="farmer/core.js?v=20261121d"></script>
+<script src="farmer/ndvimap.js?v=20261121d"></script>
+<script src="farmer/i18n.js?v=20261121d"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -1235,11 +1235,12 @@ header{
       <div id="myfarm-ndvi" class="absolute inset-0 z-20 flex-col bg-surface-container-low pt-3 pb-2 px-3 gap-2" style="display:none">
         <div class="flex items-center gap-2 flex-wrap">
           <select id="mf-select" onchange="mfPick(this.value)" class="font-data-sm text-[11px] bg-transparent border border-white/20 rounded px-2 py-1 text-primary max-w-[60%]"></select>
+          <div id="mf-idx" class="flex gap-1"></div>
           <div id="mf-dates" class="flex gap-1 flex-wrap"></div>
         </div>
         <div id="mf-map" class="flex-1 rounded border border-white/10 min-h-[120px]"></div>
-        <div style="height:10px;border-radius:5px;background:linear-gradient(90deg,#a50026,#f46d43,#fee08b,#ffffbf,#a6d96a,#1a9850,#006837)"></div>
-        <div class="flex justify-between font-label-caps text-[9px] text-on-surface-variant/70"><span>−0.2 BARE</span><span>0.3</span><span>0.8 DENSE GREEN</span></div>
+        <div id="mf-leg" style="height:10px;border-radius:5px;background:linear-gradient(90deg,#a50026,#f46d43,#fee08b,#ffffbf,#a6d96a,#1a9850,#006837)"></div>
+        <div id="mf-legl" class="flex justify-between font-label-caps text-[9px] text-on-surface-variant/70"><span>−0.2 BARE</span><span>0.3</span><span>0.8 DENSE GREEN</span></div>
         <div class="flex items-center justify-between gap-2"><span id="mf-note" class="font-data-sm text-[10px] text-on-surface-variant"></span>
           <button onclick="nav('farmers')" class="font-label-caps text-[10px] px-2 py-1 rounded border border-primary/40 text-primary whitespace-nowrap">OPEN FARMERS</button></div>
       </div>
@@ -1289,6 +1290,7 @@ header{
             <span class="font-data-sm text-[9px] text-primary/80 tabular-nums" id="zone-ndvi-2">—</span>
             <span class="font-label-caps text-[9px] text-on-surface-variant" id="zone-status-2">—</span>
           </div>
+          <div id="zone-idx" class="font-label-caps text-[8px] text-on-surface-variant/70 mt-[2px]" title="NDMI = water in the leaves (check, not a trigger). NDRE = crop health where NDVI saturates. Sentinel-2, 20 m bands."></div>
         </div>
       </div>
     </div>
@@ -3182,10 +3184,16 @@ function renderTimeline(){
       const raw=z.zone||z.zone_name||z.name||('ZONE '+(i+1));
       const label=raw.replace(/^Zone\s*\d+\s*[–-]\s*/i,'').toUpperCase().slice(0,12);   // strip "Zone N – "
       if(nameEl)nameEl.textContent=label;
-      if(ndviEl)ndviEl.textContent=(typeof z.ndvi==='number'?z.ndvi.toFixed(3):'—');
+      if(ndviEl){ndviEl.textContent=(typeof z.ndvi==='number'?z.ndvi.toFixed(3):'—');
+        ndviEl.title='NDVI '+(typeof z.ndvi==='number'?z.ndvi.toFixed(3):'—')+(typeof z.ndmi==='number'?' · NDMI '+z.ndmi.toFixed(3):'')+(typeof z.ndre==='number'?' · NDRE '+z.ndre.toFixed(3):'');}
+      if(nameEl&&z.ndmi_flag){nameEl.textContent=label+' ⚠';nameEl.title='CHECK THE FIELD: leaf water (NDMI) is '+z.ndmi_drop+' below this zone\'s own recent level';}
       if(stEl){const st=(z.status||'').toUpperCase();stEl.textContent=st;stEl.style.color=STATUS_COLOR[st]||'inherit';}
     });
   }
+  const _zoneIdx=zones=>{const el=document.getElementById('zone-idx');if(!el)return;
+    const avg=k=>{const v=zones.filter(z=>typeof z[k]==='number').map(z=>z[k]);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2):null;},m=avg('ndmi'),r=avg('ndre');
+    el.textContent=(m||r)?'FARM AVG'+(m?' · NDMI '+m:'')+(r?' · NDRE '+r:''):'';};
+  const _rzr=renderZoneRows;renderZoneRows=function(zones){_rzr(zones);_zoneIdx(zones);};
   window.renderZoneRows=renderZoneRows;
   window._ndviPoll=function(){poll();};
   function poll(){
@@ -3255,7 +3263,8 @@ function renderTimeline(){
 // NAVIGATION
 // ══════════════════════════════════════════════════
 // ── ANALYTICS · MY FARM: the NDVI map of the farm a farmer outlined on the Farmers page (shared via localStorage, same origin) ──
-let mfMode='campus',mfIdx=0,mfFarmId=null;
+let mfMode='campus',mfIdx=0,mfFarmId=null,mfIndex='ndvi';
+function mfSetIndex(k){mfIndex=k;mfIdx=0;mfRender();}
 function mfDb(){try{const d=JSON.parse(localStorage.getItem('agrisat_farmer_v1'));return d&&Array.isArray(d.farms)?d:{farms:[],selected:null};}catch(e){return {farms:[],selected:null};}}
 function setNdviMode(m){
   mfMode=m;
@@ -3280,11 +3289,15 @@ function mfRender(){
     return;
   }
   const farm=db.farms.find(f=>f.id===mfFarmId);
-  const r=AgriNdviMap.render(box,farm,mfIdx,L,AgriCore);
-  if(!r.scene){dates.innerHTML='';note.textContent='NO SATELLITE NDVI FOR THIS FARM YET — OPEN FARMERS AND LET IT LOAD (ABOUT 20 SECONDS).';return;}
+  const IX=AgriNdviMap.INDEX[mfIndex],NM={ndvi:'NDVI',ndmi:'NDMI',ndre:'NDRE'},LEG={ndvi:['BARE','DENSE GREEN'],ndmi:['DRY','WATER-RICH'],ndre:['WEAK','HEALTHY']};
+  document.getElementById('mf-idx').innerHTML=['ndvi','ndmi','ndre'].map(k=>`<button onclick="mfSetIndex('${k}')" title="${{ndvi:'Greenness / canopy density',ndmi:'Water in the leaves (early stress signal)',ndre:'Crop health in dense canopy'}[k]}" class="px-2 py-0.5 rounded font-data-sm text-[10px] border ${k===mfIndex?'border-secondary text-secondary bg-secondary/10':'border-white/20 text-on-surface-variant'}">${NM[k]}</button>`).join('');
+  document.getElementById('mf-leg').style.background=AgriNdviMap.gradient(mfIndex);
+  document.getElementById('mf-legl').innerHTML=`<span>${IX.lo} ${LEG[mfIndex][0]}</span><span>${((IX.lo+IX.hi)/2).toFixed(1)}</span><span>${IX.hi} ${LEG[mfIndex][1]}</span>`;
+  const r=AgriNdviMap.render(box,farm,mfIdx,L,AgriCore,mfIndex);
+  if(!r.scene){dates.innerHTML='';note.textContent=mfIndex==='ndvi'?'NO SATELLITE NDVI FOR THIS FARM YET — OPEN FARMERS AND LET IT LOAD (ABOUT 20 SECONDS).':'NO CLEAR '+NM[mfIndex]+' PICTURE YET — OPEN FARMERS TO RELOAD THE SATELLITE DATA.';return;}
   dates.innerHTML=r.scenes.map((x,i)=>`<button data-k="${i}" class="px-2 py-0.5 rounded font-data-sm text-[10px] border ${x===r.scene?'border-primary text-primary bg-primary/10':'border-white/20 text-on-surface-variant'}">${x.date}</button>`).join('');
   dates.querySelectorAll('button').forEach(b=>b.onclick=()=>{mfIdx=+b.dataset.k;mfRender();});
-  note.textContent='AVG NDVI '+r.scene.ndvi.toFixed(2)+' · '+r.scene.date+' · '+r.scene.n+' PIXELS (10 M) INSIDE YOUR OUTLINE';
+  note.textContent='AVG '+NM[mfIndex]+' '+r.scene[mfIndex].toFixed(2)+' · '+r.scene.date+' · '+r.scene.n+' PIXELS (10 M) INSIDE YOUR OUTLINE'+(mfIndex==='ndvi'?'':' · 20 M BANDS');
 }
 window.addEventListener('storage',e=>{if(e.key==='agrisat_farmer_v1'&&mfMode==='farm'&&document.getElementById('page-ndvi').classList.contains('active'))mfRender();});
 
@@ -3331,6 +3344,7 @@ function refreshAutopilotPlan(){            // ask the farmer app to recompute w
   else if(fr.contentWindow)fr.contentWindow.postMessage({agrisat:'plan',force:true},location.origin);
   const b=document.getElementById('ap-refresh');if(b){b.textContent='REFRESHING…';setTimeout(()=>{const x=document.getElementById('ap-refresh');if(x)x.textContent='REFRESH PLAN';},8000);}
 }
+function _trendTxt(ser,key){const v=(ser||[]).filter(x=>x[key]!=null);if(v.length<2)return '';const d=v[v.length-1][key]-v[v.length-2][key];return d>0.03?' ▲':d<-0.03?' ▼':' ►';}
 function renderAutoDecision(){
   const box=document.getElementById('ap-decision');if(!box)return;
   const A=_autoFarm(),it=A&&_farmerPlanItem();
@@ -3354,14 +3368,17 @@ function renderAutoDecision(){
     +'<div class="font-data-lg text-data-lg '+cls+'">'+esc(head)+'</div></div></div>'
     +'<div class="flex items-center gap-xs"><button id="ap-refresh" onclick="refreshAutopilotPlan()" class="mode-toggle">REFRESH PLAN</button></div></div>'
     +'<p class="font-data-sm text-[12px] text-on-surface-variant mt-xs">'+esc(why)+'</p>'
-    +'<div class="grid grid-cols-2 md:grid-cols-5 gap-sm mt-xs">'
+    +'<div class="grid grid-cols-2 md:grid-cols-4 gap-sm mt-xs">'
     +cell('SATELLITE NDVI',it.ndvi!=null?it.ndvi.toFixed(2)+tr:'—',ser.length?ser[ser.length-1].date:'no clear scene')
+    +cell('NDMI · LEAF WATER',it.ndmi!=null?it.ndmi.toFixed(2)+_trendTxt(ser,'ndmi'):'—','water status check')
+    +cell('NDRE · CROP HEALTH',it.ndre!=null?it.ndre.toFixed(2)+_trendTxt(ser,'ndre'):'—',it.stressIndex==='ndre'?'USED FOR STRESS (DENSE CROP)':'dense-canopy index')
     +cell('CROP WATER USE (KC)',it.kc!=null?it.kc.toFixed(2):'—','from NDVI'+(it.stress?' · STRESS':''))
     +cell('SOIL WATER USED',pct!=null?it.dr.toFixed(0)+' / '+it.taw.toFixed(0)+' MM ('+pct+'%)':'—','irrigate at '+(rawPct!=null?rawPct+'%':'—'))
     +cell('RAIN NEXT 48 H',(it.rp&&it.rp.mm!=null?it.rp.mm:'—')+' MM','forecast')
     +cell('EVAPORATION TODAY',it.et0!=null?it.et0.toFixed(1)+' MM/DAY':'—','ET0')+'</div>'
+    +(it.flags&&it.flags.length?it.flags.map(fl=>'<p class="font-data-sm text-[12px] mt-xs" style="color:#ffb74d">⚠ CHECK THE FIELD — '+(fl.key==='ndmiDrop'?'LEAF WATER (NDMI) IS '+fl.drop+' BELOW THIS FIELD\'S OWN RECENT LEVEL WHILE THE SOIL-WATER MODEL SAYS WATER IS AVAILABLE':'LEAF WATER (NDMI) IS '+fl.gap+' BELOW YOUR OTHER FIELDS WITH THE SAME CROP')+'</p>').join(''):'')
     +(days?'<div class="flex gap-xs mt-xs overflow-x-auto">'+days+'</div>':'')
-    +'<p class="font-label-caps text-[8px] text-on-surface-variant/40 mt-xs">DECIDED BY ITSELF FROM SENTINEL-2 NDVI + OPEN-METEO WEATHER + FAO-56 SOIL-WATER BALANCE · SWITCH TO MANUAL MODE TO CONTROL THE VALVE YOURSELF</p>';
+    +'<p class="font-label-caps text-[8px] text-on-surface-variant/40 mt-xs">DECIDED BY ITSELF FROM SENTINEL-2 NDVI (NDRE WHEN DENSE) + OPEN-METEO WEATHER + FAO-56 SOIL-WATER BALANCE · NDMI IS A WATER-STATUS CHECK · SWITCH TO MANUAL MODE TO CONTROL THE VALVE YOURSELF</p>';
   if(html!==_apDecHtml){box.innerHTML=html;_apDecHtml=html;}
 }
 // no plan for today yet: let the farmer app compute it in the background (it stores it; the 'storage' event redraws the timeline)

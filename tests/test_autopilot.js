@@ -70,4 +70,27 @@ check('outlook day 0 agrees with today\'s plan', out[0].irrigate === (A.plan({ t
   const ev = A.buildSchedule(pl, fields, outl, 23 * 60 + 50);
   check('a run that would pass midnight is left for tomorrow\'s plan', ev.days[today].length === 0);
 }
+// ── multi-index: NDRE when NDVI saturates, NDMI anomaly flags ──
+{
+  const sc = (arr) => arr.map((o, i) => Object.assign({ date: C.addDays('2026-11-05', i * 5) }, o));
+  const dense = sc([{ ndvi: 0.86, ndre: 0.52 }, { ndvi: 0.86, ndre: 0.46 }, { ndvi: 0.87, ndre: 0.40 }]);    // NDVI flat (saturated), NDRE falling
+  check('dense canopy: NDVI flat but NDRE falling -> stress is seen through NDRE', A.stressCheck(dense, 0).stress === true && A.stressCheck(dense, 0).index === 'ndre');
+  check('the same scenes judged by NDVI alone would have missed it', A.ndviStress(dense, 0) === false);
+  const young = sc([{ ndvi: 0.60, ndre: 0.30 }, { ndvi: 0.52, ndre: 0.31 }, { ndvi: 0.44, ndre: 0.30 }]);
+  check('young canopy: NDVI is still the index and its fall is stress', A.stressCheck(young, 0).index === 'ndvi' && A.stressCheck(young, 0).stress === true);
+  check('dense canopy but too few NDRE scenes: falls back to NDVI', A.stressCheck(sc([{ ndvi: 0.86 }, { ndvi: 0.86 }, { ndvi: 0.87, ndre: 0.4 }]), 0).index === 'ndvi');
+  const wetMon = sc([{ ndvi: 0.86, ndre: 0.52 }, { ndvi: 0.86, ndre: 0.46 }, { ndvi: 0.87, ndre: 0.40 }]);
+  check('big recent rain cancels the stress reading', A.stressCheck(wetMon, 40).stress === false);
+  const f1 = field('21', { drFrac: 0.5 }); f1.ndvi = sc([{ ndvi: .6, ndmi: 0.30 }, { ndvi: .6, ndmi: 0.31 }, { ndvi: .6, ndmi: 0.18 }]);
+  let p1 = A.plan({ today, fields: [f1], settings: {} }).items[0];
+  check('NDMI drop with water available (Dr < RAW) -> flag "check the field"', p1.flags.length === 1 && p1.flags[0].key === 'ndmiDrop' && p1.flags[0].drop > 0.1);
+  check('the flag never changes the irrigation decision (NDMI is a check, not a trigger)', p1.decision === A.plan({ today, fields: [Object.assign({}, f1, { ndvi: sc([{ ndvi: .6 }, { ndvi: .6 }, { ndvi: .6 }]) })], settings: {} }).items[0].decision);
+  const f2 = field('22', { drFrac: 1.2 }); f2.ndvi = f1.ndvi;
+  check('no flag when the model already says the soil is dry (nothing to doubt)', A.plan({ today, fields: [f2], settings: {} }).items[0].flags.length === 0);
+  const mk3 = (vals) => vals.map((v, i) => { const f = field('3' + i, { drFrac: 0.5 }); f.crop = 'wheat'; f.ndvi = sc([{ ndvi: .6, ndmi: v }]); return f; });
+  const peers = A.plan({ today, fields: mk3([0.30, 0.31, 0.12]), settings: {} }).items;
+  check('three fields, same crop: the one far below the others is flagged', peers[2].flags.some(x => x.key === 'ndmiPeer') && !peers[0].flags.some(x => x.key === 'ndmiPeer'));
+  check('only two fields: no neighbour comparison is made', !A.plan({ today, fields: mk3([0.30, 0.12]), settings: {} }).items.some(i => i.flags.some(x => x.key === 'ndmiPeer')));
+  check('plan items carry the latest NDMI and NDRE for display', (() => { const f = field('23', { drFrac: .5 }); f.ndvi = sc([{ ndvi: .6, ndmi: .25, ndre: .4 }]); const it = A.plan({ today, fields: [f], settings: {} }).items[0]; return it.ndmi === .25 && it.ndre === .4; })());
+}
 console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);

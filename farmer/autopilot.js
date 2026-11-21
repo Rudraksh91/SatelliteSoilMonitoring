@@ -19,14 +19,25 @@
   const cfg = s => Object.assign({}, DEFAULTS, s || {});
 
   /** NDVI stress: fell across the last `scenes` clean scenes, each fall > noise, little rain, not senescent. Series newest-first or any order. */
-  function ndviStress(ndviScenes, recentRainMm, noise, scenes) {
-    noise = noise == null ? 0.03 : noise; scenes = scenes || 3;
+  function ndviStress(ndviScenes, recentRainMm, noise, scenes, key) {
+    noise = noise == null ? 0.03 : noise; scenes = scenes || 3; key = key || 'ndvi';
     if (recentRainMm > 20) return false;
-    const v = (ndviScenes || []).filter(s => s.ndvi != null).slice().sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-scenes).map(s => s.ndvi);
+    const v = (ndviScenes || []).filter(s => s[key] != null).slice().sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-scenes).map(s => s[key]);
     if (v.length < scenes) return false;
     for (let i = 1; i < v.length; i++) if (!((v[i - 1] - v[i]) > noise)) return false;
     return true;
   }
+
+  /** Multi-index crop-stress check. NDVI normally; once the canopy is dense (NDVI >= 0.75, where NDVI saturates) NDRE takes over
+   *  (needs 3 clear scenes with NDRE, otherwise NDVI is still used). returns { stress, index: 'ndvi' | 'ndre' } */
+  function stressCheck(scenes, recentRainMm) {
+    const nd = (scenes || []).filter(s => s.ndvi != null).slice().sort((a, b) => (a.date < b.date ? -1 : 1)), last = nd.length ? nd[nd.length - 1].ndvi : null;
+    const re = (scenes || []).filter(s => s.ndre != null).length >= 3;
+    if (last != null && last >= C.NDVI_SATURATED && re) return { stress: ndviStress(scenes, recentRainMm, 0.02, 3, 'ndre'), index: 'ndre' };
+    return { stress: ndviStress(scenes, recentRainMm), index: 'ndvi' };
+  }
+  const latestOf = (scenes, key) => { const v = (scenes || []).filter(s => s[key] != null).slice().sort((a, b) => (a.date < b.date ? -1 : 1)); return v.length ? v[v.length - 1][key] : null; };
+  const median = a => { const v = a.slice().sort((x, y) => x - y); return v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null; };
 
   function decideDay(dr, taw, raw, fwdRain, et0, stress, S, hotKey) {
     let frac = 1.0, why = 'base';
@@ -49,9 +60,14 @@
     input.fields.forEach(f => {
       const a = f.adv;
       if (!a || a.needsSetup) { items.push({ id: f.id, name: f.name, zone: f.zone, decision: 'SETUP', reasonKey: 'apSetup', minutes: 0, litres: 0 }); return; }
-      const stress = ndviStress(f.ndvi, f.rain14 || 0);
+      const sc = stressCheck(f.ndvi, f.rain14 || 0), stress = sc.stress;
       const d = decideDay(a.dr, a.taw, a.raw, a.forecastRain2d, f.et0Today || 0, stress, S);
-      const it = { id: f.id, name: f.name, zone: f.zone, decision: d.key, why: d.why, dr: a.dr, raw: a.raw, taw: a.taw, pct: a.pct, kc: a.kc, ndvi: a.ndvi, stress, minutes: 0, litres: 0, urgency: a.dr / a.raw };
+      const it = { id: f.id, name: f.name, zone: f.zone, decision: d.key, why: d.why, dr: a.dr, raw: a.raw, taw: a.taw, pct: a.pct, kc: a.kc, ndvi: a.ndvi, stress, stressIndex: sc.index,
+                   ndmi: latestOf(f.ndvi, 'ndmi'), ndre: latestOf(f.ndvi, 'ndre'), flags: [], crop: f.crop, minutes: 0, litres: 0, urgency: a.dr / a.raw };
+      // NDMI is an independent water-status check, never a trigger: if the newest NDMI is well below this field's own trend while the model
+      // says water is available, flag "check the field" (possible model mismatch or local stress).
+      const an = C.ndmiAnomaly(f.ndvi);
+      if (an && an.flag && a.dr < a.raw) it.flags.push({ key: 'ndmiDrop', drop: +an.drop.toFixed(2) });
       it.reasonKey = d.key === 'SKIP_RAIN' ? 'apRain' : d.key === 'IRRIGATE' ? (d.why === 'stress' ? 'apStress' : d.why === 'heat' ? 'apHeat' : 'apDry') : 'apAmple';
       it.rp = { dr: Math.round(a.dr), raw: Math.round(a.raw), mm: Math.round(a.forecastRain2d), et0: (f.et0Today || 0).toFixed(1), days: a.daysLeft != null ? Math.round(a.daysLeft) : 0 };
       if (d.go) {
@@ -62,6 +78,11 @@
       }
       items.push(it);
     });
+    // field-to-field comparison: a field far below its neighbours with the same crop (needs >= 3 such fields)
+    const byCrop = {}; items.forEach(i => { if (i.ndmi != null && i.crop) (byCrop[i.crop] = byCrop[i.crop] || []).push(i); });
+    Object.keys(byCrop).forEach(k => { const g = byCrop[k]; if (g.length < 3) return;
+      g.forEach(i => { const others = g.filter(o => o !== i).map(o => o.ndmi), m = median(others);
+        if (m - i.ndmi > 0.12 && !i.flags.some(x => x.key === 'ndmiPeer')) i.flags.push({ key: 'ndmiPeer', gap: +(m - i.ndmi).toFixed(2) }); }); });
     // order: thirstiest first; one at a time; honour the daily total
     const runs = items.filter(i => i.minutes > 0).sort((p, q) => q.urgency - p.urgency);
     let cursor = S.startHour * 60 + S.startMinute, used = 0;
@@ -82,7 +103,7 @@
     const S = cfg(settings), a = f.adv; days = days || 7;
     if (!a || a.needsSetup) return [];
     const idx = {}; weather.time.forEach((t, i) => { idx[t] = i; });
-    const kc = a.kc != null ? a.kc : 0.6, stress0 = ndviStress(f.ndvi, f.rain14 || 0);
+    const kc = a.kc != null ? a.kc : 0.6, stress0 = stressCheck(f.ndvi, f.rain14 || 0).stress;
     let dr = a.dr; const out = [];
     for (let d = 0; d < days; d++) {
       const date = C.addDays(today, d), i = idx[date]; if (i === undefined) break;
@@ -135,5 +156,5 @@
     return { days, unassigned };
   }
 
-  return { DEFAULTS, cfg, plan, outlook, ndviStress, decideDay, hhmm, buildSchedule };
+  return { DEFAULTS, cfg, plan, outlook, ndviStress, stressCheck, decideDay, hhmm, buildSchedule };
 });
