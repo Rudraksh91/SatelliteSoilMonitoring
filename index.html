@@ -440,7 +440,7 @@ body{
 .mob-btn span.material-symbols-outlined{font-size:22px}
 .mob-btn-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 /* ── FARMER MODE: hide campus / project-internal pages; prompt when no farm is selected yet ── */
-html.farmer-mode [data-page="auto"],html.farmer-mode [data-page="health"],html.farmer-mode [data-page="pipeline"]{display:none!important}
+html.farmer-mode [data-page="health"],html.farmer-mode [data-page="pipeline"]{display:none!important}
 #nofarm{display:none;position:fixed;z-index:35;top:64px;left:0;right:0;bottom:56px;background:var(--bg-surface,#0b1210);align-items:center;justify-content:center;padding:24px;text-align:center}
 @media(min-width:768px){#nofarm{left:80px;bottom:32px}}
 #nofarm.on{display:flex}
@@ -653,6 +653,32 @@ html.farmer-mode [data-page="auto"],html.farmer-mode [data-page="health"],html.f
   .cine-astronaut{width:66px!important;top:4%!important;right:0!important}
   .cine-planet{width:70px!important;bottom:2%!important;left:-24px!important}
 }
+
+/* ─────────────────────────────────────────────────────────────
+   EVERY-DEVICE FIXES (kept last so they win over the per-breakpoint rules above)
+   ───────────────────────────────────────────────────────────── */
+/* Farmers page = embedded app: it must have a REAL height or its frame collapses to 150 px (tablet / laptop / desktop) */
+#page-farmers{height:calc(100vh - 64px - 32px)!important;height:calc(100dvh - 64px - 32px)!important;min-height:0!important;overflow:hidden!important;padding:0!important}
+#farmers-frame{display:block;width:100%;height:100%;min-height:0}
+@media(max-width:767px){#page-farmers{height:calc(100vh - 64px - 56px)!important;height:calc(100dvh - 64px - 56px)!important}}
+@media(max-height:500px) and (orientation:landscape){#page-farmers{height:calc(100vh - 48px - 42px)!important;height:calc(100dvh - 48px - 42px)!important}}
+/* Top bar on small phones: never push the buttons off the screen */
+@media(max-width:560px){
+  header{padding-left:10px!important;padding-right:10px!important}
+  header>div{gap:8px!important;min-width:0}
+  header>div:first-child{flex:1 1 auto;overflow:hidden}
+  header>div:first-child>.h-4{display:none}
+  #active-farm{max-width:92px!important;min-width:0}
+  header>div:last-child>div{gap:10px!important}
+  header .mso{font-size:22px}
+  #page-title{max-width:34vw!important}
+  header>div:last-child .material-symbols-outlined:nth-child(-n+2){display:none}   /* decorative feed / speed icons */
+}
+@media(max-width:360px){#active-farm{max-width:72px!important}#page-title{max-width:28vw!important;font-size:13px!important}#hw-label{display:none}}
+/* Notched phones keep the bottom bar inside the safe area */
+@supports(padding:max(0px)){@media(max-width:767px){#mob-nav{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);height:calc(56px + env(safe-area-inset-bottom))}}}
+/* Touch devices: comfortable tap targets, no 300 ms zoom delay, no rubber-band scroll chaining out of panels */
+@media(pointer:coarse){button,[onclick],select,.mob-btn{touch-action:manipulation}header .mso,.nav-btn{min-width:40px;min-height:40px}}
 
 /* ─────────────────────────────────────────────────────────────
    SCREEN-ROTATION HINT TOAST
@@ -3249,6 +3275,8 @@ window.addEventListener('storage',e=>{if(e.key==='agrisat_farmer_v1'&&mfMode==='
 
 const pageMap={map:'COMMAND CENTER',ndvi:'ASSET ANALYTICS & NDVI',climate:'CLIMATE & WEATHER ANALYTICS',auto:'AUTOMATION & LOGIC HUB',health:'SYSTEM HEALTH',pipeline:'SATELLITE DATA PIPELINE',farmers:'FARMER APP'};
 function nav(id){
+  // farmer mode: the Automation tab opens the farmer AUTOPILOT (NDVI + weather -> irrigation plan); the campus logic hub stays in ?campus=1
+  const navBtn=id,toAutopilot=(id==='auto'&&!window.CAMPUS_MODE);if(toAutopilot)id='farmers';
   document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none'});
   document.querySelectorAll('.nav-btn').forEach(b=>{b.classList.remove('text-primary','border-r-2','border-primary-container','bg-primary/10');b.classList.add('text-on-surface-variant/60')});
   const pg=document.getElementById('page-'+id);
@@ -3259,17 +3287,17 @@ function nav(id){
     void pg.offsetWidth;
     pg.classList.add('page-enter');
   }
-  const btn=document.querySelector(`[data-page="${id}"]`);
+  const btn=document.querySelector(`[data-page="${navBtn}"]`);
   if(btn){btn.classList.remove('text-on-surface-variant/60');btn.classList.add('text-primary','border-r-2','border-primary-container','bg-primary/10')}
   // Mobile nav active state
   document.querySelectorAll('.mob-btn').forEach(b=>b.classList.remove('active'));
-  const mob=document.querySelector(`.mob-btn[data-page="${id}"]`);
+  const mob=document.querySelector(`.mob-btn[data-page="${navBtn}"]`);
   if(mob)mob.classList.add('active');
-  set('page-title',pageMap[id]||'COMMAND CENTER');
+  set('page-title',(toAutopilot?'AUTOMATION · AUTOPILOT':pageMap[id])||'COMMAND CENTER');
   if(id==='ndvi'&&mfMode==='farm')setTimeout(mfRender,60);
   refreshFarmSelector();
   if(typeof updateNoFarm==='function')updateNoFarm();
-  if(id==='farmers'){const fr=document.getElementById('farmers-frame');if(fr&&!fr.getAttribute('src'))fr.setAttribute('src','farmer.html?embed=1');}   // load the farmer app on first visit only
+  if(id==='farmers'){const fr=document.getElementById('farmers-frame');if(fr&&!fr.getAttribute('src'))fr.setAttribute('src','farmer.html?embed=1'+(toAutopilot?'#autopilot':''));else if(fr&&fr.contentWindow)fr.contentWindow.postMessage({agrisat:toAutopilot?'openAutopilot':'openHome'},location.origin);}   // load the farmer app on first visit only
   // Scroll to top on mobile
   window.scrollTo({top:0,behavior:'smooth'});
   // Resize charts when entering climate tab

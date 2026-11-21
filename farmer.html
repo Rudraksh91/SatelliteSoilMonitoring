@@ -58,6 +58,9 @@ table.mt{width:100%;border-collapse:collapse;font-size:14px}table.mt th{font-siz
 table.ot td{cursor:default;text-align:center;padding:8px 4px;font-size:13px;white-space:nowrap}table.ot td:first-child{text-align:left;white-space:normal}table.ot th{text-align:center}table.ot th:first-child{text-align:left}
 table.ot td.w{color:var(--blue);font-weight:700}table.ot td.r{color:var(--mut)}
 #apSt{font-size:14px;margin:10px 0 0}#apSt.good{color:var(--g)}#apSt.bad{color:var(--red)}#apSt.mid{color:var(--amber)}
+@media(min-width:900px){main{max-width:860px}}
+@media(min-width:1500px){main{max-width:1040px}}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -630,10 +633,15 @@ LK.readHash();if(LK.ready())LK.connect();
 // when autopilot is ON, every time the app opens it re-plans from the newest NDVI + forecast and refreshes the controller's plan (silently)
 if(apCfg().enabled&&db.farms.length&&!needConsent())setTimeout(async()=>{await runAutopilot(false,true);if(LK.ready())apSendPlan(false);},1500);
 
+// the dashboard's Automation tab opens this view (hash on first load, message afterwards)
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;
+  if(e.data.agrisat==='openAutopilot'&&db.farms.length&&!needConsent())openAuto();else if(e.data.agrisat==='openHome'&&view==='auto')renderHome();});
+
 // boot
 window.AgriApp={openMulti,_map:()=>map,_picked:()=>[...picked],_state:()=>({pts,pin}),db:()=>db,lang:()=>lang,setLang,refreshFarm,renderHome,openFarm,renderAdvice};
 applyStatic();
-if(db.farms.length===1&&db.selected&&!needConsent())openFarm(db.selected);else renderHome();
+if(location.hash==='#autopilot'&&db.farms.length&&!needConsent())openAuto();
+else if(db.farms.length===1&&db.selected&&!needConsent())openFarm(db.selected);else renderHome();
 })();
 </script>
 </body>
