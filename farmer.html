@@ -79,6 +79,50 @@ header{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,e
 @media(min-width:900px){main{max-width:860px}}
 @media(min-width:1500px){main{max-width:1040px}}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* ── animated welcome: "Welcome, Farmer — choose your field" (dawn over a field, a seedling grows) ── */
+#wel{position:fixed;inset:0;z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;text-align:center;color:#eaf6ee;
+  padding:20px;padding-top:max(20px,env(safe-area-inset-top));padding-bottom:max(20px,env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,#050d0a 0%,#0b2a1e 52%,#17563f 100%);transition:opacity .6s ease,transform .6s ease}
+#wel.out{opacity:0;transform:scale(1.04);pointer-events:none}
+#wel .wel-stars{position:absolute;inset:0 0 45% 0;pointer-events:none;animation:welTw 3.5s ease-in-out infinite alternate;
+  background-image:radial-gradient(1.5px 1.5px at 10% 18%,#fff 50%,transparent),radial-gradient(1px 1px at 24% 52%,#cfe 50%,transparent),radial-gradient(1.5px 1.5px at 38% 12%,#fff 50%,transparent),
+  radial-gradient(1px 1px at 52% 44%,#fff 50%,transparent),radial-gradient(2px 2px at 66% 20%,#fff 50%,transparent),radial-gradient(1px 1px at 78% 56%,#cfe 50%,transparent),
+  radial-gradient(1.5px 1.5px at 90% 14%,#fff 50%,transparent),radial-gradient(1px 1px at 16% 78%,#fff 50%,transparent),radial-gradient(1px 1px at 84% 80%,#fff 50%,transparent)}
+#wel .wel-sun{position:absolute;left:50%;bottom:-120px;width:380px;height:380px;margin-left:-190px;border-radius:50%;pointer-events:none;opacity:0;transform:translateY(180px);
+  background:radial-gradient(circle,#fff0bf 0%,rgba(255,206,90,.55) 28%,rgba(255,170,60,0) 68%);animation:welSun 4s cubic-bezier(.2,.8,.2,1) .3s forwards}
+#wel .wel-ground{position:absolute;left:0;right:0;bottom:0;height:30%;pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(111,227,154,.10) 0 2px,transparent 2px 46px),linear-gradient(180deg,rgba(10,40,28,.0),#06150f 85%);
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 40%);mask-image:linear-gradient(180deg,transparent,#000 40%)}
+#wel .wel-wheat{position:absolute;left:0;right:0;bottom:0;height:90px;pointer-events:none}
+#wel .stalk{position:absolute;bottom:-4px;width:3px;border-radius:2px;background:linear-gradient(180deg,#d9b24a,#3e8a55);transform-origin:50% 100%;animation:welSway 3.2s ease-in-out infinite alternate}
+#wel .stalk::before{content:"";position:absolute;left:-3px;top:-10px;width:9px;height:18px;border-radius:50%;background:#f0c24b;box-shadow:0 7px 0 -1px #e4b440,0 13px 0 -2px #d9a936}
+#wel .wel-lang{position:absolute;top:max(10px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));display:flex;gap:4px;z-index:3}
+#wel .wel-lang button{min-height:34px;padding:4px 11px;font-size:13px;background:rgba(255,255,255,.08);color:#cfeedd;border:1px solid rgba(111,227,154,.35);border-radius:999px;font-weight:600}
+#wel .wel-lang button.on{background:#bfe9d3;color:#0b3d2e}
+#wel .wel-body{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;width:100%;max-width:420px}
+#wel .wel-sprout{width:clamp(96px,26vw,130px);height:auto;overflow:visible;filter:drop-shadow(0 0 14px rgba(111,227,154,.35))}
+#wel .stem{stroke-dasharray:1;stroke-dashoffset:1;animation:welDraw 1.5s ease-out .6s forwards}
+#wel .lf{transform:scale(0);animation:welLeaf .8s cubic-bezier(.2,1.4,.4,1) forwards}
+#wel .wel-t{margin:10px 0 4px;font-size:clamp(28px,8vw,42px);line-height:1.15;font-weight:800;letter-spacing:.01em;text-shadow:0 0 22px rgba(111,227,154,.45);opacity:0;animation:welUp .9s cubic-bezier(.16,1,.3,1) 1.2s forwards}
+#wel .wel-s{margin:0 0 16px;font-size:clamp(16px,4.4vw,21px);color:#bfe9d3;font-weight:600;opacity:0;animation:welUp .9s cubic-bezier(.16,1,.3,1) 1.6s forwards}
+#wel .wel-list{display:flex;flex-direction:column;gap:10px;width:100%;max-height:32vh;overflow-y:auto;padding:2px}
+#wel .wel-f{display:flex;align-items:center;gap:12px;width:100%;text-align:left;min-height:56px;padding:10px 16px;color:#eaf6ee;border-radius:14px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(111,227,154,.38);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;animation:welUp .7s cubic-bezier(.16,1,.3,1) forwards}
+#wel .wel-f:active{background:rgba(111,227,154,.2)}
+#wel .wel-f b{display:block;font-size:16px;font-weight:700}#wel .wel-f small{display:block;font-weight:400;color:#a9cdb9;font-size:13px}
+#wel .wel-f .sw2{width:14px;height:14px;margin:0;flex:0 0 14px}
+#wel .wel-add{width:100%;margin-top:12px;padding:14px 22px;font-size:16px;font-weight:800;color:#06281b;background:#6fe39a;border-radius:14px;opacity:0;
+  animation:welUp .8s cubic-bezier(.16,1,.3,1) 2.1s forwards,welPulse 2.4s ease-in-out 3.2s infinite}
+#wel .wel-skip{margin-top:6px;min-height:44px;background:none;border:0;color:rgba(234,246,238,.75);text-decoration:underline;font-weight:500;opacity:0;animation:welUp .8s ease 2.4s forwards}
+@keyframes welTw{from{opacity:.55}to{opacity:1}}
+@keyframes welSun{to{opacity:1;transform:translateY(0)}}
+@keyframes welSway{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+@keyframes welDraw{to{stroke-dashoffset:0}}
+@keyframes welLeaf{to{transform:scale(1)}}
+@keyframes welUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes welPulse{0%,100%{box-shadow:0 0 0 0 rgba(111,227,154,.4)}50%{box-shadow:0 0 22px 4px rgba(111,227,154,.3)}}
+@media(prefers-reduced-motion:reduce){#wel *{animation:none!important;opacity:1!important;transform:none!important;stroke-dashoffset:0!important}}
+@media(max-height:520px){#wel .wel-sprout{width:70px}#wel .wel-list{max-height:26vh}}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -172,6 +216,25 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 </section>
 </main>
 
+<div id="wel" role="dialog" aria-modal="true" aria-labelledby="welT" hidden>
+  <div class="wel-stars"></div><div class="wel-sun"></div><div class="wel-ground"></div><div class="wel-wheat" id="welWheat"></div>
+  <div class="wel-lang" id="welLang"></div>
+  <div class="wel-body">
+    <svg class="wel-sprout" viewBox="0 0 120 120" aria-hidden="true">
+      <ellipse cx="60" cy="110" rx="34" ry="7" fill="#0a2a1c" opacity=".8"/>
+      <path class="stem" pathLength="1" d="M60 108 C60 90 58 76 60 56" fill="none" stroke="#6fe39a" stroke-width="4" stroke-linecap="round"/>
+      <path class="lf" style="transform-origin:60px 82px;animation-delay:1.0s" d="M60 82 C40 80 30 64 34 52 C48 54 58 66 60 82 Z" fill="#4cc38a"/>
+      <path class="lf" style="transform-origin:60px 72px;animation-delay:1.2s" d="M60 72 C80 70 90 54 86 42 C72 44 62 56 60 72 Z" fill="#6fe39a"/>
+      <path class="lf" style="transform-origin:60px 58px;animation-delay:1.4s" d="M60 58 C52 52 52 42 60 32 C68 42 68 52 60 58 Z" fill="#9bf0b6"/>
+    </svg>
+    <h1 class="wel-t" id="welT"></h1>
+    <p class="wel-s" id="welS"></p>
+    <div class="wel-list" id="welList"></div>
+    <button type="button" class="wel-add" id="welAdd" data-i="addFarm"></button>
+    <button type="button" class="wel-skip" id="welSkip" data-i="welSkip"></button>
+  </div>
+</div>
+
 <dialog id="consent">
   <h2 style="margin-top:0" data-i="consentTitle"></h2>
   <p data-h="consent1"></p><p data-h="consent2"></p><p class="note" data-i="consent3"></p>
@@ -182,7 +245,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script src="farmer/core.js?v=20261121x"></script>
-<script src="farmer/i18n.js?v=20261121x"></script>
+<script src="farmer/i18n.js?v=20261121y"></script>
 <script src="farmer/ndvimap.js?v=20261121x"></script>
 <script src="farmer/autopilot.js?v=20261121x"></script>
 <script src="farmer/link.js?v=20261121x"></script>
@@ -255,6 +318,30 @@ $('btnSelAll').onclick=()=>{db.farms.forEach(f=>picked.add(f.id));renderHome();}
 $('btnSelNone').onclick=()=>{picked.clear();renderHome();};
 $('btnOpenSel').onclick=()=>{const ids=[...picked];if(ids.length===1)openFarm(ids[0]);else openMulti(ids);};
 $('btnAdd').onclick=()=>{if(needConsent())return askConsent();flash=null;startEdit(null);};
+
+// ── animated welcome: shown once per browser session when the Farmers tab (or this page) opens ──
+const welcomeWanted=()=>{if(location.hash)return false;try{return sessionStorage.getItem('agrisat_farmer_welcomed')!=='1';}catch(e){return true;}};
+function closeWelcome(){const w=$('wel');if(!w||w.hidden)return;try{sessionStorage.setItem('agrisat_farmer_welcomed','1');}catch(e){}
+  w.classList.add('out');setTimeout(()=>{w.hidden=true;w.classList.remove('out');},600);}
+function renderWelcome(){
+  $('welT').textContent=T('welTitle');
+  const has=db.farms.length>0;
+  $('welS').textContent=T(has?'welChoose':'welNone');
+  $('welList').innerHTML=db.farms.map((f,i)=>`<button type="button" class="wel-f" data-id="${f.id}" style="animation-delay:${(1.9+i*.12).toFixed(2)}s"><span class="sw2" style="background:${window.AgriNdviMap.FIELD_COLOURS[i%8]}"></span><span><b>${esc(f.name)}</b><small>${fmt(f.areaM2/10000,2)} ha · ${esc(T('crop_'+(f.cropId||'general')))}</small></span></button>`).join('');
+  $('welList').querySelectorAll('.wel-f').forEach(b=>b.onclick=()=>{if(needConsent())return askConsent();closeWelcome();openFarm(b.dataset.id);});
+  $('welAdd').textContent=T('addFarm');$('welSkip').textContent=T('welSkip');$('welSkip').hidden=!has;
+  const bar=$('welLang');bar.innerHTML=I.langs.map(l=>`<button type="button" data-l="${l[0]}" class="${l[0]===lang?'on':''}">${l[1]}</button>`).join('');
+  bar.querySelectorAll('button').forEach(b=>b.onclick=()=>{setLang(b.dataset.l);renderWelcome();});
+}
+function showWelcome(){
+  const w=$('wel');if(!w)return;
+  const wh=$('welWheat');if(wh&&!wh.children.length){
+    for(let i=0;i<28;i++){const s=document.createElement('div');s.className='stalk';const h=40+((i*37)%45);
+      s.style.cssText=`left:${(i*3.7+1).toFixed(1)}%;height:${h}px;animation-delay:${((i*.37)%3).toFixed(2)}s;opacity:${(.55+((i*13)%40)/100).toFixed(2)}`;wh.appendChild(s);}}
+  renderWelcome();w.hidden=false;
+}
+$('welAdd').onclick=()=>{if(needConsent())return askConsent();closeWelcome();flash=null;startEdit(null);};
+$('welSkip').onclick=closeWelcome;
 
 // ── map / edit (P4: area, small-farm warning) ──
 let layerCtl=null,baseLayers=null,others=[],flash=null;
@@ -773,6 +860,7 @@ applyStatic();
 if(location.hash==='#autopilot'&&db.farms.length&&!needConsent())openAuto();
 else if(location.hash==='#plan'&&db.farms.length&&!needConsent()){renderHome();runAutopilot(false,true);}
 else if(location.hash==='#sendplan'&&db.farms.length&&!needConsent()){renderHome();runAutopilot(false,true).then(()=>{if(LK.ready())apSendPlan(false);});}   // background: plan for the dashboard's Automation page
+else if(welcomeWanted()){renderHome();showWelcome();}   // greet first, then the farmer chooses a field (no hash = a person opened the tab, not a background plan)
 else if(db.farms.length===1&&db.selected&&!needConsent())openFarm(db.selected);else renderHome();
 })();
 </script>

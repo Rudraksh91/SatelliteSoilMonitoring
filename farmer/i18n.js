@@ -12,6 +12,7 @@
     en: {
       title: 'AgriSat · Farmer', projectLink: 'Project dashboard', myFarms: 'My fields',
       noFarm: 'No field yet. Tap “Add a field”.', addFarm: '＋ Add a field',
+      welTitle: 'Welcome, Farmer', welChoose: 'Choose your field', welNone: 'Mark your field on the satellite map to begin.', welSkip: 'See all my fields',
       homeNote: 'Your farm outline is stored only on this phone — no account, no server. Advice is an <b>estimate</b> from satellite and weather data; check the soil by hand before big decisions.',
       consentTitle: 'Before you start',
       consent1: 'To give advice for your farm, this page sends the <b>approximate location of your farm</b> to three free public services: <b>Open-Meteo</b> (weather), <b>ISRIC SoilGrids</b> (soil type) and <b>AWS / Copernicus Sentinel-2</b> (satellite pictures).',
@@ -159,6 +160,7 @@
     hi: {
       title: 'एग्रीसैट · किसान', projectLink: 'प्रोजेक्ट डैशबोर्ड', myFarms: 'मेरे खेत',
       noFarm: 'अभी कोई खेत नहीं है। “मेरा खेत जोड़ें” दबाएँ।', addFarm: '＋ मेरा खेत जोड़ें',
+      welTitle: 'स्वागत है, किसान भाई', welChoose: 'अपना खेत चुनें', welNone: 'शुरू करने के लिए सैटेलाइट नक्शे पर अपना खेत चिह्नित करें।', welSkip: 'मेरे सभी खेत देखें',
       homeNote: 'आपके खेत का नक्शा केवल इसी फ़ोन में रहता है — कोई खाता नहीं, कोई सर्वर नहीं। सलाह उपग्रह और मौसम के आँकड़ों से लगाया गया <b>अनुमान</b> है; बड़े फ़ैसले से पहले मिट्टी हाथ से जाँच लें।',
       consentTitle: 'शुरू करने से पहले',
       consent1: 'आपके खेत के लिए सलाह देने हेतु यह पेज आपके <b>खेत की अनुमानित जगह</b> तीन मुफ़्त सार्वजनिक सेवाओं को भेजता है: <b>Open-Meteo</b> (मौसम), <b>ISRIC SoilGrids</b> (मिट्टी का प्रकार) और <b>AWS / Copernicus Sentinel-2</b> (उपग्रह तस्वीरें)।',
@@ -304,6 +306,7 @@
     gu: {
       title: 'એગ્રીસેટ · ખેડૂત', projectLink: 'પ્રોજેક્ટ ડેશબોર્ડ', myFarms: 'મારાં ખેતરો',
       noFarm: 'હજી કોઈ ખેતર નથી. “મારું ખેતર ઉમેરો” દબાવો.', addFarm: '＋ મારું ખેતર ઉમેરો',
+      welTitle: 'સ્વાગત છે, ખેડૂત મિત્ર', welChoose: 'તમારું ખેતર પસંદ કરો', welNone: 'શરૂ કરવા માટે સેટેલાઇટ નકશા પર તમારું ખેતર ચિહ્નિત કરો.', welSkip: 'મારા બધા ખેતર જુઓ',
       homeNote: 'તમારા ખેતરનો નકશો ફક્ત આ ફોનમાં જ રહે છે — કોઈ ખાતું નથી, કોઈ સર્વર નથી. સલાહ ઉપગ્રહ અને હવામાનના આંકડા પરથી લગાવેલો <b>અંદાજ</b> છે; મોટા નિર્ણય પહેલાં માટી હાથથી તપાસી લો.',
       consentTitle: 'શરૂ કરતા પહેલાં',
       consent1: 'તમારા ખેતર માટે સલાહ આપવા આ પેજ તમારા <b>ખેતરનું અંદાજિત સ્થાન</b> ત્રણ મફત જાહેર સેવાઓને મોકલે છે: <b>Open-Meteo</b> (હવામાન), <b>ISRIC SoilGrids</b> (માટીનો પ્રકાર) અને <b>AWS / Copernicus Sentinel-2</b> (ઉપગ્રહ તસવીરો).',
