@@ -51,7 +51,7 @@
     c.on('connect', () => { st.connected = true; c.subscribe('agrisat/' + id + '/data', { qos: 0 }); });
     c.on('close', () => { st.connected = false; });
     c.on('message', (t, payload) => {
-      try { const d = JSON.parse(payload.toString()); if (d && d.source === 'pi_brain') { st.ack = { at: Date.now(), schedule: d.schedule || null, auto: d.auto_mode }; st.listeners.forEach(f => f(st.ack)); } } catch (e) {}
+      try { const d = JSON.parse(payload.toString()); if (d && d.source === 'pi_brain') { st.ack = { at: Date.now(), schedule: d.schedule || null, auto: d.auto_mode, valve: Array.isArray(d.valve) ? d.valve : null, zones: Array.isArray(d.zones) ? d.zones : null }; st.listeners.forEach(f => f(st.ack)); } } catch (e) {}
     });
     return true;
   }

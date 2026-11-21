@@ -54,9 +54,10 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261121t"></script>
-<script src="farmer/ndvimap.js?v=20261121t"></script>
-<script src="farmer/i18n.js?v=20261121t"></script>
+<script src="farmer/core.js?v=20261121x"></script>
+<script src="farmer/ndvimap.js?v=20261121x"></script>
+<script src="farmer/i18n.js?v=20261121x"></script>
+<script src="farmer/link.js?v=20261121x"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -732,9 +733,17 @@ main.page{margin-top:calc(var(--hdr-h) + var(--safe-top))!important}
 @media(max-width:360px){header.has-farm-sel #active-farm{max-width:110px!important}}
 @media(max-width:560px){#feed-btn,#pump-btn{margin:-10px -6px}}
 /* feeds sheet: scrolls inside itself, never the page behind it; sized with dvh so the iOS address bar cannot hide the bottom button */
-#feeds-modal .macos-sheet-panel,#pump-modal .macos-sheet-panel{max-height:calc(100vh - 32px)!important;max-height:calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px)!important;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(24px + var(--safe-bottom))!important}
-#pump-list input,#pump-list select{width:100%;min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid rgba(var(--overlay-rgb),.18);background:rgba(var(--surface-2-rgb),.9);color:var(--body-text);font-size:16px;font-family:'Inter',sans-serif}
-#pump-list label{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:rgba(var(--muted-rgb),.7);margin:8px 0 4px}
+#feeds-modal .macos-sheet-panel{max-height:calc(100vh - 32px)!important;max-height:calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px)!important;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(24px + var(--safe-bottom))!important}
+#pump-modal .macos-sheet-panel{max-height:calc(100vh - 32px)!important;max-height:calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px)!important;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(24px + var(--safe-bottom))!important}
+.pc-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:64px;padding:10px 6px;border-radius:14px;border:1.5px solid rgba(var(--overlay-rgb),.18);background:rgba(var(--overlay-rgb),.04);color:var(--body-text);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.05em;text-align:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.pc-btn .material-symbols-outlined{font-size:24px}
+.pc-btn:disabled{opacity:.45}
+.pc-btn.on{border-color:rgba(255,183,77,.7);background:rgba(255,183,77,.14);color:#ffb74d}
+.pc-btn.off{border-color:rgba(255,110,110,.7);background:rgba(255,110,110,.14);color:#ff8a8a}
+.pc-btn.auto{border-color:rgba(0,255,65,.7);background:rgba(0,255,65,.14);color:#00ff41}
+.pc-btn.confirm{animation:pc-pulse 1s ease-in-out infinite}
+@keyframes pc-pulse{50%{box-shadow:0 0 0 4px rgba(255,183,77,.3)}}
+@media(max-width:420px){.pc-btn{min-height:56px;font-size:11px;padding:8px 4px}}
 @media(max-width:360px){header.has-farm-sel #active-farm{max-width:96px!important}header>div:last-child>div{gap:6px!important}}
 /* Notched phones keep the bottom bar inside the safe area */
 @supports(padding:max(0px)){@media(max-width:767px){#mob-nav{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);height:calc(56px + env(safe-area-inset-bottom))}}}
@@ -1147,7 +1156,7 @@ header{
     <span class="font-label-caps text-label-caps text-on-surface-variant/60 text-[10px] hidden xl:block" id="api-status">API: CONNECTING...</span>
     <div class="flex items-center gap-sm text-on-surface-variant">
       <button type="button" id="feed-btn" aria-label="Live data feeds" title="Live data feeds: weather, satellite, soil, controller" onclick="openFeedsModal()" class="hover:text-primary transition-colors"><span class="material-symbols-outlined mso" aria-hidden="true">rss_feed</span></button>
-      <button type="button" id="pump-btn" aria-label="Pump settings" title="Pump settings: which pump serves which field" onclick="openPumpModal()" class="hover:text-primary transition-colors"><span class="material-symbols-outlined mso" aria-hidden="true">speed</span></button>
+      <button type="button" id="pump-btn" aria-label="Pump control" title="Pump control: status, force on, force off, auto irrigation" onclick="openPumpModal()" class="hover:text-primary transition-colors"><span class="material-symbols-outlined mso" aria-hidden="true">speed</span></button>
       <!-- Theme toggle -->
       <span id="theme-toggle-icon" onclick="toggleTheme()" class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">dark_mode</span>
       <!-- Settings (only entry point on mobile — sidebar w/ Settings is desktop-only) -->
@@ -3489,48 +3498,140 @@ function nav(id){
 }
 
 // ══════════════════════════════════════════════════
-// PUMP SETTINGS sheet (header speed icon): which pump and valve serve each field. Stored with the field (same data the farmer app uses).
+// PUMP CONTROL sheet (header speed icon): status of the pumps + FORCE ON / FORCE OFF / AUTO IRRIGATION.
+// Farmer farm: signed commands to the farmer's own controller (same channel and key as the Autopilot). Campus: the existing campus valve code.
 // ══════════════════════════════════════════════════
-const _PUMP_UNITS=[['lph','LITRES / HOUR'],['lpm','LITRES / MINUTE'],['m3h','M³ / HOUR'],['hp','HP (EST.)']];
-function _fieldPump(f){return f.pump?f.pump:(f.flowLph?{unit:'lph',value:f.flowLph,head:20,name:''}:{unit:'lph',value:'',head:20,name:''});}
-function _pumpNote(flow,area){
-  if(!flow)return 'PUMP NOT SET — THE AUTOPILOT CANNOT GIVE RUN TIMES YET';
-  const h=AgriCore.pumpHoursFor(25,area,flow,0.88);
-  return '≈ '+flow.toLocaleString('en-IN')+' L/H'+(h?' · 25 MM ON THIS FIELD TAKES ABOUT '+(h<10?h.toFixed(1):Math.round(h))+' H OF PUMPING':'');
+const PC={target:'sel',armed:'',armedT:0,since:{},busy:false,timer:null};
+const _pcCampus=()=>!!(window.ACTIVE&&window.ACTIVE.campus);
+function _pcPumps(){
+  if(_pcCampus())return [1,2,3].map(z=>({zone:z,name:['FIELD-A','FIELD-B','FIELD-C'][z-1],sub:'Campus drip valve '+z,id:null}));
+  return _farmerDb().farms.filter(f=>f.zone).sort((a,b)=>a.zone-b.zone).map(f=>({zone:f.zone,name:_cleanName(f.name).toUpperCase(),id:f.id,
+    sub:'Valve '+f.zone+(f.pump&&f.pump.name?' · '+f.pump.name:'')+(f.flowLph?' · '+f.flowLph.toLocaleString('en-IN')+' L/H':' · pump size not set')}));
 }
-function renderPumps(){
-  const list=document.getElementById('pump-list');if(!list)return;
-  const db=_farmerDb();
-  if(!db.farms.length){list.innerHTML='<div style="padding:14px;border-radius:12px;border:1px solid rgba(var(--overlay-rgb),.1);font-size:13px">No field yet. Open <b>Farmers</b>, mark your field on the map, then come back to set its pump.</div>';return;}
-  list.innerHTML=db.farms.map(f=>{const p=_fieldPump(f),A=window.ACTIVE||{},sel=A.id===f.id;
-    return '<div data-pf="'+f.id+'" style="padding:14px;border-radius:14px;border:1px solid '+(sel?'rgba(0,255,65,.35)':'rgba(var(--overlay-rgb),.1)')+';background:rgba(var(--overlay-rgb),.03)">'
-     +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><b style="font-family:\'JetBrains Mono\',monospace;font-size:13px">'+_esc(_cleanName(f.name)).toUpperCase()+'</b><span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:rgba(var(--muted-rgb),.7)">'+(f.areaM2/10000).toFixed(2)+' HA'+(sel?' · SELECTED':'')+'</span></div>'
-     +'<label>VALVE</label><select data-k="zone"><option value="">NOT CONNECTED</option>'+[1,2,3].map(z=>'<option value="'+z+'"'+(f.zone===z?' selected':'')+'>VALVE '+z+'</option>').join('')+'</select>'
-     +'<label>PUMP NAME OR NOTE (OPTIONAL)</label><input data-k="name" type="text" maxlength="40" value="'+_esc(p.name||'').replace(/"/g,'&quot;')+'" placeholder="e.g. Borewell 5 HP">'
-     +'<div style="display:flex;gap:10px"><div style="flex:1 1 40%"><label>PUMP SIZE</label><input data-k="value" type="number" min="0" step="any" inputmode="decimal" value="'+(p.value||'')+'" placeholder="3000"></div>'
-     +'<div style="flex:1 1 60%"><label>UNIT</label><select data-k="unit">'+_PUMP_UNITS.map(u=>'<option value="'+u[0]+'"'+(u[0]===p.unit?' selected':'')+'>'+u[1]+'</option>').join('')+'</select></div></div>'
-     +'<div data-k="headbox"'+(p.unit==='hp'?'':' style="display:none"')+'><label>WATER LIFT / HEAD (METRES)</label><input data-k="head" type="number" min="1" max="300" step="1" inputmode="decimal" value="'+(p.head||20)+'"></div>'
-     +'<p data-k="note" style="margin-top:10px;font-family:\'JetBrains Mono\',monospace;font-size:11px;line-height:1.5;color:'+(f.flowLph?'#00ff41':'#ffb74d')+'">'+_pumpNote(f.flowLph,f.areaM2)+'</p></div>';}).join('');
-  list.querySelectorAll('[data-pf]').forEach(card=>{
-    const id=card.dataset.pf,q=k=>card.querySelector('[data-k="'+k+'"]');
-    const change=(live)=>{
-      const unit=q('unit').value,v=parseFloat(q('value').value)||null,head=parseFloat(q('head').value)||20,nm=q('name').value.trim().slice(0,40),zone=q('zone').value?+q('zone').value:null;
-      q('headbox').style.display=unit==='hp'?'':'none';
-      const flow=AgriCore.pumpFlowLph(v,unit,head);
-      const d=_farmerDb(),f=d.farms.find(x=>x.id===id);if(!f)return;       // read the newest saved data, change only this field
-      f.flowLph=flow;f.pump=(v||nm||unit!=='lph')?{unit,value:v||'',head,name:nm}:null;f.zone=zone;
-      try{localStorage.setItem('agrisat_farmer_v1',JSON.stringify(d));}catch(e){}
-      const A=window.ACTIVE;if(A&&A.farm&&A.id===id){A.farm.flowLph=f.flowLph;A.farm.pump=f.pump;A.farm.zone=f.zone;}
-      const n=q('note');n.textContent=_pumpNote(flow,f.areaM2);n.style.color=flow?'#00ff41':'#ffb74d';
-      if(typeof applyFarmToAutoPage==='function')applyFarmToAutoPage();
-      clearTimeout(change.t);change.t=setTimeout(()=>{refreshAutopilotPlan(false);},live?700:0);   // re-plan with the new pump (uses saved weather/satellite: instant)
-    };
-    card.querySelectorAll('input').forEach(i=>i.oninput=()=>change(true));
-    card.querySelectorAll('select').forEach(i=>i.onchange=()=>change(false));
-  });
+function _pcAck(){const a=window.AgriLink&&AgriLink.state.ack;return a&&Date.now()-a.at<20000?a:null;}
+function _pcRunning(zone){            // true / false / null (unknown)
+  if(_pcCampus())return !!(valveState[zone]&&valveState[zone].open);
+  const a=_pcAck();if(!a)return null;
+  const z=(a.zones||[]).find(x=>+x.id===zone);if(z)return !!z.valve;
+  return Array.isArray(a.valve)?!!a.valve[zone-1]:null;
 }
-function openPumpModal(){renderPumps();document.body.style.overflow='hidden';openMacSheet('pump-modal');}
-function closePumpModal(){document.body.style.overflow='';closeMacSheet('pump-modal');}
+function _pcTargets(){
+  const all=_pcPumps();
+  if(PC.target==='all'||all.length<2)return all;
+  const A=window.ACTIVE;const mine=all.filter(p=>p.id&&A&&A.id===p.id);
+  return mine.length?mine:all;
+}
+function _pcMode(){            // 'auto' | 'manual' | null
+  if(_pcCampus()){const i=document.getElementById('mode-indicator');return i&&/MANUAL/.test(i.textContent)?'manual':'auto';}
+  const a=_pcAck();return a?(a.auto?'auto':'manual'):null;
+}
+function _pcMsg(t,cls){const m=document.getElementById('pc-msg');if(!m)return;m.textContent=t||'';m.style.color={good:'#00ff41',bad:'#ff8a8a',mid:'#ffb74d'}[cls]||'inherit';}
+function renderPumpCtl(){
+  const list=document.getElementById('pc-list');if(!list)return;
+  const campus=_pcCampus(),pumps=_pcPumps(),ack=_pcAck(),ready=campus||(window.AgriLink&&AgriLink.ready());
+  // controller + mode
+  const chip=(txt,col)=>'<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:99px;border:1px solid '+col+';font-family:\'JetBrains Mono\',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;color:'+col+'"><span style="width:8px;height:8px;border-radius:50%;background:'+col+'"></span>'+txt+'</span>';
+  let conn;
+  if(campus)conn=(typeof _mqttConnected!=='undefined'&&_mqttConnected)||(typeof _hwConnected!=='undefined'&&_hwConnected)?chip('CAMPUS CONTROLLER CONNECTED','#00ff41'):chip('CAMPUS CONTROLLER NOT CONNECTED','#ffb74d');
+  else if(!ready)conn=chip('CONTROLLER NOT SET UP','#ffb74d');
+  else if(ack)conn=chip('CONTROLLER ONLINE · '+Math.max(0,Math.round((Date.now()-ack.at)/1000))+' S AGO','#00ff41');
+  else conn=chip('CONTROLLER OFFLINE · NO STATUS','#ff8a8a');
+  const mode=_pcMode();
+  document.getElementById('pc-bar').innerHTML=conn+(mode?chip(mode==='auto'?'AUTO IRRIGATION':'MANUAL OVERRIDE',mode==='auto'?'#00ff41':'#ffb74d'):'');
+  // pumps
+  const now=Date.now();
+  list.innerHTML=pumps.length?pumps.map(p=>{const r=_pcRunning(p.zone);
+    if(r===true&&!PC.since[p.zone])PC.since[p.zone]=now;if(r!==true)delete PC.since[p.zone];
+    const col=r===true?'#00ff41':r===false?'rgba(var(--muted-rgb),.45)':'#ffb74d',lbl=r===true?'RUNNING'+(PC.since[p.zone]&&now-PC.since[p.zone]>60000?' · '+Math.round((now-PC.since[p.zone])/60000)+' MIN':''):r===false?'STOPPED':'UNKNOWN';
+    return '<div style="display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid '+(r===true?'rgba(0,255,65,.35)':'rgba(var(--overlay-rgb),.1)')+';background:rgba(var(--overlay-rgb),.03)">'
+      +'<span style="flex:0 0 12px;height:12px;border-radius:50%;background:'+col+(r===true?';box-shadow:0 0 10px '+col:'')+'"></span>'
+      +'<div style="min-width:0;flex:1"><div style="font-family:\'JetBrains Mono\',monospace;font-size:13px;font-weight:700">'+_esc(p.name)+'</div><div style="font-size:11px;color:rgba(var(--muted-rgb),.7)">'+_esc(p.sub)+'</div></div>'
+      +'<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;color:'+col+'">'+lbl+'</span></div>';}).join('')
+    :'<div style="padding:14px;border-radius:12px;border:1px solid rgba(var(--overlay-rgb),.1);font-size:13px;line-height:1.5">No pump is linked to a field yet. Open <b>Farmers → Autopilot</b> and choose a valve (and the pump size) for each field.</div>';
+  // which pump(s) the buttons act on
+  const tg=document.getElementById('pc-target');
+  tg.innerHTML=pumps.length>1?'<label style="display:block;font-family:\'JetBrains Mono\',monospace;font-size:10px;letter-spacing:.06em;color:rgba(var(--muted-rgb),.7);margin-bottom:4px">BUTTONS CONTROL</label><select id="pc-sel" style="width:100%;min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid rgba(var(--overlay-rgb),.18);background:rgba(var(--surface-2-rgb),.9);color:var(--body-text);font-size:16px">'
+    +'<option value="sel"'+(PC.target!=='all'?' selected':'')+'>THIS FARM\'S PUMP ONLY</option><option value="all"'+(PC.target==='all'?' selected':'')+'>ALL PUMPS ('+pumps.length+')</option></select>':'';
+  const sel=document.getElementById('pc-sel');if(sel)sel.onchange=()=>{PC.target=sel.value;PC.armed='';renderPumpCtl();};
+  // buttons
+  const tgt=_pcTargets(),anyRun=tgt.some(p=>_pcRunning(p.zone)===true);
+  const on=document.getElementById('pc-on'),off=document.getElementById('pc-off'),au=document.getElementById('pc-auto');
+  const armed=PC.armed&&Date.now()<PC.armedT;if(!armed)PC.armed='';
+  on.className='pc-btn'+(mode==='manual'&&anyRun?' on':'')+(PC.armed==='on'?' confirm':'');off.className='pc-btn'+(mode==='manual'&&!anyRun&&_pcRunning(tgt[0]&&tgt[0].zone)===false?' off':'')+(PC.armed==='off'?' confirm':'');au.className='pc-btn'+(mode==='auto'?' auto':'');
+  document.getElementById('pc-on-t').textContent=PC.armed==='on'?'TAP AGAIN TO CONFIRM':'FORCE ON';
+  document.getElementById('pc-off-t').textContent=PC.armed==='off'?'TAP AGAIN TO CONFIRM':'FORCE OFF';
+  [on,off,au].forEach(b=>b.disabled=PC.busy||!pumps.length);
+  // set-up form for a farmer controller that is not linked yet
+  const su=document.getElementById('pc-setup');
+  if(!campus&&!ready){
+    if(!su.dataset.built){su.dataset.built='1';su.innerHTML='<p style="font-size:12px;margin-bottom:6px">Link your pump controller (you get the ID and the key when it is set up). The key stays on this phone only.</p>'
+      +'<input id="pc-id" type="text" placeholder="Controller ID" autocapitalize="none" autocomplete="off" spellcheck="false" style="width:100%;min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid rgba(var(--overlay-rgb),.18);background:rgba(var(--surface-2-rgb),.9);color:var(--body-text);font-size:16px;margin-bottom:6px">'
+      +'<input id="pc-key" type="password" placeholder="Command key" autocapitalize="none" autocomplete="off" spellcheck="false" style="width:100%;min-height:44px;padding:8px 10px;border-radius:10px;border:1px solid rgba(var(--overlay-rgb),.18);background:rgba(var(--surface-2-rgb),.9);color:var(--body-text);font-size:16px;margin-bottom:6px">'
+      +'<button onclick="pumpSaveLink()" class="pc-btn" style="min-height:48px;width:100%;flex-direction:row">SAVE CONTROLLER</button>';}
+    su.style.display='block';
+  }else{su.style.display='none';su.dataset.built='';}
+}
+function pumpSaveLink(){
+  const id=AgriLink.setId(document.getElementById('pc-id').value),ok=document.getElementById('pc-key').value.trim()?AgriLink.setKey(document.getElementById('pc-key').value):!!AgriLink.getKey();
+  if(!id||!ok){_pcMsg('Enter the controller ID and a valid command key first.','bad');return;}
+  AgriLink.connect();document.getElementById('pc-key').value='';_pcMsg('Saved. Connecting to the controller…','mid');renderPumpCtl();
+}
+function _setAutopilotFlag(on){            // keep the farmer app's Autopilot switch truthful
+  try{const d=_farmerDb();d.autopilot=d.autopilot||{};d.autopilot.enabled=!!on;localStorage.setItem('agrisat_farmer_v1',JSON.stringify(d));}catch(e){}
+}
+async function _pcWait(test,ms){const t0=Date.now();while(Date.now()-t0<ms){if(test())return true;await new Promise(r=>setTimeout(r,500));}return test();}
+async function pumpAction(kind){
+  if(PC.busy)return;
+  const tgt=_pcTargets();if(!tgt.length)return;
+  // Force ON needs a second tap: it overrides everything, including rain protection
+  if(kind==='on'){
+    if(PC.armed!=='on'){PC.armed='on';PC.armedT=Date.now()+6000;
+      _pcMsg(rainGuardActive()?'RAIN GUARD IS ACTIVE ('+rainGuardReason().replace(/&lt;/g,'<').replace(/&gt;/g,'>')+'). Tap FORCE ON again to run the pump anyway. It runs until you press FORCE OFF.':'Tap FORCE ON again to confirm. The pump runs until you press FORCE OFF (the controller stops it after 120 min).','mid');
+      renderPumpCtl();setTimeout(renderPumpCtl,6100);return;}
+    PC.armed='';
+  }
+  PC.busy=true;renderPumpCtl();
+  try{
+    if(_pcCampus()){
+      if(kind==='auto'){setIrrigMode('auto');_pcMsg('Auto irrigation is on: the campus rules decide.','good');}
+      else if(kind==='off'){setIrrigMode('manual');tgt.forEach(p=>closeValve(p.zone));if(PC.target==='all'||tgt.length===3)stopAllValves();_pcMsg('Pump stopped and held off (manual override).','good');}
+      else{setIrrigMode('manual');tgt.forEach(p=>_origOpenForce(p.zone));_pcMsg('Force ON sent to the campus controller.','good');}
+    }else{
+      if(!AgriLink.ready()){_pcMsg('Set up the controller first (below).','bad');return;}
+      AgriLink.connect();
+      let ok=true;
+      if(kind==='auto'){
+        _setAutopilotFlag(true);ok=await AgriLink.send({auto_mode:true});
+        if(ok){const fr=document.getElementById('farmers-frame');                              // the farmer app re-plans and pushes today's plan
+          if(fr&&!fr.getAttribute('src')){fr.removeAttribute('loading');fr.setAttribute('src','farmer.html?embed=1#sendplan');}
+          else if(fr&&fr.contentWindow)fr.contentWindow.postMessage({agrisat:'sendPlan'},location.origin);}
+        _pcMsg(ok?'Sent. Waiting for the controller…':'Could not reach the controller (no connection or wrong key).',ok?'mid':'bad');
+        if(ok){const done=await _pcWait(()=>{const a=_pcAck();return a&&a.auto===true;},12000);_pcMsg(done?'Controller confirms: auto irrigation is ON. It will run today\'s NDVI + weather plan.':'Sent, but no confirmation yet. The controller may be offline; it keeps its last setting.',done?'good':'mid');}
+      }else if(kind==='off'){
+        _setAutopilotFlag(false);ok=await AgriLink.send({auto_mode:false});
+        for(const p of tgt){if(ok)ok=await AgriLink.send({zone:p.zone,state:false});}
+        if(ok&&(PC.target==='all'||tgt.length===_pcPumps().length))ok=await AgriLink.send({emergency_stop:true});
+        _pcMsg(ok?'Sent. Waiting for the controller…':'Could not reach the controller (no connection or wrong key).',ok?'mid':'bad');
+        if(ok){const done=await _pcWait(()=>{const a=_pcAck();return a&&a.auto===false&&tgt.every(p=>_pcRunning(p.zone)===false);},12000);_pcMsg(done?'Controller confirms: pump STOPPED and held off. Press AUTO IRRIGATION to resume.':'Sent, but the controller has not confirmed yet. If the pump is still running, switch it off at the pump.',done?'good':'mid');}
+      }else{
+        _setAutopilotFlag(false);ok=await AgriLink.send({auto_mode:false});
+        for(const p of tgt){if(ok)ok=await AgriLink.send({zone:p.zone,state:true});}
+        _pcMsg(ok?'Sent. Waiting for the controller…':'Could not reach the controller (no connection or wrong key).',ok?'mid':'bad');
+        if(ok){const done=await _pcWait(()=>tgt.every(p=>_pcRunning(p.zone)===true),12000);_pcMsg(done?'Controller confirms: pump RUNNING. Press FORCE OFF to stop it.':'Sent, but the controller has not confirmed the pump is running yet.',done?'good':'mid');}
+      }
+    }
+  }catch(e){_pcMsg('Something went wrong: '+e.message,'bad');}
+  finally{PC.busy=false;renderPumpCtl();}
+}
+function _origOpenForce(z){openValve(z);}   // campus: the existing wrapper sends the command and honours the campus rain guard
+if(window.AgriLink)AgriLink.onAck(()=>{const m=document.getElementById('pump-modal');if(m&&m.classList.contains('show'))renderPumpCtl();});   // redraw the moment the controller reports
+function openPumpModal(){
+  document.getElementById('pc-msg').textContent='';PC.armed='';
+  if(!_pcCampus()&&window.AgriLink&&AgriLink.ready()){AgriLink.connect();}
+  renderPumpCtl();document.body.style.overflow='hidden';openMacSheet('pump-modal');
+  clearInterval(PC.timer);PC.timer=setInterval(renderPumpCtl,2000);
+}
+function closePumpModal(){document.body.style.overflow='';closeMacSheet('pump-modal');clearInterval(PC.timer);}
 // ══════════════════════════════════════════════════
 // LIVE DATA FEEDS sheet (header rss icon): where each data source stands, and a "refresh all" button
 // ══════════════════════════════════════════════════
@@ -3999,7 +4100,7 @@ const CROP_DB=[
   {key:'withania',cat:'Medicinal',label:'Withania / Ashwagandha',mm:1,dur:15,flow:2},
   {key:'sarpagandha',cat:'Medicinal',label:'Sarpagandha (Rauwolfia)',mm:2,dur:30,flow:3},
   {key:'coleus',cat:'Medicinal',label:'Coleus (Plectranthus)',mm:2,dur:15,flow:3},
-  {key:'isabgol',cat:'Medicinal',label:'Isabgol (Psyllium Husk)',mm:1,dur:15,flow:2,gj:1},,
+  {key:'isabgol',cat:'Medicinal',label:'Isabgol (Psyllium Husk)',mm:1,dur:15,flow:2,gj:1},
   // Indian crops added so the list covers what farmers here actually grow
   {key:'kodo_millet',cat:'Cereals',label:'Kodo Millet',mm:2,dur:30,flow:3},
   {key:'little_millet',cat:'Cereals',label:'Little Millet (Kutki)',mm:2,dur:30,flow:3},
@@ -4291,17 +4392,25 @@ updateClock();
 
 <!-- ══════════════════════════════════════════════════════════ -->
 <!-- ═══════ SETTINGS MODAL ═══════ -->
-<!-- PUMP SETTINGS -->
+<!-- PUMP CONTROL -->
 <div id="pump-modal" class="macos-sheet-backdrop" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(4,8,6,.6);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4)" onclick="if(event.target===this)closePumpModal()">
-  <div class="macos-sheet-panel" style="position:absolute;top:50%;left:50%;width:min(520px,94vw);background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:24px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  <div class="macos-sheet-panel" style="position:absolute;top:50%;left:50%;width:min(480px,94vw);background:rgba(var(--overlay-rgb),.06);border:1px solid rgba(var(--overlay-rgb),.14);border-radius:22px;padding:24px;box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.16),0 2px 8px rgba(0,0,0,.3),0 32px 80px rgba(0,0,0,.75);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div><p style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.14em;color:rgba(var(--muted-rgb),.55);margin-bottom:4px">TERRA-CORE · AGRISAT</p>
-        <p style="font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--body-text)">Pump settings</p></div>
+        <p style="font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--body-text)">Pump control</p></div>
       <button onclick="closePumpModal()" aria-label="Close" style="min-width:40px;min-height:40px;border-radius:10px;border:1px solid rgba(var(--overlay-rgb),.14);background:transparent;color:inherit;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px">close</span></button>
     </div>
-    <p style="font-size:12px;color:rgba(var(--muted-rgb),.8);margin-bottom:12px;line-height:1.5">Choose which pump and valve serve each field. The autopilot uses the pump size to work out how long to run it. Changes save by themselves.</p>
-    <div id="pump-list" style="display:flex;flex-direction:column;gap:10px"></div>
-    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(var(--muted-rgb),.55);margin-top:12px;line-height:1.5">HP is only an estimate from power and lift. A bucket test (time to fill 20 litres) is more exact. One run is limited to 120 minutes for safety, so a small pump on a large field finishes over several days.</p>
+    <div id="pc-bar" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
+    <div id="pc-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div id="pc-target" style="margin-top:12px"></div>
+    <div id="pc-btns" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
+      <button id="pc-on" onclick="pumpAction('on')" class="pc-btn"><span class="material-symbols-outlined">play_circle</span><span id="pc-on-t">FORCE ON</span></button>
+      <button id="pc-off" onclick="pumpAction('off')" class="pc-btn"><span class="material-symbols-outlined">stop_circle</span><span id="pc-off-t">FORCE OFF</span></button>
+      <button id="pc-auto" onclick="pumpAction('auto')" class="pc-btn"><span class="material-symbols-outlined">auto_mode</span><span id="pc-auto-t">AUTO IRRIGATION</span></button>
+    </div>
+    <p id="pc-msg" role="status" style="min-height:18px;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5"></p>
+    <div id="pc-setup" style="display:none;margin-top:10px"></div>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(var(--muted-rgb),.55);margin-top:8px;line-height:1.5"><b>FORCE ON</b> runs the pump now and stops auto irrigation. <b>FORCE OFF</b> stops it and keeps it off. <b>AUTO IRRIGATION</b> hands control back to the NDVI + weather autopilot. The controller stops any run after 120 minutes for safety. Pump size and valve are set per field in Farmers → Autopilot.</p>
   </div>
 </div>
 
