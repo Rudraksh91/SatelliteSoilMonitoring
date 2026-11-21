@@ -181,11 +181,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261121m"></script>
-<script src="farmer/i18n.js?v=20261121m"></script>
-<script src="farmer/ndvimap.js?v=20261121m"></script>
-<script src="farmer/autopilot.js?v=20261121m"></script>
-<script src="farmer/link.js?v=20261121m"></script>
+<script src="farmer/core.js?v=20261121n"></script>
+<script src="farmer/i18n.js?v=20261121n"></script>
+<script src="farmer/ndvimap.js?v=20261121n"></script>
+<script src="farmer/autopilot.js?v=20261121n"></script>
+<script src="farmer/link.js?v=20261121n"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <script>
 (function(){
@@ -354,6 +354,27 @@ function parseCoords(q){
   return m?[parseFloat(m[1]),parseFloat(m[2])]:null;
 }
 const inIndia=(la,ln)=>la>=6&&la<=37.5&&ln>=68&&ln<=98;
+// Village names are spelled many ways in India (Vandervala / Vandarvela / Vanderwala). Nominatim needs the exact OpenStreetMap spelling;
+// Photon (OpenStreetMap data too) tolerates typos. When both fail we also try the common v/w, a/e and double-vowel swaps.
+function spellingVariants(q){
+  const out=new Set(),add=v=>{v=v.trim();if(v&&v.toLowerCase()!==q.toLowerCase())out.add(v);};
+  add(q.replace(/w/gi,m=>m==='w'?'v':'V'));add(q.replace(/v/gi,m=>m==='v'?'w':'W'));
+  add(q.replace(/e/gi,m=>m==='e'?'a':'A'));add(q.replace(/a/gi,m=>m==='a'?'e':'E'));
+  add(q.replace(/ee/gi,'i'));add(q.replace(/oo/gi,'u'));add(q.replace(/aa/gi,'a'));
+  add(q.replace(/(?:wala|vala)$/i,'wada'));add(q.replace(/(?:wala|vala)$/i,'vada'));add(q.replace(/(?:wada|vada)$/i,'vala'));
+  return [...out].slice(0,5);
+}
+async function photonSearch(text,st){
+  const c=map&&map.getZoom()>=6?map.getCenter():null;
+  const r=await tfetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(st?text+' '+st:text)}&limit=12&lang=en&bbox=68,6,98,37.5${c?`&lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}`:''}`,undefined,15000);
+  if(!r.ok)return [];
+  const seen=new Set();
+  return ((await r.json()).features||[]).map(f=>{const p=f.properties||{},g=f.geometry.coordinates,e=p.extent;
+    return {name:p.name||p.city||'',detail:[p.locality||p.city,p.district||p.county,p.state].filter(Boolean).join(', '),lat:g[1],lng:g[0],bb:e?[e[3],e[1],e[0],e[2]]:null,type:p.osm_value,place:p.osm_key==='place',state:p.state||''};})
+    .filter(x=>x.name&&inIndia(x.lat,x.lng)&&(!st||!x.state||x.state.toLowerCase().includes(st.toLowerCase())||st.toLowerCase().includes(x.state.toLowerCase())))
+    .filter(x=>{const k=x.name+'|'+x.lat.toFixed(2)+'|'+x.lng.toFixed(2);if(seen.has(k))return false;seen.add(k);return true;})
+    .sort((a,b)=>(b.place?1:0)-(a.place?1:0));
+}
 async function findPlace(){
   const q=$('placeIn').value.trim();if(q.length<2)return;
   const box=$('placeRes');
@@ -370,6 +391,10 @@ async function findPlace(){
     res=await nominatim(full);
     if(!res.length&&!/,/.test(q)&&/\s/.test(q)){await new Promise(r=>setTimeout(r,1100));res=await nominatim(q.split(/\s+/).join(', ')+(st?', '+st:''));}   // "Rajpipla Narmada" -> "Rajpipla, Narmada"
   }catch(e){res=[];}
+  if(!res.length){   // typo-tolerant search (same OpenStreetMap data), then spelling variants
+    try{res=await photonSearch(q,st);}catch(e){res=[];}
+    if(!res.length){for(const v of spellingVariants(q)){try{res=await photonSearch(v,st);}catch(e){res=[];}if(res.length)break;}}
+  }
   if(!res.length){   // fallback geocoder
     const go=async l=>{const r=await tfetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${l}&countryCode=IN&format=json`);if(!r.ok)throw new Error('HTTP '+r.status);return (await r.json()).results||[];};
     try{let g=await go(lang);if(!g.length&&lang!=='en')g=await go('en');res=g.map(r=>({name:r.name,detail:[r.admin3,r.admin2,r.admin1].filter(Boolean).join(', '),lat:r.latitude,lng:r.longitude,type:'place'}));}catch(e){res=[];}
