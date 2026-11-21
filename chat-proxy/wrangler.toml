@@ -1,0 +1,11 @@
+name = "agrisat-chat"
+main = "worker.mjs"            # Gemini. For Claude use "worker-claude.mjs" (see README.md)
+compatibility_date = "2026-11-01"
+
+[vars]
+# Browsers allowed to call this proxy (comma separated). Add http://localhost:7439 only while testing.
+ALLOWED_ORIGINS = "https://rudraksh91.github.io"
+# Gemini model. Check Google AI Studio's model list: IDs change. Default in lib.mjs is gemini-3.5-flash-lite.
+# GEMINI_MODEL = "gemini-3.5-flash-lite"
+# Claude model (only for worker-claude.mjs). "claude-haiku-5-5" is far cheaper than the default "claude-opus-5-5".
+# CHAT_MODEL = "claude-opus-5-5"

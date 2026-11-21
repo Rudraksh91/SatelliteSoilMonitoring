@@ -62,7 +62,7 @@
 | Field Node 1 | ESP32 #2 | Zone A valve + sensors | `esp32_field_node.ino` (NODE_ZONE=1) |
 | Field Node 2 | ESP32 #3 | Zone B valve + sensors | `esp32_field_node.ino` (NODE_ZONE=2) |
 | Field Node 3 | ESP32 #4 | Zone C valve + sensors | `esp32_field_node.ino` (NODE_ZONE=3) |
-| Dashboard | Any browser | Monitoring + manual control | `index.html` |
+| Dashboard | Any browser | Monitoring + automatic irrigation control (manual override optional) | `index.html` |
 
 Total hardware needed: **1× Raspberry Pi + 4× ESP32 + 4× LoRa SX1276 modules**
 
@@ -392,3 +392,36 @@ The Command Center zone panel shows the farm average and ⚠ on a flagged zone. 
 
 **Not done (from the PDF's later phases)**: SAVI for bare early-season soil, Landsat gap-filling, Sentinel-1 radar, OPTRAM, per-crop calibration of Kc = a·NDVI + b,
 and validation against gravimetric soil samples. The index thresholds above (0.06, 0.12, 0.75) are starting values and need local calibration.
+
+## Farmer assistant ("Ask" button in the farmer app)
+A chat window for farmers' questions, in English, हिन्दी and ગુજરાતી (`farmer/assistant.js`, strings in `farmer/i18n.js` keys `as*`,
+UI in `farmer.html`). Tests: `node tests/test_assistant.js`, `node tests/test_chat_proxy.js`.
+- **Built-in (default, no server, no key, free):** understands questions about irrigation today, how much water, rain, soil water,
+  crop greenness (NDVI), autopilot and how to use the app, and answers **only from the farmer's own field data** that the app has
+  already computed (the `advise()` result: decision, litres, depletion, rain/ET0 forecast, NDVI). With a field open it answers for
+  that field; on the field list it summarises every field from each field's last result and says when a result is from an earlier day.
+  A field that still needs the "how does the soil feel" answer never gets a litres figure. It invents no numbers; anything it
+  cannot answer gets a pointer to the local agriculture officer / Kisan Call Centre (1800-180-1551).
+- **Optional AI for other questions (off by default):** `chat-proxy/` is a small Cloudflare Worker that holds the AI API key and
+  calls **Google Gemini** by default (`worker.mjs`, model `gemini-3.5-flash-lite`, change with `GEMINI_MODEL`) or Claude
+  (`worker-claude.mjs`, `CHAT_MODEL`). `chat-proxy/README.md` has setup, cost and abuse notes. It is switched on by putting the
+  Worker URL in `farmer/chat-config.js`, together with the provider name shown to farmers (`AGRISAT_CHAT_NAME`). The farmer must tap
+  **Yes** on a consent message that names the service once per session; the page then sends only the question, the language, up to
+  6 earlier AI turns and an anonymous field summary (`AgriAssistant.llmContext`: crop, area, decision, litres, soil-water numbers,
+  3-day rain/ET0, NDVI; **no name, no coordinates**). Replies are labelled "AI answer · <service>" with a reminder that they can be
+  wrong. The API key never appears in the repo or the page.
+- Not covered: the Worker has no per-user rate limit of its own (add a Cloudflare rate-limiting rule and an Anthropic spend limit);
+  the Hindi and Gujarati wording needs review by a native speaker; the AI path (Gemini and Claude) has been tested only against mocked
+  servers, not against the live APIs; Gemini model IDs change, so check `GEMINI_MODEL` before deploying.
+
+## Control philosophy: automatic first, manual optional
+Automatic irrigation is the primary mode of the system and manual control is an optional override, not the other way round.
+- **Dashboard:** `AUTO MODE` is the default and is labelled PRIMARY; `MANUAL OVERRIDE` is labelled OPTIONAL, its banner says automatic
+  irrigation is only paused and offers **RESUME AUTO**. In the Pump control sheet `AUTO IRRIGATION` is the main button; `FORCE ON` /
+  `FORCE OFF` sit under "MANUAL OVERRIDE · OPTIONAL". Rain guard, run-time limits and the emergency stop apply in both modes.
+- **Farmer app:** the Autopilot card is the first card and says "NOT ON YET — tap to turn on automatic irrigation"; switching it on
+  still asks for confirmation because it makes real pumps run.
+- **Open decision:** the Pi gateway still **starts in MANUAL after a restart or power cut** (`AGRISAT_AUTO_START=0`, a safety default
+  from the start-up safety work). With that default an automatic plan stops after a power cut until auto mode is switched on again,
+  which works against "automatic first". Options: keep it, set `AGRISAT_AUTO_START=1` on gateways that should resume by themselves,
+  or make the gateway remember the last mode the farmer chose. The calibration gate and hard run-time limits apply either way.
