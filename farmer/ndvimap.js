@@ -16,9 +16,44 @@
     return 'rgb(' + A.map((c, k) => Math.round(c + (B[k] - c) * f)).join(',') + ')';
   }
   const gradient = index => 'linear-gradient(90deg,' + INDEX[index || 'ndvi'].ramp.join(',') + ')';
+  // Esri World_Imagery is only photographed to z17-18 over most of rural India; asking for a missing tile returns a grey
+  // "Map data not yet available" picture. Ask Esri's tilemap service which zoom really exists at the place being looked at
+  // and let Leaflet enlarge that level instead of requesting tiles that do not exist.
+  const TILEMAP = 'https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tilemap';
+  const SAFE_NATIVE_ZOOM = 17;
+  const tileXY = (lat, lng, z) => { const n = Math.pow(2, z); return { x: Math.floor((lng + 180) / 360 * n), y: Math.floor((1 - Math.asinh(Math.tan(lat * Math.PI / 180)) / Math.PI) / 2 * n) }; };
+  const zCache = {};
+  /** Highest zoom (15..19) at which Esri has a photo tile at (lat, lng). Falls back to 17 (exists nearly everywhere) if the service cannot be reached. */
+  function probeMaxZoom(lat, lng, fetchFn) {
+    const key = lat.toFixed(2) + ',' + lng.toFixed(2); if (zCache[key]) return zCache[key];
+    const f = fetchFn || (typeof fetch !== 'undefined' ? fetch : null);
+    const p = (async () => {
+      if (!f) return SAFE_NATIVE_ZOOM;
+      for (let z = 19; z >= 15; z--) {
+        const t = tileXY(lat, lng, z);
+        try { const r = await f(TILEMAP + '/' + z + '/' + t.y + '/' + t.x + '/1/1?f=json'); const j = await r.json(); if (j && j.data && j.data[0] === 1) return z; }
+        catch (e) { delete zCache[key]; return SAFE_NATIVE_ZOOM; }
+      }
+      return 15;
+    })();
+    zCache[key] = p; return p;
+  }
+  /** Keep the given Esri tile layers' native zoom at what exists around the map centre (re-checked after every move). */
+  function adaptNativeZoom(map, layers, fetchFn) {
+    let timer = null;
+    const run = () => { const c = map.getCenter(); if (map.getZoom() < 14) return;
+      probeMaxZoom(c.lat, c.lng, fetchFn).then(z => layers.forEach(l => { if (l.options.maxNativeZoom !== z) {
+        l.options.maxNativeZoom = z;
+        // remove + add (public API) rebuilds the tile grid for the new native zoom; redraw() alone leaves Leaflet's x-wrap range at the old zoom and requests tiles with wrong x
+        const m = l._map; if (m) { m.removeLayer(l); m.addLayer(l); }
+      } })); };
+    map.on('moveend', () => { clearTimeout(timer); timer = setTimeout(run, 250); });
+    run();
+  }
   function baseMap(box, L) {
     const map = L.map(box, { zoomControl: false, dragging: false, scrollWheelZoom: false, touchZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false });
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 19, maxZoom: 21, attribution: 'Imagery © Esri · Sentinel-2' }).addTo(map);
+    const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: SAFE_NATIVE_ZOOM, maxZoom: 21, attribution: 'Imagery © Esri · Sentinel-2' }).addTo(map);
+    map._agriSat = sat;
     return map;
   }
   function drawCells(map, g, L, C, index) {
@@ -43,6 +78,7 @@
     const poly = L.polygon(farm.latlngs, { color: '#ffd54a', weight: 2.5, fill: false, interactive: false }).addTo(map);
     const fit = () => { map.invalidateSize(); map.fitBounds(poly.getBounds(), { padding: [12, 12] }); };
     fit(); setTimeout(() => { if (box._agriMap === map) fit(); }, 150);
+    adaptNativeZoom(map, [map._agriSat]);
     box._agriMap = map;
     return { scenes, scene: s, map, refit: fit };
   }
@@ -61,8 +97,9 @@
     });
     const fit = () => { map.invalidateSize(); if (bounds) map.fitBounds(bounds, { padding: [14, 14], maxZoom: 18 }); };
     fit(); setTimeout(() => { if (box._agriMap === map) fit(); }, 150);
+    adaptNativeZoom(map, [map._agriSat]);
     box._agriMap = map;
     return { map, drawn, colours: FIELD_COLOURS };
   }
-  return { colour, gradient, render, renderMulti, RD, INDEX, FIELD_COLOURS };
+  return { colour, gradient, render, renderMulti, RD, INDEX, FIELD_COLOURS, probeMaxZoom, adaptNativeZoom, tileXY, SAFE_NATIVE_ZOOM };
 });
