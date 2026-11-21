@@ -158,6 +158,10 @@ RAIN_HOLD_HOURS     = 48              # real-time hold: this long after >= 4 mm/
 RAIN_FORECAST_24H_MM = 10.0
 STATE_FILE          = Path.home() / ".agrisat_gateway.json"          # executed decision date etc. (survives restarts)
 CONFIRMED_FILE      = Path.home() / ".agrisat_confirmed_runs.json"   # verified run durations (H3) -> data/confirmed_runs.json
+SCHEDULE_FILE       = Path.home() / ".agrisat_schedule.json"         # the farmer app's signed multi-day plan (survives restarts)
+SCHEDULE_MAX_DAYS   = 8               # a pushed plan never reaches further ahead than this
+SCHEDULE_MAX_RUNS   = 24              # runs per day in one plan
+SCHEDULE_LATE_MIN   = 180             # a run whose start time is more than this far in the past (Pi was off) is skipped, not run late
 MIN_IRRIGATE_SECS = 600     # minimum run time: 10 minutes (blueprint t_min; avoids cavitation on short pulses)
 MAX_IRRIGATE_SECS = 7200    # safety cap per run: 120 min (enforced by enforce_valve_limits watchdog; rejects any command above it)
 MAX_DAILY_SECS    = 14400   # safety cap per zone per day: 240 min (blocks further AUTO opens)
@@ -698,9 +702,124 @@ def run_sequencer():
                 mqtt_conn.publish(TOPIC_DATA, json.dumps({"ai_action": f"ZONE_{zid}_OPEN",
                                                            "reason": f"central decision — {secs/60:.0f} min"}))
 
+# ══════════════════════════════════════════════════════════════════════
+# FARMER SCHEDULE — the app's autopilot (NDVI + weather) sends a signed multi-day plan; the Pi runs it by itself
+# ══════════════════════════════════════════════════════════════════════
+# Wire format (inside the signed command): {"schedule": {"days": {"YYYY-MM-DD": [{"zone": 1, "start": "06:00", "minutes": 30}, ...]}}}
+# Every limit above is re-applied here, so a plan can never exceed the safety caps. The Pi's own real-time rain
+# hold (run_sequencer) still blocks every run. A day that is present but empty means "do NOT irrigate that day".
+farmer_schedule = {"issued": 0.0, "days": {}}     # days: date -> [{"zone": int, "start": minutes since midnight IST, "minutes": float}]
+schedule_done   = {}                              # "date|zone|start" -> True, so one entry runs once (persisted)
+
+def _hhmm_to_min(s):
+    h, m = str(s).split(":")
+    h, m = int(h), int(m)
+    if not (0 <= h < 24 and 0 <= m < 60):
+        raise ValueError("bad time")
+    return h * 60 + m
+
+def sanitize_schedule(raw):
+    """Return {date: [entries]} from an untrusted (but correctly signed) payload; drop anything outside the limits."""
+    out = {}
+    today = datetime.now(IST).date()
+    days = (raw or {}).get("days") or {}
+    for date_s, runs in sorted(days.items())[:SCHEDULE_MAX_DAYS + 2]:
+        try:
+            d = datetime.strptime(date_s, "%Y-%m-%d").date()
+        except Exception:
+            continue
+        if d < today or (d - today).days >= SCHEDULE_MAX_DAYS:
+            continue
+        entries = []
+        for r in (runs or [])[:SCHEDULE_MAX_RUNS]:
+            try:
+                zid, start, mins = int(r["zone"]), _hhmm_to_min(r["start"]), float(r["minutes"])
+            except Exception:
+                continue
+            if zid not in {z["id"] for z in ZONES} or mins * 60.0 < MIN_IRRIGATE_SECS:
+                continue
+            if mins * 60.0 > MAX_IRRIGATE_SECS:
+                log.warning(f"[Schedule] Zone {zid}: {mins:g} min exceeds the {MAX_IRRIGATE_SECS/60:.0f} min cap — clamped")
+                mins = MAX_IRRIGATE_SECS / 60.0
+            entries.append({"zone": zid, "start": start, "minutes": mins})
+        entries.sort(key=lambda e: e["start"])
+        out[date_s] = entries
+    return out
+
+def save_schedule():
+    try:
+        SCHEDULE_FILE.write_text(json.dumps({"issued": farmer_schedule["issued"], "days": farmer_schedule["days"],
+                                             "done": sorted(schedule_done)[-500:]}))
+    except Exception as e:
+        log.warning(f"[Schedule] save failed: {e}")
+
+def load_schedule():
+    try:
+        d = json.loads(SCHEDULE_FILE.read_text())
+        farmer_schedule.update(issued=float(d.get("issued", 0.0)), days=d.get("days", {}))
+        schedule_done.update({k: True for k in d.get("done", [])})
+    except Exception:
+        pass
+
+def set_schedule(raw):
+    """Install a verified plan (replaces the previous one). Entries already executed today stay marked as done."""
+    days = sanitize_schedule(raw)
+    farmer_schedule.update(issued=time.time(), days=days)
+    for k in list(schedule_done):
+        if k.split("|")[0] < _today_ist():
+            del schedule_done[k]
+    save_schedule()
+    n = sum(len(v) for v in days.values())
+    log.info(f"[Schedule] New plan installed: {len(days)} day(s), {n} run(s)")
+    log_event("SCHEDULE_SET", None, "farmer", f"{len(days)} days, {n} runs")
+    return days
+
+def schedule_covers_today():
+    return _today_ist() in farmer_schedule["days"]
+
+def run_farmer_schedule():
+    """Queue today's planned runs when their start time arrives (auto mode on). One attempt per entry."""
+    if not auto_mode:
+        return
+    today = _today_ist()
+    entries = farmer_schedule["days"].get(today)
+    if not entries:
+        return
+    now_dt = datetime.now(IST)
+    now_min = now_dt.hour * 60 + now_dt.minute
+    for e in entries:
+        key = f"{today}|{e['zone']}|{e['start']}"
+        if schedule_done.get(key) or now_min < e["start"]:
+            continue
+        schedule_done[key] = True            # decided now: run it or skip it, never twice
+        save_schedule()
+        if now_min - e["start"] > SCHEDULE_LATE_MIN:
+            log.warning(f"[Schedule] Zone {e['zone']}: planned {e['start']//60:02d}:{e['start']%60:02d} is over {SCHEDULE_LATE_MIN} min ago — skipped")
+            log_event("SCHEDULE_MISSED", e["zone"], "farmer")
+            continue
+        secs = min(e["minutes"] * 60.0, MAX_DAILY_SECS - daily_run_secs.get(e["zone"], 0.0)
+                   - sum(s for z, s in run_queue if z == e["zone"]))
+        if secs < MIN_IRRIGATE_SECS:
+            log.info(f"[Schedule] Zone {e['zone']}: only {secs/60:.1f} min left under the daily cap — skipped")
+            log_event("SCHEDULE_CAPPED", e["zone"], "farmer")
+            continue
+        run_queue.append((e["zone"], secs))
+        log.info(f"[Schedule] Zone {e['zone']}: queued {secs/60:.0f} min (plan {e['start']//60:02d}:{e['start']%60:02d})")
+
+def schedule_summary():
+    """Small status block for the dashboard/app so the farmer can SEE that the Pi holds the plan."""
+    today = _today_ist()
+    return {"issued": int(farmer_schedule["issued"] * 1000) or None, "days": len(farmer_schedule["days"]),
+            "today": [{"zone": e["zone"], "start": f"{e['start']//60:02d}:{e['start']%60:02d}", "minutes": round(e["minutes"], 1),
+                       "done": bool(schedule_done.get(f"{today}|{e['zone']}|{e['start']}"))}
+                      for e in farmer_schedule["days"].get(today, [])]}
+
 def decide_irrigation():
-    """Kept for the main loop: pick up today's decision and run the queue."""
-    start_todays_runs()
+    """Kept for the main loop: a farmer plan for today wins; otherwise pick up the central decision. Then run the queue."""
+    if schedule_covers_today():
+        run_farmer_schedule()
+    else:
+        start_todays_runs()
     run_sequencer()
 
 # ══════════════════════════════════════════════════════════════════════
@@ -763,6 +882,12 @@ def mqtt_on_message(client, userdata, msg):
             auto_mode = d["auto_mode"]
             log.info(f"[MQTT] Dashboard: auto_mode = {auto_mode}")
             return
+        if "schedule" in d:
+            days = set_schedule(d["schedule"])
+            if mqtt_conn:
+                mqtt_conn.publish(TOPIC_DATA, json.dumps({"ai_action": "SCHEDULE_SET",
+                                                           "reason": f"{len(days)} day plan from the farmer app"}))
+            return
         zone = d.get("zone")
         state = d.get("state")
         if zone and state is not None:
@@ -804,6 +929,7 @@ def publish_dashboard():
             "weather":     weather,
             "ndvi":        ndvi_state,
             "auto_mode":   auto_mode,
+            "schedule":    schedule_summary(),
             "zones": [
                 {
                     "id":       z["id"],
@@ -867,6 +993,7 @@ def main():
     init_valve_gpio()
     init_mqtt()
     load_state()
+    load_schedule()
     if auto_mode:
         log.warning("[Safety] AGRISAT_AUTO_START=1 — starting in AUTO mode")
     else:

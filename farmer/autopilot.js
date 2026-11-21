@@ -102,5 +102,38 @@
     return out;
   }
 
-  return { DEFAULTS, cfg, plan, outlook, ndviStress, decideDay, hhmm };
+
+  /** The multi-day plan the Pi runs by itself: today from plan() (start moved to "now" if the planned time has passed), the next days from outlook().
+   *  Only fields with a valve zone (1..3) are included. A day listed with no runs means "do not irrigate that day".
+   *  returns { days: { 'YYYY-MM-DD': [{ zone, start:'HH:MM', minutes }] }, unassigned: [field names] } */
+  function buildSchedule(p, fields, outlooks, nowMin, horizon) {
+    const S = p.settings, days = {}; horizon = horizon || 7;
+    const zoneOf = id => { const f = fields.find(x => x.id === id); return f && f.zone ? +f.zone : null; };
+    const unassigned = fields.filter(f => !f.zone && ((p.items.find(i => i.id === f.id) || {}).minutes > 0)).map(f => f.name);
+    // today
+    const todayRuns = []; let cursor = S.startHour * 60 + S.startMinute;
+    if (nowMin != null) cursor = Math.max(cursor, Math.ceil((nowMin + 5) / 5) * 5);   // the planned time has passed: start in a few minutes
+    (p.schedule || []).slice().sort((a, b) => a.startMin - b.startMin).forEach(it => {
+      const z = zoneOf(it.id); if (!z) return;
+      const start = Math.max(it.startMin, cursor);
+      if (start + it.minutes > 1439) return;                                         // would run past midnight: leave it for tomorrow's plan
+      todayRuns.push({ zone: z, start: hhmm(start), minutes: it.minutes });
+      cursor = start + it.minutes + S.gapMin;
+    });
+    days[p.date] = todayRuns;
+    // next days, from the forecast-driven outlook
+    for (let d = 1; d < horizon; d++) {
+      const date = C.addDays(p.date, d), cand = [];
+      fields.forEach(f => { const z = zoneOf(f.id), o = z && outlooks[f.id] && outlooks[f.id][d];
+        if (o && o.irrigate && o.minutes >= S.minRunMin) cand.push({ zone: z, minutes: o.minutes }); });
+      cand.sort((a, b) => b.minutes - a.minutes);
+      let cur = S.startHour * 60 + S.startMinute, used = 0; const runs = [];
+      cand.forEach(c => { const room = S.maxDailyMin - used; if (room < S.minRunMin) return;
+        const m = Math.min(c.minutes, room); runs.push({ zone: c.zone, start: hhmm(cur), minutes: m }); cur += m + S.gapMin; used += m; });
+      days[date] = runs;
+    }
+    return { days, unassigned };
+  }
+
+  return { DEFAULTS, cfg, plan, outlook, ndviStress, decideDay, hhmm, buildSchedule };
 });

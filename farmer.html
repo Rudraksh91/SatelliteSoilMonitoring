@@ -49,6 +49,15 @@ table.mt{width:100%;border-collapse:collapse;font-size:14px}table.mt th{font-siz
 .sw2{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 #multiMapBox{height:300px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 .fld-tip{background:rgba(0,0,0,.55);color:#fff;border:0;box-shadow:none;font-weight:700;font-size:12px;padding:2px 6px}
+/* autopilot */
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:15px;color:var(--ink);margin:10px 0}.chk input{width:22px;height:22px;flex:0 0 22px;margin:1px 0 0;accent-color:var(--g)}
+.tgl{display:flex;gap:10px;align-items:center;font-weight:800;font-size:15px;color:var(--ink);margin:0}.tgl input{width:26px;height:26px;accent-color:var(--g)}
+.tl{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.tl:last-child{border-bottom:0}.tl .tm{flex:0 0 96px;font-weight:800;font-variant-numeric:tabular-nums}.tl .tm small{display:block;font-weight:400;color:var(--mut)}
+.tl .tw{flex:1 1 auto;min-width:0}.tl .tw b{display:block}.tl .tw span{font-size:13px;color:var(--mut)}
+.zr{display:flex;gap:10px;align-items:center;padding:6px 0}.zr>span{flex:1 1 auto;min-width:0}.zr select{flex:0 0 150px;width:150px}
+table.ot td{cursor:default;text-align:center;padding:8px 4px;font-size:13px;white-space:nowrap}table.ot td:first-child{text-align:left;white-space:normal}table.ot th{text-align:center}table.ot th:first-child{text-align:left}
+table.ot td.w{color:var(--blue);font-weight:700}table.ot td.r{color:var(--mut)}
+#apSt{font-size:14px;margin:10px 0 0}#apSt.good{color:var(--g)}#apSt.bad{color:var(--red)}#apSt.mid{color:var(--amber)}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -57,6 +66,7 @@ table.mt{width:100%;border-collapse:collapse;font-size:14px}table.mt th{font-siz
 <main>
 
 <section id="v-home">
+  <div class="card" id="apHome" hidden><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><h2 style="margin:0 0 2px" data-i="apTitle"></h2><span class="note" id="apHomeState"></span></div><button class="sec" id="btnAp" data-i="apOpen" style="flex:0 0 auto"></button></div></div>
   <div class="card"><h2 data-i="myFarms">My fields</h2>
     <p class="note" style="margin-top:0" data-i="pickHint"></p>
     <div id="farmList" class="list"></div>
@@ -64,6 +74,29 @@ table.mt{width:100%;border-collapse:collapse;font-size:14px}table.mt th{font-siz
     <button id="btnOpenSel" style="width:100%;margin-bottom:8px" hidden></button>
     <button id="btnAdd" class="sec" style="width:100%" data-i="addFarm">＋ Add a field</button></div>
   <p class="note" data-h="homeNote"></p>
+</section>
+
+<section id="v-auto" hidden>
+  <div class="row" style="margin-bottom:12px"><button class="sec" id="aBack" data-i="back"></button><button id="aPlan" data-i="apPlanNow"></button></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0" data-i="apSwitch"></h2><label class="tgl"><input type="checkbox" id="apOn"><span id="apOnTxt"></span></label></div>
+    <p class="note" data-i="apIntro"></p><p class="note" id="apNoCtl" style="color:var(--amber);margin-bottom:0" hidden></p>
+  </div>
+  <div id="aLoad" class="card steps" hidden></div>
+  <div class="card"><h2 data-i="apToday"></h2><div id="aToday"></div><p class="note" id="aTot" style="margin-bottom:2px"></p><p class="note" id="aLast" style="margin:0"></p></div>
+  <div class="card"><h2 data-i="apOutlook"></h2><div style="overflow-x:auto"><table class="mt ot" id="aOut"></table></div><p class="note" data-i="apOutNote" style="margin-bottom:0"></p></div>
+  <div class="card"><h2 data-i="apZones"></h2><div id="aZones"></div><p class="note" id="aUnas" style="color:var(--amber);margin-bottom:0"></p></div>
+  <div class="card"><h2 data-i="apRules"></h2>
+    <label for="apStart" data-i="apStart"></label><input id="apStart" type="time" step="300" style="width:auto">
+    <label class="chk"><input type="checkbox" id="apRain"><span data-i="apRuleRain"></span></label>
+    <label class="chk"><input type="checkbox" id="apHeat"><span data-i="apRuleHeat"></span></label>
+    <label class="chk"><input type="checkbox" id="apNdvi"><span data-i="apRuleNdvi"></span></label>
+    <label class="chk"><input type="checkbox" id="apNotify"><span data-i="apNotify"></span></label></div>
+  <div class="card"><h2 data-i="apCtl"></h2><p class="note" style="margin-top:0" data-i="apCtlHelp"></p>
+    <label for="apId" data-i="apCtlId"></label><input id="apId" type="text" maxlength="64" autocomplete="off" autocapitalize="none" spellcheck="false">
+    <label for="apKey"><span data-i="apCtlKey"></span> <span class="note" id="apKeyNote"></span></label><input id="apKey" type="password" maxlength="128" autocomplete="off" autocapitalize="none" spellcheck="false">
+    <div class="row" style="margin-top:12px"><button class="sec" id="apSave" data-i="apSave"></button><button id="apSend" data-i="apSend"></button></div>
+    <p id="apSt" role="status"></p></div>
 </section>
 
 <section id="v-edit" hidden>
@@ -124,6 +157,9 @@ table.mt{width:100%;border-collapse:collapse;font-size:14px}table.mt th{font-siz
 <script src="farmer/core.js?v=20261120j"></script>
 <script src="farmer/i18n.js?v=20261120j"></script>
 <script src="farmer/ndvimap.js?v=20261120j"></script>
+<script src="farmer/autopilot.js?v=20261121a"></script>
+<script src="farmer/link.js?v=20261121a"></script>
+<script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -149,7 +185,7 @@ const T=(k,p)=>I.t(lang,k,p);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=(n,d=0)=>Number(n).toFixed(d);
 const thousands=n=>fmt(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-function show(v){view=v;['home','edit','farm','multi'].forEach(x=>$('v-'+x).hidden=(x!==v));window.scrollTo(0,0);}
+function show(v){view=v;['home','edit','farm','multi','auto'].forEach(x=>$('v-'+x).hidden=(x!==v));window.scrollTo(0,0);}
 
 // ── language ──
 function applyStatic(){
@@ -165,7 +201,7 @@ function applyStatic(){
   $('editTitle').textContent=editing?T('editFarm'):T('selectFarm');
 }
 function setLang(l){lang=l;try{localStorage.setItem(LKEY,l);}catch(e){}applyStatic();fillStates();buildLayerControl();
-  if(view==='home')renderHome();else if(view==='edit')redraw();else if(view==='farm'&&last)renderAdvice(last.f,last.a,last.w,last.warn);else if(view==='multi')renderMulti();}
+  if(view==='home')renderHome();else if(view==='edit')redraw();else if(view==='farm'&&last)renderAdvice(last.f,last.a,last.w,last.warn);else if(view==='multi')renderMulti();else if(view==='auto')renderAuto();}
 
 // ── consent (P3) ──
 const needConsent=()=>!db.consent;
@@ -183,6 +219,7 @@ function renderHome(){
   el.querySelectorAll('.list-btn').forEach(b=>b.onclick=()=>openFarm(b.dataset.id));
   el.querySelectorAll('input[data-sel]').forEach(c=>c.onchange=()=>{c.checked?picked.add(c.dataset.sel):picked.delete(c.dataset.sel);syncSel();});
   $('selRow').hidden=db.farms.length<2;syncSel();
+  renderApHome();
   show('home');
 }
 function syncSel(){const n=picked.size,b=$('btnOpenSel');b.hidden=n===0;b.textContent=T('openSelected',{n});}
@@ -478,6 +515,120 @@ $('btnIrr').onclick=()=>{
 };
 $('btnRain').onclick=()=>{const v=parseFloat(prompt(T('pRain'),'10'));if(v>0&&v<400)addEvent('rain_mm',v);};
 $('btnFull').onclick=()=>{if(confirm(T('cFull'))){const f=farm();f.start={date:today(),frac:0};save();refreshFarm(false);}};
+
+// ── autopilot: NDVI + weather -> a daily plan for every field -> sent to the pump controller, which runs it by itself ──
+const AP=window.AgriAutopilot, LK=window.AgriLink;
+const apCfg=()=>db.autopilot||(db.autopilot={enabled:false,startHour:6,startMinute:0,rainGuard:true,et0Comp:true,ndviBoost:true,notify:false});
+const apSettings=()=>{const c=apCfg();return {startHour:c.startHour,startMinute:c.startMinute,rainGuard:c.rainGuard,et0Comp:c.et0Comp,ndviBoost:c.ndviBoost};};
+const nowMinIST=()=>{const d=new Date(Date.now()+5.5*3600e3);return d.getUTCHours()*60+d.getUTCMinutes();};
+let apState=null,apBusy=false;
+function ensureZones(){                                      // first time: valve 1,2,3 in field order (3 valves per controller); the farmer can change it
+  const used=new Set(db.farms.filter(f=>f.zone).map(f=>f.zone));let ch=false;
+  db.farms.forEach(f=>{if(f.zone===undefined){let z=[1,2,3].find(k=>!used.has(k))||null;f.zone=z;if(z)used.add(z);ch=true;}});
+  if(ch)save();
+}
+function renderApHome(){
+  const c=apCfg(),box=$('apHome');if(!box)return;
+  box.hidden=!db.farms.length;
+  $('apHomeState').textContent=T(c.enabled?'apHomeOn':'apHomeOff');
+}
+$('btnAp').onclick=()=>openAuto();
+$('aBack').onclick=renderHome;
+function apStatus(txt,cls){const e=$('apSt');e.textContent=txt||'';e.className=cls||'';}
+function openAuto(){show('auto');ensureZones();renderAuto();if(!apState)runAutopilot(false);}
+async function runAutopilot(force,silent){
+  if(apBusy||!db.farms.length)return null;
+  apBusy=true;ensureZones();
+  const fields=db.farms.slice(),res={},state=fields.map(f=>[f.name,'']);
+  const el=$('aLoad'),paint=()=>{if(silent)return;el.hidden=false;el.innerHTML=state.map(x=>`<div class="${x[1]}">${x[1]==='done'?'✓':x[1]==='fail'?'✕':'…'} ${esc(T('loadingField',{name:x[0]}))}</div>`).join('');};
+  paint();if(!silent)$('aPlan').disabled=true;
+  let next=0;const worker=async()=>{while(next<fields.length){const i=next++,f=fields[i];
+    try{const r=await analyseField(f,!!force);if(r){res[f.id]=r;state[i][1]='done';}else state[i][1]='fail';}catch(e){state[i][1]='fail';}paint();}};
+  await Promise.all([worker(),worker()]);
+  el.hidden=true;if(!silent)$('aPlan').disabled=false;
+  const t=today(),inputs=fields.filter(f=>res[f.id]).map(f=>{const r=res[f.id],w=r.weather,i=w.time.indexOf(t);
+    const rain14=i>0?w.rain.slice(Math.max(0,i-14),i).reduce((a,b)=>a+b,0):0;
+    return {id:f.id,name:f.name,areaM2:f.areaM2,flowLph:f.flowLph,zone:f.zone||null,adv:r.adv,ndvi:(f.cache&&f.cache.ndvi)||[],et0Today:i>=0?w.et0[i]:0,rain14,w};});
+  const S=apSettings(),plan=AP.plan({today:t,settings:S,fields:inputs}),outlooks={};
+  inputs.forEach(x=>{outlooks[x.id]=AP.outlook(x,x.w,S,t,7);});
+  apState={plan,outlooks,inputs,sched:AP.buildSchedule(plan,inputs,outlooks,nowMinIST()),at:Date.now(),failed:fields.length-inputs.length};
+  apBusy=false;
+  if(view==='auto')renderAuto();
+  apNotify();
+  return apState;
+}
+function apNotify(){
+  const c=apCfg();if(!c.notify||!apState||c.notified===today()||!('Notification' in window)||Notification.permission!=='granted')return;
+  const sc=apState.plan.schedule;if(!sc.length)return;
+  try{new Notification(T('apTitle'),{body:T('apNotifyMsg',{n:sc.length,min:apState.plan.totalMinutes})});c.notified=today();save();}catch(e){}
+}
+function renderAuto(){
+  const c=apCfg(),ready=LK.ready();
+  $('apOn').checked=!!c.enabled;$('apOnTxt').textContent=T(c.enabled?'apOnLbl':'apOffLbl');
+  $('apNoCtl').hidden=ready;$('apNoCtl').textContent=T('apNoCtl');
+  $('apStart').value=String(c.startHour).padStart(2,'0')+':'+String(c.startMinute).padStart(2,'0');
+  $('apRain').checked=!!c.rainGuard;$('apHeat').checked=!!c.et0Comp;$('apNdvi').checked=!!c.ndviBoost;$('apNotify').checked=!!c.notify;
+  if(document.activeElement!==$('apId'))$('apId').value=LK.getId();
+  $('apKeyNote').textContent=LK.getKey()?T('apCtlKeySet'):'';
+  // valves
+  $('aZones').innerHTML=db.farms.map((f,i)=>`<div class="zr"><span><span class="sw2" style="background:${window.AgriNdviMap.FIELD_COLOURS[i%8]}"></span>${esc(f.name)}${f.flowLph?'':`<br><small class="note">${esc(T('apNoFlow'))}</small>`}</span>
+    <select data-z="${f.id}" aria-label="${esc(T('apZone'))}"><option value="">${esc(T('apNoZone'))}</option>${[1,2,3].map(k=>`<option value="${k}"${f.zone===k?' selected':''}>${esc(T('apZone'))} ${k}</option>`).join('')}</select></div>`).join('');
+  $('aZones').querySelectorAll('select').forEach(sel=>sel.onchange=()=>{const f=db.farms.find(x=>x.id===sel.dataset.z);f.zone=sel.value?+sel.value:null;save();apReplan();});
+  const st=apState;
+  if(!st){$('aToday').innerHTML=`<p class="note" style="margin:0">${esc(db.farms.length?T('apNeedPlan'):T('apNoFields'))}</p>`;$('aTot').textContent='';$('aLast').textContent='';$('aOut').innerHTML='';$('aUnas').textContent='';return;}
+  const p=st.plan,zoneOf={};st.inputs.forEach(x=>{zoneOf[x.id]=x.zone;});
+  const todays=st.sched.days[p.date]||[],used=new Set();
+  const runs=p.schedule.map(it=>{const k=todays.findIndex((r,j)=>!used.has(j)&&r.zone===zoneOf[it.id]&&Math.abs(r.minutes-it.minutes)<0.01);if(k>=0)used.add(k);
+    const start=k>=0?todays[k].start:it.start;const sm=+start.slice(0,2)*60+ +start.slice(3);return {it,start,end:AP.hhmm(sm+it.minutes)};});
+  const reason=it=>esc(T(it.reasonKey,it.rp||{}));
+  const rows=runs.map(r=>`<div class="tl"><div class="tm">${r.start}<small>→ ${r.end}</small></div><div class="tw"><b>${esc(r.it.name)}</b><span>${esc(T('apMin',{n:r.it.minutes}))} · ${thousands(r.it.litres)} L<br>${reason(r.it)}</span></div></div>`).join('')
+   +p.items.filter(i=>!(i.minutes>0)).map(i=>`<div class="tl"><div class="tm">–</div><div class="tw"><b>${esc(i.name)}</b><span>${i.decision==='SETUP'?esc(T('apSetup')):reason(i)}</span></div></div>`).join('');
+  $('aToday').innerHTML=rows||`<p class="note" style="margin:0">${esc(T('apNone'))}</p>`;
+  $('aTot').textContent=runs.length?T('apTotals',{n:runs.length,min:p.totalMinutes,litres:thousands(p.totalLitres)}):T('apNone');
+  $('aLast').textContent=T('apLast',{time:new Date(st.at).toLocaleTimeString(lang==='hi'?'hi-IN':lang==='gu'?'gu-IN':'en-IN',{hour:'2-digit',minute:'2-digit'})});
+  // 7-day outlook
+  const loc=lang==='hi'?'hi-IN':lang==='gu'?'gu-IN':'en-IN',dates=[...Array(7)].map((_,d)=>C.addDays(p.date,d));
+  $('aOut').innerHTML=`<thead><tr><th></th>${dates.map(d=>`<th>${new Date(d+'T00:00:00').toLocaleDateString(loc,{weekday:'short'})}</th>`).join('')}</tr></thead><tbody>`+
+    st.inputs.map(x=>{const o=st.outlooks[x.id]||[];return `<tr><td>${esc(x.name)}</td>${dates.map((d,i)=>{const e=o[i];
+      return !e?'<td class="r">·</td>':e.irrigate?`<td class="w">💧${e.minutes||""}</td>`:e.skipRain?'<td class="r">☔</td>':'<td class="r">–</td>';}).join('')}</tr>`;}).join('')+'</tbody>';
+  $('aUnas').textContent=st.sched.unassigned.length?T('apUnassigned',{n:st.sched.unassigned.length,names:st.sched.unassigned.join(', ')}):'';
+}
+function apReplan(){if(apState)runAutopilot(false,true);}     // uses cached weather/satellite: instant, no network
+// controller link: send the plan; the Pi's own status tells us whether it really holds it
+async function apSendPlan(manual){
+  if(!LK.ready()){if(manual)apStatus(T('apNeedCtl'),'bad');return false;}
+  if(!apState)await runAutopilot(false,!manual);
+  if(!apState)return false;
+  if(manual)apStatus(T('apSending'),'mid');
+  const since=Date.now(),ok=await LK.send(LK.scheduleCommand(apState.sched));
+  if(!ok){apStatus(T('apSendFail'),'bad');return false;}
+  const ack=await LK.waitAck(since,12000);
+  if(ack){const sc=ack.schedule||{};apStatus(T('apSent',{days:sc.days||0,runs:(sc.today||[]).length,auto:T(ack.auto?'apAutoOn':'apAutoOff')}),'good');}
+  else apStatus(T('apNoAck'),'mid');
+  return !!ack;
+}
+$('aPlan').onclick=async()=>{await runAutopilot(true);if(apCfg().enabled&&LK.ready())apSendPlan(false);};
+$('apSend').onclick=()=>apSendPlan(true);
+$('apSave').onclick=()=>{const id=LK.setId($('apId').value);const k=$('apKey').value.trim();if(k){if(!LK.setKey(k)){apStatus(T('apNeedCtl'),'bad');return;}$('apKey').value='';}
+  $('apId').value=id;LK.connect();renderAuto();apStatus(LK.ready()?'✓':T('apNeedCtl'),LK.ready()?'good':'bad');};
+$('apOn').onchange=async()=>{
+  const c=apCfg(),on=$('apOn').checked;
+  if(on&&LK.ready()&&!confirm(T('apConfirmOn'))){$('apOn').checked=false;return;}
+  c.enabled=on;save();renderAuto();renderApHome();
+  if(on){await runAutopilot(false);if(LK.ready()){await LK.send({auto_mode:true});apSendPlan(true);}}
+  else{
+    if(LK.ready()){const a=await LK.send({auto_mode:false}),b=await LK.send({schedule:{days:{}}});apStatus(a&&b?T('apOffDone'):T('apSendFail'),a&&b?'good':'bad');}
+    else apStatus(T('apOffNoCtl'),'good');
+  }
+};
+['apRain:rainGuard','apHeat:et0Comp','apNdvi:ndviBoost'].forEach(x=>{const [id,k]=x.split(':');$(id).onchange=()=>{apCfg()[k]=$(id).checked;save();apReplan();};});
+$('apStart').onchange=()=>{const v=$('apStart').value||'06:00',c=apCfg();c.startHour=+v.slice(0,2);c.startMinute=+v.slice(3,5);save();apReplan();};
+$('apNotify').onchange=async()=>{const c=apCfg();c.notify=$('apNotify').checked;
+  if(c.notify&&'Notification' in window&&Notification.permission==='default'){try{await Notification.requestPermission();}catch(e){}}
+  if(c.notify&&(!('Notification' in window)||Notification.permission==='denied')){c.notify=false;$('apNotify').checked=false;}save();};
+LK.readHash();if(LK.ready())LK.connect();
+// when autopilot is ON, every time the app opens it re-plans from the newest NDVI + forecast and refreshes the controller's plan (silently)
+if(apCfg().enabled&&db.farms.length&&!needConsent())setTimeout(async()=>{await runAutopilot(false,true);if(LK.ready())apSendPlan(false);},1500);
 
 // boot
 window.AgriApp={openMulti,_map:()=>map,_picked:()=>[...picked],_state:()=>({pts,pin}),db:()=>db,lang:()=>lang,setLang,refreshFarm,renderHome,openFarm,renderAdvice};

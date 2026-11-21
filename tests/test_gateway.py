@@ -90,6 +90,72 @@ check("closing records the verified minutes", len(b._confirmed_runs) == 1 and ab
 pub = b._merge_confirmed_for_publish()
 check("published format = {date, zone, minutes} totals", pub[0]["zone"] == 1 and pub[0]["date"] == b._today_ist())
 b.stop_all_valves(); check("emergency stop clears the queue", b.run_queue == [] and not b.valve_open_since)
+
+# ── farmer autopilot schedule (signed multi-day plan from the app) ──
+b.SCHEDULE_FILE = pathlib.Path("/nonexistent/schedule.json")
+b.CMD_KEY = b"k" * 32
+def reset_sched():
+    b.farmer_schedule.update(issued=0.0, days={}); b.schedule_done.clear()
+def hm(m): return f"{m//60:02d}:{m%60:02d}"
+def now_min(): d = datetime.now(b.IST); return d.hour * 60 + d.minute
+def day(offset=0): return (datetime.now(b.IST) + timedelta(days=offset)).strftime("%Y-%m-%d")
+def push(plan):
+    import hmac, hashlib
+    inner = json.dumps({"schedule": plan, "ts": int(time.time() * 1000), "nonce": "n%d" % time.time_ns()})
+    env = json.dumps({"m": inner, "sig": hmac.new(b.CMD_KEY, inner.encode(), hashlib.sha256).hexdigest()})
+    class M: payload = env.encode()
+    b.mqtt_on_message(None, None, M)
+nm = now_min()
+if 6 <= nm <= 1400:                                   # avoid the midnight edge so "now" and "in 30 min" are the same day
+    fresh(doc(), auto=True); reset_sched()
+    push({"days": {day(): [{"zone": 1, "start": hm(nm - 5), "minutes": 30}, {"zone": 2, "start": hm(nm - 4), "minutes": 20}]}})
+    check("signed plan is installed for today", len(b.farmer_schedule["days"][day()]) == 2)
+    b.decide_irrigation()
+    check("a plan entry whose time has come opens its zone (one valve at a time)", sent == ["CMD:Z1:OPEN"] and b.run_queue == [(2, 1200.0)])
+    check("the plan replaces the central decision for today", b.executed["date"] is None)
+    sent.clear(); b.decide_irrigation()
+    check("entries run once, not again on the next tick", sent == [] and len(b.run_queue) == 1)
+    check("status block shows the plan to the app", b.schedule_summary()["today"][0]["done"] and b.schedule_summary()["days"] == 1)
+
+    fresh(doc(), auto=True); reset_sched()
+    push({"days": {day(): [{"zone": 1, "start": hm(min(nm + 30, 1439)), "minutes": 30}]}}); b.decide_irrigation()
+    check("a plan entry in the future waits", sent == [] and not b.run_queue)
+
+    fresh(doc(), auto=False); reset_sched()
+    push({"days": {day(): [{"zone": 1, "start": hm(nm - 1), "minutes": 30}]}}); b.decide_irrigation()
+    check("manual mode: the plan is stored but nothing runs", sent == [] and len(b.farmer_schedule["days"][day()]) == 1)
+
+    fresh(doc(), auto=True); reset_sched()
+    push({"days": {day(): []}}); b.decide_irrigation()
+    check("an empty day means NO irrigation, even though the central decision says irrigate", sent == [] and not b.run_queue)
+
+    fresh(doc(), auto=True); reset_sched()
+    push({"days": {day(): [{"zone": 1, "start": hm(nm - 1), "minutes": 30}]}}); b.rain_guard_state.update(prob=90.0)
+    b.decide_irrigation()
+    check("the Pi's real-time rain hold still blocks a planned run", sent == [] and b.run_queue == [(1, 1800.0)])
+
+    fresh(doc(), auto=True); reset_sched()
+    push({"days": {day(): [{"zone": 1, "start": hm(max(0, nm - 200)), "minutes": 30}]}}); b.decide_irrigation()
+    check("a run more than 3 h overdue (Pi was off) is skipped, not run late", sent == [] and not b.run_queue)
+
+    fresh(doc(), auto=True); reset_sched()
+    push({"days": {day(): [{"zone": 1, "start": hm(nm - 1), "minutes": 500}, {"zone": 9, "start": "06:00", "minutes": 30},
+                           {"zone": 2, "start": "06:00", "minutes": 4}, {"zone": 3, "start": "25:99", "minutes": 30}],
+                   day(40): [{"zone": 1, "start": "06:00", "minutes": 30}], "garbage": [], day(-3): [{"zone": 1, "start": "06:00", "minutes": 30}]}})
+    check("limits re-applied: 500 min clamped to 120, unknown zone / under 10 min / bad time / far or past dates dropped",
+          list(b.farmer_schedule["days"]) == [day()] and b.farmer_schedule["days"][day()] == [{"zone": 1, "start": nm - 1, "minutes": 120.0}])
+
+    fresh(doc(), auto=True); reset_sched()
+    inner = json.dumps({"schedule": {"days": {day(): [{"zone": 1, "start": hm(nm - 1), "minutes": 30}]}}, "ts": int(time.time() * 1000), "nonce": "forged"})
+    class Forged: payload = json.dumps({"m": inner, "sig": "00" * 32}).encode()
+    b.mqtt_on_message(None, None, Forged)
+    check("an unsigned or wrongly signed plan is refused", b.farmer_schedule["days"] == {})
+
+    fresh(doc(), auto=True); reset_sched()
+    push({"days": {day(): [{"zone": 1, "start": hm(nm - 1), "minutes": 30}]}}); b.daily_run_secs[1] = b.MAX_DAILY_SECS - 300
+    b.decide_irrigation()
+    check("planned run is skipped when under 10 min of the daily cap remain", sent == [] and not b.run_queue)
+    reset_sched(); b.CMD_KEY = b""
 print(f"\n{n} checks passed")
 
 # ── shutdown (systemd stop / update restart) must close valves ──

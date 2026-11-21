@@ -55,4 +55,19 @@ const o2 = A.outlook(orf, rw, {}, today, 6);
 check('the day before a big forecast rain is skipped (rain guard)', o2[1].skipRain && !o2[1].irrigate);
 check('after the rain no irrigation is needed for a while', o2.slice(3, 5).every(d => !d.irrigate));
 check('outlook day 0 agrees with today\'s plan', out[0].irrigate === (A.plan({ today, fields: [of], settings: {} }).items[0].decision === 'IRRIGATE'));
+// ── multi-day schedule the Pi runs ──
+{
+  const fa = field('1', { drFrac: 1.3, w: ow }), fb = field('2', { drFrac: 1.1, w: ow }), fc = Object.assign(field('3', { drFrac: 1.05, w: ow }), { zone: null });
+  const fields = [fa, fb, fc], outl = {}; fields.forEach(f => { outl[f.id] = A.outlook(f, ow, {}, today, 7); });
+  const pl = A.plan({ today, fields, settings: { maxRunMin: 60 } });
+  const sc = A.buildSchedule(pl, fields, outl, null);
+  check('schedule has 7 consecutive days starting today', Object.keys(sc.days).length === 7 && sc.days[today] && sc.days[C.addDays(today, 6)]);
+  check('today\'s runs keep the plan\'s order and start times', sc.days[today].length === 2 && sc.days[today][0].start === '06:00' && sc.days[today][0].zone === 1);
+  check('a field without a valve is left out and reported', !sc.days[today].some(r => r.zone === 3) && sc.unassigned.length === 1 && sc.unassigned[0] === 'F3');
+  check('runs on later days are sequential and within the daily limit', Object.values(sc.days).every(d => d.reduce((a, r) => a + r.minutes, 0) <= 240));
+  const late = A.buildSchedule(pl, fields, outl, 14 * 60 + 2);
+  check('planned time already past: first run moves to a few minutes from now, not the past', late.days[today][0].start === '14:10' && late.days[today][1].start > late.days[today][0].start);
+  const ev = A.buildSchedule(pl, fields, outl, 23 * 60 + 50);
+  check('a run that would pass midnight is left for tomorrow\'s plan', ev.days[today].length === 0);
+}
 console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);

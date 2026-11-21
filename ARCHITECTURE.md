@@ -331,3 +331,38 @@ field (irrigate / OK / wait for rain / soil check needed) and tick boxes; **Open
 irrigation today — about N litres"). **Save & add another field** keeps the map in place and shows the other fields as white outlines.
 Weather is shared by fields in the same ~10 km cell (one request) and cached for 3 h; fields are analysed two at a time. The dashboard's
 Analytics NDVI panel has an **ALL MY FIELDS** option that draws every field the same way.
+
+## Autopilot — fully automatic irrigation from NDVI + weather
+Everything is satellite or forecast data plus the FAO-56 water balance — no ground sensors (see the "no fake sensors" rule).
+
+**Brain (`farmer/autopilot.js`, pure functions, `node tests/test_autopilot.js`)**
+- `plan()` — today's runs for every field: which fields, thirstiest first, start time (default 06:00), minutes (from the pump flow and
+  field area), litres and the reason. Rules (each can be switched off): skip when > 10 mm rain is forecast in 48 h; irrigate earlier on
+  hot, dry days (ET₀ ≥ 6.5 mm); irrigate earlier when NDVI fell over three clear scenes while the soil is ≥ 70 % used. Limits: 10 min
+  minimum, 120 min per run, 240 min per day, 2 min gap so one valve runs at a time. A field with no pump flow gets "set pump flow",
+  never an invented time; a field whose soil question is unanswered is never scheduled.
+- `outlook()` — each field's next 7 days, stepping the water balance with the forecast.
+- `buildSchedule()` — the multi-day plan the controller runs: today from `plan()` (if the planned time has passed, the first run
+  starts a few minutes from now), later days from `outlook()`. A day listed with no runs means "do not irrigate that day".
+
+**Farmer page (`farmer.html`, view "Autopilot")** — the ON/OFF switch, today's timeline with reasons, the 7-day outlook, which valve (1–3)
+waters which field, the rules, and the controller link (controller ID + command key, kept only in that browser). With autopilot ON, every
+time the app opens it re-plans from the newest NDVI and forecast and re-sends the plan. Optional browser notification (only while the app
+is open). Turning it ON asks for confirmation, sends `auto_mode: true` and the plan; turning it OFF sends `auto_mode: false` and an empty plan.
+
+**Controller link (`farmer/link.js`, `node tests/test_link.js`)** — signs the command exactly like the dashboard (see *Cloud command security*)
+and publishes `{"schedule": {"days": {"YYYY-MM-DD": [{"zone": 1, "start": "06:00", "minutes": 40}, …]}}}` to `agrisat/<id>/cmd`.
+The page then waits for the Pi's own status (`schedule` block on `agrisat/<id>/data`) and only says "Controller confirmed" when the Pi
+reports it holds the plan.
+
+**Pi (`hardware/raspberry_pi/brain.py`, `python3 tests/test_gateway.py`)** — `schedule` is stored in `~/.agrisat_schedule.json` (survives
+restarts) and run **by the Pi itself, with no phone and no open app**, for every day the plan covers:
+- It only runs in **auto mode** (still off after every reboot unless `AGRISAT_AUTO_START=1`).
+- All safety limits are re-applied on the Pi (10 min minimum, 120 min cap, daily cap, one valve at a time) and the Pi's real-time rain hold
+  still blocks any planned run. A run more than 3 h past its planned time (Pi was off) is skipped, not run late.
+- For a date that is in the plan, the plan replaces the central `decision.json` (campus pipeline); dates not in the plan fall back to it.
+- Emergency stop, manual commands and the watchdog work as before.
+
+**Limits to know**: the plan is computed in the app (that is where the farmer's fields live), so the Pi runs the days it was sent — up to 7.
+If the app is not opened for a week the Pi stops getting new plans and runs nothing after the last planned day. A fully server-side
+planner (fields stored centrally, planned by a scheduled job) would remove that need, but needs a place to keep farmers' field outlines.

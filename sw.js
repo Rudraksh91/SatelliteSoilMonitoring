@@ -3,7 +3,7 @@
  * Enables offline use, home-screen installation, and fast loading.
  */
 
-const APP_CACHE  = 'agrisat-app-v1.18';
+const APP_CACHE  = 'agrisat-app-v1.19';
 const CDN_CACHE  = 'agrisat-cdn-v1.2';
 
 // App shell — these files are cached immediately on install
@@ -14,6 +14,8 @@ const APP_SHELL = [
   '/SatelliteSoilMonitoring/farmer/core.js',
   '/SatelliteSoilMonitoring/farmer/i18n.js',
   '/SatelliteSoilMonitoring/farmer/ndvimap.js',
+  '/SatelliteSoilMonitoring/farmer/autopilot.js',
+  '/SatelliteSoilMonitoring/farmer/link.js',
   '/SatelliteSoilMonitoring/manifest.json',
   '/SatelliteSoilMonitoring/icons/icon.svg',
 ];
