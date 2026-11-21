@@ -22,6 +22,7 @@ button.sec{background:transparent;color:var(--g);border:1.5px solid var(--g)}but
 button:disabled{opacity:.5}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1 1 auto}
 input[type=text],input[type=number],input[type=date],select{width:100%;font:inherit;padding:11px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
 label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+#map,#ndviMapBox,#multiMapBox{position:relative;z-index:0;isolation:isolate}   /* map panes/controls can never paint over the sticky top bar */
 #map{height:min(58vh,440px);border-radius:12px;border:1px solid var(--line)}
 .big{border-radius:16px;padding:18px;color:#fff;margin:0 0 14px}.big .t{font-size:13px;opacity:.85;letter-spacing:.03em}.big .h{font-size:28px;font-weight:800;margin:4px 0;line-height:1.2}.big .r{font-size:15px;opacity:.95}
 .big.go{background:var(--blue)}.big.ok{background:var(--g)}.big.wait{background:#5b6f8a}.big.err{background:var(--red)}
@@ -59,6 +60,22 @@ table.mt{width:100%;border-collapse:collapse;font-size:14px}table.mt th{font-siz
 table.ot td{cursor:default;text-align:center;padding:8px 4px;font-size:13px;white-space:nowrap}table.ot td:first-child{text-align:left;white-space:normal}table.ot th{text-align:center}table.ot th:first-child{text-align:left}
 table.ot td.w{color:var(--blue);font-weight:700}table.ot td.r{color:var(--mut)}
 #apSt{font-size:14px;margin:10px 0 0}#apSt.good{color:var(--g)}#apSt.bad{color:var(--red)}#apSt.mid{color:var(--amber)}
+/* phone / tablet / laptop fit: safe areas, thumb-sized targets, no iOS focus-zoom, visible keyboard focus */
+main{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+header{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+@media(pointer:coarse),(max-width:767px){
+  button,select,input[type=text],input[type=number],input[type=date],input[type=time]{min-height:44px}
+  .lang button{min-height:40px;min-width:44px;padding:6px 12px}
+  .chips button{min-height:40px;padding:6px 14px}
+  .frow input,.chk input{width:26px;height:26px;flex:0 0 26px}
+  .tgl input{width:30px;height:30px}
+  .zr select{min-height:44px}
+  input,select,textarea{font-size:16px}
+  input[type=checkbox]{width:24px;height:24px;accent-color:var(--g)}
+  header a{padding:12px 6px;display:inline-block}
+  label:has(>input[type=checkbox]){display:flex;gap:10px;align-items:center;min-height:44px;color:var(--ink);font-size:15px}
+}
+@media(hover:hover) and (pointer:fine){button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2px}}
 @media(min-width:900px){main{max-width:860px}}
 @media(min-width:1500px){main{max-width:1040px}}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -164,11 +181,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261121g"></script>
-<script src="farmer/i18n.js?v=20261121g"></script>
-<script src="farmer/ndvimap.js?v=20261121g"></script>
-<script src="farmer/autopilot.js?v=20261121g"></script>
-<script src="farmer/link.js?v=20261121g"></script>
+<script src="farmer/core.js?v=20261121l"></script>
+<script src="farmer/i18n.js?v=20261121l"></script>
+<script src="farmer/ndvimap.js?v=20261121l"></script>
+<script src="farmer/autopilot.js?v=20261121l"></script>
+<script src="farmer/link.js?v=20261121l"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <script>
 (function(){

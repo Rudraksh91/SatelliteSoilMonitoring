@@ -54,9 +54,9 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261121g"></script>
-<script src="farmer/ndvimap.js?v=20261121g"></script>
-<script src="farmer/i18n.js?v=20261121g"></script>
+<script src="farmer/core.js?v=20261121l"></script>
+<script src="farmer/ndvimap.js?v=20261121l"></script>
+<script src="farmer/i18n.js?v=20261121l"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -681,6 +681,49 @@ html.farmer-mode [data-page="health"],html.farmer-mode [data-page="pipeline"]{di
   #mode-bar{flex-wrap:wrap;row-gap:6px}#mode-bar>.h-4{display:none}
   #mode-bar #btn-autopilot{margin-left:auto}
   #tl-title{font-size:16px!important;line-height:1.25!important}
+}
+/* ─────────────────────────────────────────────────────────────
+   DEVICE FIT — phone, tablet and laptop (last, so it wins over the per-breakpoint rules above)
+   • safe areas: the top bar and bottom bar never sit under the status bar / notch / home indicator
+   • touch: every button, selector and icon-button is at least 40 px tall; inputs are 16 px so iOS never zooms the page on focus
+   • text: nothing under 11 px on phones; keyboard focus is visible on laptops
+   ───────────────────────────────────────────────────────────── */
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);--hdr-h:64px;--nav-h:56px}
+@media(max-height:500px) and (orientation:landscape){:root{--hdr-h:48px;--nav-h:42px}}
+header.fixed{height:calc(var(--hdr-h) + var(--safe-top))!important;padding-top:var(--safe-top)!important;padding-left:max(10px,var(--safe-left))!important;padding-right:max(10px,var(--safe-right))!important}
+main.page{margin-top:calc(var(--hdr-h) + var(--safe-top))!important}
+#nofarm{top:calc(var(--hdr-h) + var(--safe-top))}
+@media(max-width:767px){
+  main.page{padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 12px)!important}
+  #mob-nav{height:calc(var(--nav-h) + var(--safe-bottom))!important;padding-bottom:var(--safe-bottom)!important;padding-left:var(--safe-left)!important;padding-right:var(--safe-right)!important}
+  #page-farmers{height:calc(100vh - var(--hdr-h) - var(--safe-top) - var(--nav-h) - var(--safe-bottom))!important;height:calc(100dvh - var(--hdr-h) - var(--safe-top) - var(--nav-h) - var(--safe-bottom))!important;padding-bottom:0!important}
+  #nofarm{bottom:calc(var(--nav-h) + var(--safe-bottom))}
+  #rotation-hint{bottom:calc(var(--nav-h) + var(--safe-bottom) + 16px)}
+  /* text: no tiny print on a phone */
+  [class*="text-[8px]"],[class*="text-[9px]"],[class*="text-[10px]"],[style*="font-size:8px"],[style*="font-size:9px"],[style*="font-size:10px"]{font-size:11px!important}
+  .mob-btn-lbl{font-size:9px!important;letter-spacing:.03em!important}
+  .wtab{font-size:11px!important}
+  /* iOS zooms the whole page when a field under 16 px gets focus */
+  input,select,textarea{font-size:16px!important}
+  /* big, easy targets */
+  header button,main.page button,#hw-btn{min-height:40px}
+  #hw-btn{min-width:44px;justify-content:center}
+  #mf-dates button,#mf-idx button{min-height:36px;padding-left:12px;padding-right:12px}
+  .mode-toggle{min-height:40px;padding-left:12px;padding-right:12px}
+  .wtab{min-height:40px;display:inline-flex;align-items:center}
+  select,#active-farm,#mf-select{min-height:40px}
+  main.page span.material-symbols-outlined[onclick]{min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .crop-search{min-height:40px}
+  .crop-opt{min-height:40px;display:flex;align-items:center}
+  .mode-toggle{font-size:11px!important}
+  /* small switches keep their look but get a thumb-sized touch area */
+  [id^="opt-toggle"]{position:relative}
+  [id^="opt-toggle"]::after{content:'';position:absolute;inset:-14px -8px}
+}
+/* laptop / desktop: visible keyboard focus, comfortable hover targets */
+@media(hover:hover) and (pointer:fine){
+  button:focus-visible,select:focus-visible,input:focus-visible,[onclick]:focus-visible,a:focus-visible{outline:2px solid rgba(0,255,65,.7);outline-offset:2px}
+  header .mso,.nav-btn{cursor:pointer}
 }
 /* Notched phones keep the bottom bar inside the safe area */
 @supports(padding:max(0px)){@media(max-width:767px){#mob-nav{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);height:calc(56px + env(safe-area-inset-bottom))}}}
