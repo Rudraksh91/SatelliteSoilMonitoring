@@ -32,14 +32,14 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <!-- ── Theme & Status Bar ────────────────────────────────── -->
 <meta name="theme-color" content="#060a09"/>
 <meta name="msapplication-TileColor" content="#060a09"/>
-<meta name="msapplication-TileImage" content="icons/icon.svg"/>
+<meta name="msapplication-TileImage" content="icons/icon-192.png"/>
 
 <!-- ── iOS PWA (Add to Home Screen) ──────────────────────── -->
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="AgriSat"/>
-<link rel="apple-touch-icon" href="icons/icon.svg"/>
-<link rel="apple-touch-startup-image" href="icons/icon.svg"/>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+<link rel="apple-touch-startup-image" href="icons/icon-512.png"/>
 
 <!-- ── Android / General ─────────────────────────────────── -->
 <meta name="mobile-web-app-capable" content="yes"/>
@@ -48,7 +48,8 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 
 <!-- ── App Icon ──────────────────────────────────────────── -->
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml"/>
-<link rel="shortcut icon" href="icons/icon.svg"/>
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32"/>
+<link rel="shortcut icon" href="icons/favicon-32.png"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -3300,7 +3301,7 @@ async function sendAlarm(kind, title, body, tags, bypassCooldown){
     }
   }catch(e){ console.warn('[Alarm] ntfy push failed:', e); }
   if(typeof Notification==='function' && Notification.permission==='granted'){
-    try{ new Notification(title,{body, icon:'icons/icon.svg'}); }catch(e){}
+    try{ new Notification(title,{body, icon:'icons/icon-192.png'}); }catch(e){}
   }
 }
 function clearAlarm(kind){

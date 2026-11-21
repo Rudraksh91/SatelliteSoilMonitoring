@@ -162,8 +162,9 @@ Then in Xcode: Product → Archive → Distribute App
 
 ## Generate PWA Icons
 
-Open `icons/gen-icons.html` in any browser and click **GENERATE ALL ICONS**.
-Move the downloaded PNGs to the `icons/` folder for full PWA compatibility.
+The icon reuses the welcome-screen artwork (dot-matrix globe, orbit ring, satellite). Regenerate every size with
+`node scripts/make_icons.js` (needs the `sharp` package). It rewrites `icons/icon.svg`, `icon-maskable.svg` and the PNGs
+(`icon-192`, `icon-512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-32`) that the manifest and page head point to.
 
 ---
 

@@ -3,7 +3,7 @@
  * Enables offline use, home-screen installation, and fast loading.
  */
 
-const APP_CACHE  = 'agrisat-app-v1.20';
+const APP_CACHE  = 'agrisat-app-v1.21';
 const CDN_CACHE  = 'agrisat-cdn-v1.2';
 
 // App shell — these files are cached immediately on install
@@ -20,6 +20,9 @@ const APP_SHELL = [
   '/SatelliteSoilMonitoring/farmer/chat-config.js',
   '/SatelliteSoilMonitoring/manifest.json',
   '/SatelliteSoilMonitoring/icons/icon.svg',
+  '/SatelliteSoilMonitoring/icons/icon-192.png',
+  '/SatelliteSoilMonitoring/icons/apple-touch-icon.png',
+  '/SatelliteSoilMonitoring/icons/favicon-32.png',
 ];
 
 // CDN prefixes — cached on first use (stale-while-revalidate)
