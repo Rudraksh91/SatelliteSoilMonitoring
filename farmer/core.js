@@ -247,17 +247,81 @@
   // irrigation scheduling, and stage lengths in days [initial, development, mid, late]. TYPICAL values only — the farm's
   // variety, climate and growth stage change them; confirm locally (faculty / extension officer).
   const CROPS = {
-    general:    { kcb_ini: 0.30, kcb_mid: 1.15, kcb_end: 0.60, p: 0.50, zr: 0.40, stages: null },
-    cotton:     { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.50, p: 0.65, zr: 1.00, stages: [30, 50, 60, 55] },
-    wheat:      { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.20, p: 0.55, zr: 1.00, stages: [20, 30, 60, 30] },
-    maize:      { kcb_ini: 0.15, kcb_mid: 1.15, kcb_end: 0.25, p: 0.55, zr: 0.90, stages: [20, 35, 40, 30] },
-    groundnut:  { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.55, p: 0.50, zr: 0.50, stages: [25, 35, 45, 25] },
-    tomato:     { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.60, p: 0.40, zr: 0.60, stages: [30, 40, 40, 25] },
-    sugarcane:  { kcb_ini: 0.15, kcb_mid: 1.20, kcb_end: 0.50, p: 0.65, zr: 1.20, stages: [50, 70, 220, 140] },
-    banana:     { kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.90, p: 0.35, zr: 0.70, stages: [120, 90, 120, 60] },
-    vegetables: { kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.80, p: 0.40, zr: 0.40, stages: [25, 30, 30, 15] }
+    general:    { cat: 'other', kcb_ini: 0.30, kcb_mid: 1.15, kcb_end: 0.60, p: 0.50, zr: 0.40, stages: null },
+    rice: { cat: 'cereals', kcb_ini: 1.00, kcb_mid: 1.15, kcb_end: 0.60, p: 0.20, zr: 0.50, stages: [30, 30, 60, 30] },
+    wheat: { cat: 'cereals', kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.20, p: 0.55, zr: 1.00, stages: [20, 30, 60, 30] },
+    maize: { cat: 'cereals', kcb_ini: 0.15, kcb_mid: 1.15, kcb_end: 0.25, p: 0.55, zr: 0.90, stages: [20, 35, 40, 30] },
+    sorghum: { cat: 'cereals', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.35, p: 0.55, zr: 1.00, stages: [20, 35, 40, 30] },
+    bajra: { cat: 'cereals', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.25, p: 0.55, zr: 1.00, stages: [15, 25, 40, 25] },
+    ragi: { cat: 'cereals', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.25, p: 0.55, zr: 0.80, stages: [20, 30, 40, 30] },
+    barley: { cat: 'cereals', kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.15, p: 0.55, zr: 1.00, stages: [15, 25, 50, 30] },
+    smallmillets: { cat: 'cereals', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.25, p: 0.55, zr: 0.80, stages: [15, 25, 35, 25] },
+    chickpea: { cat: 'pulses', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.25, p: 0.50, zr: 0.80, stages: [20, 30, 40, 20] },
+    tur: { cat: 'pulses', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.45, p: 0.50, zr: 1.00, stages: [30, 60, 60, 30] },
+    mung: { cat: 'pulses', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.30, p: 0.50, zr: 0.60, stages: [15, 20, 25, 15] },
+    urad: { cat: 'pulses', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.30, p: 0.50, zr: 0.60, stages: [15, 20, 25, 15] },
+    lentil: { cat: 'pulses', kcb_ini: 0.15, kcb_mid: 1.05, kcb_end: 0.20, p: 0.50, zr: 0.60, stages: [20, 30, 50, 30] },
+    matar: { cat: 'pulses', kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.30, p: 0.35, zr: 0.60, stages: [20, 30, 35, 15] },
+    cowpea: { cat: 'pulses', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.30, p: 0.45, zr: 0.70, stages: [20, 30, 30, 20] },
+    horsegram: { cat: 'pulses', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.30, p: 0.50, zr: 0.60, stages: [20, 30, 30, 20] },
+    soybean: { cat: 'pulses', kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.30, p: 0.50, zr: 0.60, stages: [20, 30, 45, 25] },
+    groundnut: { cat: 'oilseeds', kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.55, p: 0.50, zr: 0.50, stages: [25, 35, 45, 25] },
+    mustard: { cat: 'oilseeds', kcb_ini: 0.20, kcb_mid: 1.05, kcb_end: 0.25, p: 0.60, zr: 1.00, stages: [20, 30, 50, 25] },
+    sunflower: { cat: 'oilseeds', kcb_ini: 0.15, kcb_mid: 1.05, kcb_end: 0.25, p: 0.45, zr: 1.00, stages: [25, 35, 45, 25] },
+    sesame: { cat: 'oilseeds', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.25, p: 0.60, zr: 0.90, stages: [20, 30, 40, 20] },
+    safflower: { cat: 'oilseeds', kcb_ini: 0.15, kcb_mid: 1.05, kcb_end: 0.20, p: 0.60, zr: 1.20, stages: [25, 35, 55, 30] },
+    castor: { cat: 'oilseeds', kcb_ini: 0.15, kcb_mid: 1.05, kcb_end: 0.40, p: 0.50, zr: 1.00, stages: [25, 40, 65, 50] },
+    linseed: { cat: 'oilseeds', kcb_ini: 0.15, kcb_mid: 1.05, kcb_end: 0.20, p: 0.50, zr: 0.90, stages: [25, 35, 50, 25] },
+    niger: { cat: 'oilseeds', kcb_ini: 0.15, kcb_mid: 0.90, kcb_end: 0.25, p: 0.50, zr: 0.60, stages: [20, 30, 35, 20] },
+    cotton: { cat: 'cash', kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.50, p: 0.65, zr: 1.00, stages: [30, 50, 60, 55] },
+    sugarcane: { cat: 'cash', kcb_ini: 0.15, kcb_mid: 1.20, kcb_end: 0.50, p: 0.65, zr: 1.20, stages: [50, 70, 220, 140] },
+    jute: { cat: 'cash', kcb_ini: 0.15, kcb_mid: 1.05, kcb_end: 0.55, p: 0.50, zr: 0.80, stages: [20, 30, 45, 15] },
+    tobacco: { cat: 'cash', kcb_ini: 0.15, kcb_mid: 1.05, kcb_end: 0.70, p: 0.50, zr: 0.80, stages: [20, 30, 50, 25] },
+    tomato: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.60, p: 0.40, zr: 0.60, stages: [30, 40, 40, 25] },
+    brinjal: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.70, p: 0.45, zr: 0.70, stages: [30, 40, 40, 20] },
+    chilli: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.70, p: 0.30, zr: 0.60, stages: [25, 35, 40, 20] },
+    okra: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.70, p: 0.45, zr: 0.60, stages: [20, 30, 40, 20] },
+    potato: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.60, p: 0.35, zr: 0.50, stages: [25, 30, 45, 30] },
+    onion: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.70, p: 0.30, zr: 0.40, stages: [20, 35, 60, 30] },
+    garlic: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.50, p: 0.30, zr: 0.40, stages: [20, 30, 60, 30] },
+    cabbage: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.85, p: 0.45, zr: 0.50, stages: [25, 30, 35, 15] },
+    cauliflower: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.85, p: 0.45, zr: 0.50, stages: [25, 30, 30, 10] },
+    cucumber: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.70, p: 0.50, zr: 0.70, stages: [20, 30, 40, 15] },
+    gourds: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.70, p: 0.50, zr: 0.70, stages: [20, 30, 40, 15] },
+    pumpkin: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.65, p: 0.35, zr: 1.00, stages: [20, 30, 30, 20] },
+    watermelon: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.70, p: 0.40, zr: 0.80, stages: [20, 30, 30, 30] },
+    muskmelon: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.65, p: 0.40, zr: 0.80, stages: [25, 35, 40, 20] },
+    carrot: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.75, p: 0.35, zr: 0.50, stages: [20, 30, 50, 20] },
+    radish: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.85, kcb_end: 0.75, p: 0.30, zr: 0.40, stages: [10, 15, 15, 5] },
+    leafy: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.90, p: 0.20, zr: 0.30, stages: [20, 20, 15, 5] },
+    sweetpotato: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.55, p: 0.65, zr: 1.00, stages: [20, 30, 60, 40] },
+    cassava: { cat: 'veg', kcb_ini: 0.20, kcb_mid: 0.80, kcb_end: 0.40, p: 0.35, zr: 1.00, stages: [20, 40, 90, 90] },
+    vegetables: { cat: 'veg', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.80, p: 0.40, zr: 0.40, stages: [25, 30, 30, 15] },
+    ginger: { cat: 'spices', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.80, p: 0.30, zr: 0.40, stages: [30, 40, 60, 30] },
+    turmeric: { cat: 'spices', kcb_ini: 0.15, kcb_mid: 1.00, kcb_end: 0.75, p: 0.30, zr: 0.50, stages: [40, 60, 100, 60] },
+    coriander: { cat: 'spices', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.80, p: 0.40, zr: 0.50, stages: [20, 25, 25, 10] },
+    cumin: { cat: 'spices', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.25, p: 0.40, zr: 0.60, stages: [20, 30, 40, 20] },
+    fennel: { cat: 'spices', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.40, p: 0.40, zr: 0.60, stages: [20, 30, 45, 25] },
+    fenugreek: { cat: 'spices', kcb_ini: 0.15, kcb_mid: 0.95, kcb_end: 0.80, p: 0.40, zr: 0.50, stages: [15, 20, 25, 10] },
+    banana: { cat: 'fruit', kcb_ini: 0.15, kcb_mid: 1.10, kcb_end: 0.90, p: 0.35, zr: 0.70, stages: [120, 90, 120, 60] },
+    mango: { cat: 'fruit', kcb_ini: 0.50, kcb_mid: 0.80, kcb_end: 0.70, p: 0.50, zr: 1.50, stages: null },
+    papaya: { cat: 'fruit', kcb_ini: 0.55, kcb_mid: 1.00, kcb_end: 0.90, p: 0.40, zr: 1.00, stages: null },
+    guava: { cat: 'fruit', kcb_ini: 0.45, kcb_mid: 0.80, kcb_end: 0.70, p: 0.50, zr: 1.20, stages: null },
+    citrus: { cat: 'fruit', kcb_ini: 0.55, kcb_mid: 0.65, kcb_end: 0.60, p: 0.50, zr: 1.20, stages: null },
+    pomegranate: { cat: 'fruit', kcb_ini: 0.35, kcb_mid: 0.75, kcb_end: 0.60, p: 0.50, zr: 1.00, stages: null },
+    grapes: { cat: 'fruit', kcb_ini: 0.15, kcb_mid: 0.70, kcb_end: 0.35, p: 0.45, zr: 1.00, stages: [25, 40, 70, 50] },
+    sapota: { cat: 'fruit', kcb_ini: 0.55, kcb_mid: 0.75, kcb_end: 0.70, p: 0.50, zr: 1.50, stages: null },
+    coconut: { cat: 'fruit', kcb_ini: 0.60, kcb_mid: 0.85, kcb_end: 0.80, p: 0.45, zr: 1.50, stages: null },
+    cashew: { cat: 'fruit', kcb_ini: 0.45, kcb_mid: 0.65, kcb_end: 0.60, p: 0.50, zr: 1.50, stages: null },
+    apple: { cat: 'fruit', kcb_ini: 0.40, kcb_mid: 0.95, kcb_end: 0.70, p: 0.50, zr: 1.00, stages: null },
+    tea: { cat: 'fruit', kcb_ini: 0.75, kcb_mid: 0.95, kcb_end: 0.90, p: 0.40, zr: 0.90, stages: null },
+    coffee: { cat: 'fruit', kcb_ini: 0.75, kcb_mid: 0.95, kcb_end: 0.90, p: 0.40, zr: 1.00, stages: null },
+    arecanut: { cat: 'fruit', kcb_ini: 0.60, kcb_mid: 0.90, kcb_end: 0.80, p: 0.40, zr: 1.00, stages: null },
+    berseem: { cat: 'fodder', kcb_ini: 0.30, kcb_mid: 1.05, kcb_end: 0.95, p: 0.50, zr: 0.80, stages: null },
+    lucerne: { cat: 'fodder', kcb_ini: 0.30, kcb_mid: 1.15, kcb_end: 1.05, p: 0.55, zr: 1.50, stages: null },
+    napier: { cat: 'fodder', kcb_ini: 0.40, kcb_mid: 1.00, kcb_end: 0.90, p: 0.60, zr: 1.00, stages: null }
   };
-  function stageKc(dap, curve) {                       // linear interpolation over [[dap, kc], ...]
+  const CROP_CATS = ['cereals', 'pulses', 'oilseeds', 'cash', 'veg', 'spices', 'fruit', 'fodder', 'other'];  function stageKc(dap, curve) {                       // linear interpolation over [[dap, kc], ...]
     if (dap <= curve[0][0]) return curve[0][1];
     for (let i = 1; i < curve.length; i++) if (dap <= curve[i][0]) { const a = curve[i - 1], b = curve[i]; return a[1] + (b[1] - a[1]) * (dap - a[0]) / (b[0] - a[0]); }
     return curve[curve.length - 1][1];
@@ -273,6 +337,18 @@
     }
     return o;
   }
+  /** Pump size -> litres per hour. unit: 'lph' | 'lpm' | 'm3h' | 'hp'. HP is only an ESTIMATE: delivered water = efficiency x power / (rho g head). */
+  const PUMP_UNIT_LPH = { lph: 1, lpm: 60, m3h: 1000 };
+  function pumpFlowLph(value, unit, headM) {
+    const v = parseFloat(value); if (!(v > 0)) return null;
+    let q;
+    if (unit === 'hp') { const H = headM > 0 ? +headM : 20; q = 0.40 * v * 745.7 / (1000 * 9.81 * H) * 3.6e6; }   // eta 0.40 (small farm pumps), W -> m3/s -> L/h
+    else q = v * (PUMP_UNIT_LPH[unit] || 1);
+    q = Math.round(q / 10) * 10;
+    return q >= 50 && q <= 2e6 ? q : null;
+  }
+  /** Hours the pump needs to put `mm` of water on `areaM2` (1 mm on 1 m2 = 1 litre), at `eff` application efficiency. */
+  const pumpHoursFor = (mm, areaM2, flowLph, eff) => (flowLph > 0 && areaM2 > 0) ? mm * areaM2 / (eff || 0.88) / flowLph : null;
   const DEFAULT_CROP = { kcb_min: 0.30, kcb_max: 1.15, p: 0.5, ndvi_soil: 0.15, ndvi_full: 0.85, root_depth_m: 0.4, kc_fallback: 0.60, stale_days: 20 };
   const addDays = (iso, n) => new Date(new Date(iso + 'T00:00:00Z').getTime() + n * 864e5).toISOString().slice(0, 10);
 
@@ -323,5 +399,5 @@
 
   return { centroid, bbox, polygonAreaM2, squareFromArea, pointInPolygon, distToEdges, utmZone, toUTM, farmPixels,
            fromUTM, searchScenes, sceneNdvi, ndviSeries, saxtonRawls, depthWeighted, soilFromSoilGrids, fetchSoil,
-           tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP, CROPS, cropParams, stageKc };
+           tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP, CROPS, CROP_CATS, cropParams, pumpFlowLph, pumpHoursFor, stageKc };
 });

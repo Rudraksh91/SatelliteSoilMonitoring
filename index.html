@@ -54,8 +54,9 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261120j"></script>
-<script src="farmer/ndvimap.js?v=20261120j"></script>
+<script src="farmer/core.js?v=20261121c"></script>
+<script src="farmer/ndvimap.js?v=20261121c"></script>
+<script src="farmer/i18n.js?v=20261121c"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -675,6 +676,12 @@ html.farmer-mode [data-page="health"],html.farmer-mode [data-page="pipeline"]{di
   header>div:last-child .material-symbols-outlined:nth-child(-n+2){display:none}   /* decorative feed / speed icons */
 }
 @media(max-width:360px){#active-farm{max-width:72px!important}#page-title{max-width:28vw!important;font-size:13px!important}#hw-label{display:none}}
+/* Automation page on phones: mode bar wraps, long farm names never blow up the timeline heading */
+@media(max-width:767px){
+  #mode-bar{flex-wrap:wrap;row-gap:6px}#mode-bar>.h-4{display:none}
+  #mode-bar #btn-autopilot{margin-left:auto}
+  #tl-title{font-size:16px!important;line-height:1.25!important}
+}
 /* Notched phones keep the bottom bar inside the safe area */
 @supports(padding:max(0px)){@media(max-width:767px){#mob-nav{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);height:calc(56px + env(safe-area-inset-bottom))}}}
 /* Touch devices: comfortable tap targets, no 300 ms zoom delay, no rubber-band scroll chaining out of panels */
@@ -1442,7 +1449,7 @@ header{
   <div class="h-full p-sm flex flex-col gap-sm">
 
     <!-- ── MODE TOGGLE BAR ── -->
-    <div class="gp rounded-xl px-sm py-xs flex items-center gap-sm shrink-0 border-b border-white/5">
+    <div id="mode-bar" class="gp rounded-xl px-sm py-xs flex items-center gap-sm shrink-0 border-b border-white/5">
       <div class="flex bg-surface-container-lowest rounded-lg p-[3px] gap-[2px]">
         <button id="mode-btn-auto" onclick="setIrrigMode('auto')" class="mode-toggle active">
           <span class="material-symbols-outlined" style="font-size:14px;font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 20">auto_mode</span>AUTO MODE
@@ -1456,6 +1463,7 @@ header{
         <span class="font-label-caps text-[9px] text-on-surface-variant/40">CONTROL MODE:</span>
         <span id="mode-indicator" class="font-data-sm text-data-sm text-primary-container">AUTONOMOUS</span>
       </div>
+      <button id="btn-autopilot" onclick="openAutopilot()" style="display:none" class="mode-toggle" title="NDVI + weather autopilot: plan, 7-day outlook, controller link"><span class="material-symbols-outlined" style="font-size:14px">rocket_launch</span>AUTOPILOT</button>
       <div class="ml-auto flex items-center gap-xs opacity-0" id="valve-summary">
         <span class="font-label-caps text-[9px] text-on-surface-variant/40">OPEN VALVES:</span>
         <span id="open-valve-count" class="font-data-sm text-data-sm text-error">0</span>
@@ -1464,9 +1472,11 @@ header{
 
     <!-- ── AUTO MODE CONTENT ── -->
     <div id="auto-content" class="flex-1 flex flex-col gap-sm overflow-hidden">
+      <!-- AUTOPILOT DECISION (farmer mode): what the system decided for the selected farm today, and why -->
+      <div id="ap-decision" class="gp rounded-xl p-sm shrink-0" style="display:none"></div>
     <section class="gp rounded-xl flex flex-col overflow-hidden" style="height:45%">
       <div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
-        <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">schedule</span><h2 class="font-headline-md text-headline-md text-primary">Irrigation Cycle Timeline — Dediapada</h2></div>
+        <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">schedule</span><h2 id="tl-title" class="font-headline-md text-headline-md text-primary">Irrigation Cycle Timeline — Dediapada</h2></div>
         <div class="flex items-center gap-md font-data-sm text-data-sm"><span class="text-secondary">SCANNING FIELDS...</span><span class="text-on-surface-variant" id="auto-utc">IST —</span></div>
       </div>
       <div class="flex-1 overflow-x-auto relative tl-grid" id="tl-scroll">
@@ -2172,6 +2182,7 @@ function applyActiveFarm(){
   if(A.campus){window._ndviZones=null;window._ndviAgeDays=null;if(window._ndviPoll)window._ndviPoll();fetchCentral();}
   else{applyFarmNdvi();ensureFarmData(A);}
   initFAO56VWC();
+  if(typeof applyFarmToAutoPage==='function')applyFarmToAutoPage();
   // Analytics page: show the matching NDVI view
   if(typeof setNdviMode==='function'){if(!A.campus){mfFarmId=A.id;mfIdx=0;}setNdviMode(A.campus?'campus':'farm');}
   if(typeof logSystemEvent==='function')logSystemEvent(A.campus?'ACTIVE LOCATION: CAMPUS — AUTOMATIC DAILY NDVI + HARDWARE':`ACTIVE LOCATION: ${A.name} ${A.lat.toFixed(4)}, ${A.lng.toFixed(4)} — WEATHER, NDVI AND WATER MODEL FOR THIS FARM (ADVISORY)`);
@@ -2209,6 +2220,7 @@ window.addEventListener('storage',e=>{
   if(!A.campus){const f=db.farms.find(x=>x.id===A.id);
     if(!f){setActiveFarm('campus');return;}   // deleted: farmer mode falls back to another farm or the 'select your farm' prompt
     A.farm=f;_configureModelForFarm(A);applyFarmNdvi();initFAO56VWC();}
+  if(typeof applyFarmToAutoPage==='function'){applyFarmToAutoPage();if(typeof renderTimeline==='function')renderTimeline();}
 });
 function bootActiveFarm(){
   let id='campus';try{id=localStorage.getItem('agrisat_active_farm')||'campus';}catch(e){}
@@ -3072,11 +3084,13 @@ function renderTimelineRows(nowOffset){
     const row=document.getElementById(f.row);
     if(!row)return;
     const vwc=S[f.vwcKey];
-    const action=evaluateFieldAction(vwc,f.vwcKey);
+    const planIt=(f.vwcKey==='vA')?_farmerPlanItem():null;     // farmer mode: today's NDVI + weather plan for the selected farm
+    const action=planIt?_planAction(planIt):evaluateFieldAction(vwc,f.vwcKey);
     const widthPx=Math.round(action.spanCols*TL_COLW);
-    let html=`<div class="absolute h-8 rounded flex items-center px-sm font-data-sm text-data-sm cursor-pointer ${action.cls}" style="left:${nowOffset}px;width:${widthPx}px">${action.label}</div>`;
+    const leftPx=(action.at!=null)?Math.round(action.at/60*TL_COLW):nowOffset;
+    let html=`<div class="absolute h-8 rounded flex items-center px-sm font-data-sm text-data-sm cursor-pointer ${action.cls}" style="left:${leftPx}px;width:${widthPx}px">${action.label}</div>`;
     if(action.boost){
-      html+=`<div class="absolute h-8 bg-secondary/20 border border-secondary/40 rounded flex items-center px-sm font-data-sm text-data-sm text-secondary cursor-pointer" style="left:${nowOffset+widthPx+8}px;width:110px">ET0 ADJUST</div>`;
+      html+=`<div class="absolute h-8 bg-secondary/20 border border-secondary/40 rounded flex items-center px-sm font-data-sm text-data-sm text-secondary cursor-pointer" style="left:${leftPx+widthPx+8}px;width:110px">ET0 ADJUST</div>`;
     }
     row.innerHTML=html;
   });
@@ -3085,6 +3099,7 @@ function renderTimelineRows(nowOffset){
 function renderTimeline(){
   const nowOffset=renderTimelineHeader(new Date());
   renderTimelineRows(nowOffset);
+  if(typeof renderAutoDecision==='function')renderAutoDecision();
 }
 
 // ══════════════════════════════════════════════════
@@ -3273,10 +3288,99 @@ function mfRender(){
 }
 window.addEventListener('storage',e=>{if(e.key==='agrisat_farmer_v1'&&mfMode==='farm'&&document.getElementById('page-ndvi').classList.contains('active'))mfRender();});
 
+// ── AUTOMATION PAGE FOR THE SELECTED FARM (farmer mode) ──
+// The original Automation page (timeline, rulebook, valve cards) now describes the farmer's selected farm: its name on the
+// timeline row, only its valve card, and today's AUTOPILOT plan (NDVI + weather) on the timeline. Campus mode is unchanged.
+function _autoFarm(){return (!window.CAMPUS_MODE&&window.ACTIVE&&!window.ACTIVE.campus&&window.ACTIVE.farm)?window.ACTIVE:null;}
+function applyFarmToAutoPage(){
+  const A=_autoFarm(),rows=['A','B','C'].map(k=>document.getElementById('tl-row-'+k));
+  if(!rows[0])return;
+  rows.forEach((r,i)=>{const cell=r.previousElementSibling,sp=cell.querySelectorAll('span');
+    if(!sp[0].dataset.orig){sp[0].dataset.orig=sp[0].textContent;sp[1].dataset.orig=sp[1].textContent;}
+    if(A&&i===0){sp[0].textContent=String(A.short).toUpperCase().slice(0,16);sp[1].textContent=(A.farm.areaM2/10000).toFixed(2)+' HA · '+A.lat.toFixed(3)+'°N · AUTOPILOT';}
+    else{sp[0].textContent=sp[0].dataset.orig;sp[1].textContent=sp[1].dataset.orig;}
+    if(i>0)r.parentElement.style.display=A?'none':'';});
+  const grid=document.querySelector('#manual-content .grid.flex-1');
+  if(grid){const cards=[...grid.children],z=Math.min(2,Math.max(0,(A&&A.farm.zone?A.farm.zone:1)-1));
+    grid.style.gridTemplateColumns=A?'minmax(0,560px)':'';
+    cards.forEach((c,i)=>{const ps=c.querySelectorAll('p');if(ps[2]&&!ps[2].dataset.orig)ps[2].dataset.orig=ps[2].textContent;
+      c.style.display=(A&&i!==z)?'none':'';
+      if(ps[2])ps[2].textContent=(A&&i===z)?String(A.short).toUpperCase().slice(0,22)+' · '+(A.farm.areaM2/10000).toFixed(2)+' HA':ps[2].dataset.orig;});}
+  const b=document.getElementById('btn-autopilot');if(b)b.style.display=window.CAMPUS_MODE?'none':'';
+  const t=document.getElementById('tl-title');if(t)t.textContent='Irrigation Cycle Timeline — '+(A?String(A.short).slice(0,28):'Dediapada');
+}
+// the Autopilot (settings, 7-day outlook, controller link) lives in the farmer app
+function openAutopilot(){
+  const fr=document.getElementById('farmers-frame');if(!fr)return;
+  if(!fr.getAttribute('src')){fr.removeAttribute('loading');fr.setAttribute('src','farmer.html?embed=1#autopilot');nav('farmers');}
+  else{nav('farmers');if(fr.contentWindow)fr.contentWindow.postMessage({agrisat:'openAutopilot'},location.origin);}
+}
+// today's plan for the selected farm, saved by the farmer app (null if missing or from another day)
+function _farmerPlanItem(){
+  const A=_autoFarm();if(!A)return null;
+  const d=_farmerDb(),p=d.autopilot&&d.autopilot.plan;
+  if(!p||p.date!==toIST(new Date()).toISOString().slice(0,10))return null;
+  return (p.items||[]).find(i=>i.id===A.id)||null;
+}
+// the autopilot's reasoning for the selected farm: NDVI + weather -> today's decision, shown in plain words
+let _apDecHtml='';
+function _farmerPlanFull(){const d=_farmerDb();return d.autopilot&&d.autopilot.plan&&d.autopilot.plan.date===toIST(new Date()).toISOString().slice(0,10)?d.autopilot.plan:null;}
+function refreshAutopilotPlan(){            // ask the farmer app to recompute with fresh satellite + forecast data
+  const fr=document.getElementById('farmers-frame');if(!fr)return;
+  if(!fr.getAttribute('src')){fr.removeAttribute('loading');fr.setAttribute('src','farmer.html?embed=1#plan');}
+  else if(fr.contentWindow)fr.contentWindow.postMessage({agrisat:'plan',force:true},location.origin);
+  const b=document.getElementById('ap-refresh');if(b){b.textContent='REFRESHING…';setTimeout(()=>{const x=document.getElementById('ap-refresh');if(x)x.textContent='REFRESH PLAN';},8000);}
+}
+function renderAutoDecision(){
+  const box=document.getElementById('ap-decision');if(!box)return;
+  const A=_autoFarm(),it=A&&_farmerPlanItem();
+  if(!A){box.style.display='none';return;}
+  box.style.display='';
+  const I=window.AgriI18n,esc=_esc;
+  if(!it){const h='<div class="font-label-caps text-[10px] text-on-surface-variant/60">AUTOPILOT · '+esc(A.short.toUpperCase())+' · READING SATELLITE NDVI + WEATHER…</div>';if(h!==_apDecHtml){box.innerHTML=h;_apDecHtml=h;}return;}
+  const why=I?I.t('en',it.reasonKey,it.rp||{}):'',crop=I?I.t('en','crop_'+it.crop):it.crop;
+  const head=it.minutes>0?'IRRIGATE '+it.start+' · '+Math.round(it.minutes)+' MIN · '+Math.round(it.litres).toLocaleString('en-IN')+' L'
+    :({SKIP_RAIN:'WAIT — RAIN COMING',NO_RUN:'NO WATER NEEDED TODAY',NEED_FLOW:'SET PUMP FLOW',SETUP:'ANSWER THE SOIL QUESTION',DAILY_LIMIT:'DAILY PUMP LIMIT'})[it.decision]||'MONITORING';
+  const cls=it.minutes>0?'text-secondary':(it.decision==='SKIP_RAIN'?'text-secondary-container':'text-primary-container');
+  const ser=(it.ndviSeries||[]).slice().sort((a,b)=>a.date<b.date?-1:1),trend=ser.length>1?(ser[ser.length-1].ndvi-ser[0].ndvi):null;
+  const tr=trend==null?'':(trend<-0.03?' ▼ FALLING':trend>0.03?' ▲ RISING':' ► STABLE');
+  const pct=it.taw?Math.min(100,Math.round(100*it.dr/it.taw)):null,rawPct=it.taw?Math.round(100*it.raw/it.taw):null;
+  const cell=(l,v,sub)=>'<div class="min-w-0"><span class="font-label-caps text-[9px] text-on-surface-variant/40 block">'+l+'</span><span class="font-data-sm text-data-sm block truncate">'+v+'</span>'+(sub?'<span class="font-label-caps text-[8px] text-on-surface-variant/50 block truncate">'+sub+'</span>':'')+'</div>';
+  const days=(it.outlook||[]).map(o=>{const d=new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'}).toUpperCase();
+    const t=o.irrigate?'<span class="text-secondary">💧'+(o.minutes||'')+'</span>':o.skipRain?'<span class="text-secondary-container">☔</span>':'<span class="text-on-surface-variant/40">–</span>';
+    return '<div class="text-center px-xs"><div class="font-label-caps text-[8px] text-on-surface-variant/50">'+d+'</div><div class="font-data-sm text-[11px]">'+t+'</div></div>';}).join('');
+  const html='<div class="flex flex-wrap items-center gap-sm justify-between">'
+    +'<div class="flex items-center gap-sm min-w-0"><span class="material-symbols-outlined mso text-primary-container">psychology</span><div class="min-w-0"><div class="font-label-caps text-[9px] text-on-surface-variant/50">AUTOPILOT DECISION · '+esc(A.short.toUpperCase())+' · '+esc(crop.toUpperCase())+'</div>'
+    +'<div class="font-data-lg text-data-lg '+cls+'">'+esc(head)+'</div></div></div>'
+    +'<div class="flex items-center gap-xs"><button id="ap-refresh" onclick="refreshAutopilotPlan()" class="mode-toggle">REFRESH PLAN</button></div></div>'
+    +'<p class="font-data-sm text-[12px] text-on-surface-variant mt-xs">'+esc(why)+'</p>'
+    +'<div class="grid grid-cols-2 md:grid-cols-5 gap-sm mt-xs">'
+    +cell('SATELLITE NDVI',it.ndvi!=null?it.ndvi.toFixed(2)+tr:'—',ser.length?ser[ser.length-1].date:'no clear scene')
+    +cell('CROP WATER USE (KC)',it.kc!=null?it.kc.toFixed(2):'—','from NDVI'+(it.stress?' · STRESS':''))
+    +cell('SOIL WATER USED',pct!=null?it.dr.toFixed(0)+' / '+it.taw.toFixed(0)+' MM ('+pct+'%)':'—','irrigate at '+(rawPct!=null?rawPct+'%':'—'))
+    +cell('RAIN NEXT 48 H',(it.rp&&it.rp.mm!=null?it.rp.mm:'—')+' MM','forecast')
+    +cell('EVAPORATION TODAY',it.et0!=null?it.et0.toFixed(1)+' MM/DAY':'—','ET0')+'</div>'
+    +(days?'<div class="flex gap-xs mt-xs overflow-x-auto">'+days+'</div>':'')
+    +'<p class="font-label-caps text-[8px] text-on-surface-variant/40 mt-xs">DECIDED BY ITSELF FROM SENTINEL-2 NDVI + OPEN-METEO WEATHER + FAO-56 SOIL-WATER BALANCE · SWITCH TO MANUAL MODE TO CONTROL THE VALVE YOURSELF</p>';
+  if(html!==_apDecHtml){box.innerHTML=html;_apDecHtml=html;}
+}
+// no plan for today yet: let the farmer app compute it in the background (it stores it; the 'storage' event redraws the timeline)
+function ensureFarmerPlan(){
+  if(!_autoFarm()||_farmerPlanItem())return;
+  const fr=document.getElementById('farmers-frame');if(!fr)return;
+  if(!fr.getAttribute('src')){fr.removeAttribute('loading');fr.setAttribute('src','farmer.html?embed=1#plan');}
+  else if(fr.contentWindow)fr.contentWindow.postMessage({agrisat:'plan'},location.origin);
+}
+function _planAction(it){
+  const nowCls='bg-white/5 border-white/10 text-on-surface-variant/60';
+  if(it.minutes>0)return {label:'IRRIGATE '+it.start+' · '+Math.round(it.minutes)+' MIN · '+Math.round(it.litres).toLocaleString('en-IN')+' L',cls:'bg-secondary/20 border-secondary/40 text-secondary',spanCols:Math.max(3.8,it.minutes/60),at:it.startMin};
+  const m={SKIP_RAIN:['WAIT · RAIN FORECAST ~'+(it.rp?it.rp.mm:'')+' MM','bg-secondary-container/10 border-secondary-container/30 text-secondary-container'],
+    NO_RUN:['NO WATER NEEDED TODAY',nowCls],NEED_FLOW:['SET PUMP FLOW (L/H) FOR RUN TIME',nowCls],SETUP:['ANSWER THE SOIL QUESTION',nowCls],DAILY_LIMIT:['DAILY PUMP LIMIT REACHED',nowCls]}[it.decision]||['MONITORING',nowCls];
+  return {label:m[0],cls:m[1],spanCols:3.2};
+}
 const pageMap={map:'COMMAND CENTER',ndvi:'ASSET ANALYTICS & NDVI',climate:'CLIMATE & WEATHER ANALYTICS',auto:'AUTOMATION & LOGIC HUB',health:'SYSTEM HEALTH',pipeline:'SATELLITE DATA PIPELINE',farmers:'FARMER APP'};
 function nav(id){
-  // farmer mode: the Automation tab opens the farmer AUTOPILOT (NDVI + weather -> irrigation plan); the campus logic hub stays in ?campus=1
-  const navBtn=id,toAutopilot=(id==='auto'&&!window.CAMPUS_MODE);if(toAutopilot)id='farmers';
+  const navBtn=id;
   document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none'});
   document.querySelectorAll('.nav-btn').forEach(b=>{b.classList.remove('text-primary','border-r-2','border-primary-container','bg-primary/10');b.classList.add('text-on-surface-variant/60')});
   const pg=document.getElementById('page-'+id);
@@ -3293,17 +3397,17 @@ function nav(id){
   document.querySelectorAll('.mob-btn').forEach(b=>b.classList.remove('active'));
   const mob=document.querySelector(`.mob-btn[data-page="${navBtn}"]`);
   if(mob)mob.classList.add('active');
-  set('page-title',(toAutopilot?'AUTOMATION · AUTOPILOT':pageMap[id])||'COMMAND CENTER');
+  set('page-title',pageMap[id]||'COMMAND CENTER');
   if(id==='ndvi'&&mfMode==='farm')setTimeout(mfRender,60);
   refreshFarmSelector();
   if(typeof updateNoFarm==='function')updateNoFarm();
-  if(id==='farmers'){const fr=document.getElementById('farmers-frame');if(fr&&!fr.getAttribute('src'))fr.setAttribute('src','farmer.html?embed=1'+(toAutopilot?'#autopilot':''));else if(fr&&fr.contentWindow)fr.contentWindow.postMessage({agrisat:toAutopilot?'openAutopilot':'openHome'},location.origin);}   // load the farmer app on first visit only
+  if(id==='farmers'){const fr=document.getElementById('farmers-frame');if(fr&&!fr.getAttribute('src'))fr.setAttribute('src','farmer.html?embed=1');}   // load the farmer app on first visit only
   // Scroll to top on mobile
   window.scrollTo({top:0,behavior:'smooth'});
   // Resize charts when entering climate tab
   if(id==='climate')setTimeout(()=>Object.values(charts).forEach(c=>c.resize()),100);
   // Timeline auto-scroll to "now" needs the tab actually visible/measurable
-  if(id==='auto')setTimeout(()=>{if(typeof renderTimeline==='function')renderTimeline();},50);
+  if(id==='auto'){applyFarmToAutoPage();ensureFarmerPlan();setTimeout(()=>{if(typeof renderTimeline==='function')renderTimeline();},50);}
 }
 
 // ══════════════════════════════════════════════════
@@ -3723,7 +3827,30 @@ const CROP_DB=[
   {key:'withania',cat:'Medicinal',label:'Withania / Ashwagandha',mm:1,dur:15,flow:2},
   {key:'sarpagandha',cat:'Medicinal',label:'Sarpagandha (Rauwolfia)',mm:2,dur:30,flow:3},
   {key:'coleus',cat:'Medicinal',label:'Coleus (Plectranthus)',mm:2,dur:15,flow:3},
-  {key:'isabgol',cat:'Medicinal',label:'Isabgol (Psyllium Husk)',mm:1,dur:15,flow:2,gj:1},
+  {key:'isabgol',cat:'Medicinal',label:'Isabgol (Psyllium Husk)',mm:1,dur:15,flow:2,gj:1},,
+  // Indian crops added so the list covers what farmers here actually grow
+  {key:'kodo_millet',cat:'Cereals',label:'Kodo Millet',mm:2,dur:30,flow:3},
+  {key:'little_millet',cat:'Cereals',label:'Little Millet (Kutki)',mm:2,dur:30,flow:3},
+  {key:'barnyard_millet',cat:'Cereals',label:'Barnyard Millet (Sanwa)',mm:2,dur:30,flow:3},
+  {key:'black_gram',cat:'Legumes',label:'Black Gram (Urad)',mm:2,dur:15,flow:3,gj:1},
+  {key:'cashew',cat:'Cash & Plantation',label:'Cashew',mm:3,dur:45,flow:4},
+  {key:'betel_vine',cat:'Cash & Plantation',label:'Betel Vine (Paan)',mm:3,dur:30,flow:4},
+  {key:'ajwain',cat:'Spices',label:'Ajwain (Carom)',mm:2,dur:30,flow:3,gj:1},
+  {key:'berseem',cat:'Fodder',label:'Berseem',mm:3,dur:45,flow:4,gj:1},
+  {key:'lucerne',cat:'Fodder',label:'Lucerne (Rajka)',mm:3,dur:45,flow:4,gj:1},
+  {key:'napier',cat:'Fodder',label:'Napier Grass',mm:4,dur:60,flow:5,gj:1},
+  {key:'fodder_sorghum',cat:'Fodder',label:'Fodder Sorghum / Maize (Chara)',mm:3,dur:45,flow:4,gj:1},
+  {key:'jamun',cat:'Fruits',label:'Jamun (Java Plum)',mm:3,dur:45,flow:4,gj:1},
+  {key:'amla',cat:'Fruits',label:'Amla (Indian Gooseberry)',mm:3,dur:45,flow:4,gj:1},
+  {key:'bael',cat:'Fruits',label:'Bael',mm:2,dur:30,flow:3},
+  {key:'mosambi',cat:'Fruits',label:'Mosambi (Sweet Lime)',mm:3,dur:45,flow:4,gj:1},
+  {key:'kinnow',cat:'Fruits',label:'Kinnow',mm:3,dur:45,flow:4},
+  {key:'karonda',cat:'Fruits',label:'Karonda',mm:2,dur:30,flow:3},
+  {key:'marigold',cat:'Flowers',label:'Marigold (Genda)',mm:3,dur:30,flow:4,gj:1},
+  {key:'rose',cat:'Flowers',label:'Rose (Gulab)',mm:3,dur:45,flow:4,gj:1},
+  {key:'jasmine',cat:'Flowers',label:'Jasmine (Mogra)',mm:3,dur:45,flow:4,gj:1},
+  {key:'chrysanthemum',cat:'Flowers',label:'Chrysanthemum (Guldaudi)',mm:3,dur:30,flow:4},
+  {key:'tuberose',cat:'Flowers',label:'Tuberose (Rajnigandha)',mm:3,dur:30,flow:4}
 ];
 
 const valveState={

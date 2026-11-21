@@ -91,4 +91,27 @@ let threw = false; try { C.soilFromSoilGrids({ properties: { layers: [mkL('sand'
 check('SoilGrids nulls (no data at this place) are rejected, not modelled as zero sand/clay', threw);
 const partial = C.soilFromSoilGrids({ properties: { layers: [mkL('sand', [null, 300, 300, 338]), mkL('clay', [null, 413, 406, 355]), mkL('soc', [null, 104, 64, 47])] } }, 0.4);
 check('a missing top layer is skipped (not averaged in as 0)', partial.clay > 0.37 && partial.clay < 0.42 && partial.theta_fc > 0.3);
+// ── crop list: every Indian crop has sane FAO-56 style parameters and names in all three languages ──
+{
+  const I = require('../farmer/i18n.js'), ids = Object.keys(C.CROPS);
+  let bad = [];
+  ids.forEach(k => { const c = C.CROPS[k];
+    if (!(c.kcb_ini > 0 && c.kcb_mid >= c.kcb_ini && c.kcb_mid <= 1.25 && c.kcb_end > 0 && c.p >= 0.1 && c.p <= 0.8 && c.zr >= 0.2 && c.zr <= 2 && C.CROP_CATS.includes(c.cat))) bad.push(k);
+    if (c.stages && !(c.stages.length === 4 && c.stages.every(d => d > 0))) bad.push(k + ' stages'); });
+  check('at least 60 crops in the list (cereals, pulses, oilseeds, vegetables, fruit, spices, fodder ...)', ids.length >= 60);
+  check('every crop has sane Kcb / depletion fraction / root depth / stages', bad.length === 0);
+  check('every crop and category has a name in English, Hindi and Gujarati', ['en', 'hi', 'gu'].every(l => ids.every(k => I.dict[l]['crop_' + k]) && C.CROP_CATS.every(c => I.dict[l]['cat_' + c])));
+  check('key Indian crops are present', ['rice', 'bajra', 'sorghum', 'ragi', 'tur', 'mung', 'urad', 'chickpea', 'mustard', 'groundnut', 'cotton', 'sugarcane', 'onion', 'mango', 'turmeric', 'cumin', 'tea', 'coconut'].every(k => C.CROPS[k]));
+  check('a perennial (mango) has no stage curve but a stage crop (rice) does', !C.cropParams('mango', '2026-01-01').stage_curve && C.cropParams('rice', '2026-07-01').stage_curve.length === 5);
+}
+
+// ── pump size per field ──
+{
+  check('litres per hour, litres per minute and m3 per hour convert', C.pumpFlowLph(3000, 'lph') === 3000 && C.pumpFlowLph(50, 'lpm') === 3000 && C.pumpFlowLph(3, 'm3h') === 3000);
+  const hp1 = C.pumpFlowLph(1, 'hp', 20), hp5 = C.pumpFlowLph(5, 'hp', 20);
+  check('a 1 HP pump at 20 m lift is estimated at about 5,000 L/h (physically plausible)', hp1 > 4500 && hp1 < 6500);
+  check('HP estimate scales with power and falls with lift', Math.abs(hp5 / hp1 - 5) < 0.1 && C.pumpFlowLph(1, 'hp', 40) < hp1 * 0.55);
+  check('empty, zero, negative or absurd pump sizes are rejected, not guessed', [C.pumpFlowLph('', 'lph'), C.pumpFlowLph(0, 'hp'), C.pumpFlowLph(-5, 'lpm'), C.pumpFlowLph(1e9, 'lph'), C.pumpFlowLph('abc', 'lph')].every(v => v === null));
+  check('hours for 25 mm on 1 ha with a 5,000 L/h pump = 25 x 10,000 / 0.88 / 5,000', Math.abs(C.pumpHoursFor(25, 10000, 5000, 0.88) - 56.82) < 0.05 && C.pumpHoursFor(25, 10000, null) === null);
+}
 console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);

@@ -54,7 +54,7 @@ table.mt{width:100%;border-collapse:collapse;font-size:14px}table.mt th{font-siz
 .tgl{display:flex;gap:10px;align-items:center;font-weight:800;font-size:15px;color:var(--ink);margin:0}.tgl input{width:26px;height:26px;accent-color:var(--g)}
 .tl{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.tl:last-child{border-bottom:0}.tl .tm{flex:0 0 96px;font-weight:800;font-variant-numeric:tabular-nums}.tl .tm small{display:block;font-weight:400;color:var(--mut)}
 .tl .tw{flex:1 1 auto;min-width:0}.tl .tw b{display:block}.tl .tw span{font-size:13px;color:var(--mut)}
-.zr{display:flex;gap:10px;align-items:center;padding:6px 0}.zr>span{flex:1 1 auto;min-width:0}.zr select{flex:0 0 150px;width:150px}
+.zb{border-bottom:1px solid var(--line);padding:6px 0}.zb:last-child{border-bottom:0}.zr{display:flex;gap:10px;align-items:center;padding:4px 0}.zr.pr input{flex:0 0 38%;width:38%}.zr.pr select{flex:1 1 auto;width:auto}.zr>span{flex:1 1 auto;min-width:0}.zr select{flex:0 0 150px;width:150px}
 table.ot td{cursor:default;text-align:center;padding:8px 4px;font-size:13px;white-space:nowrap}table.ot td:first-child{text-align:left;white-space:normal}table.ot th{text-align:center}table.ot th:first-child{text-align:left}
 table.ot td.w{color:var(--blue);font-weight:700}table.ot td.r{color:var(--mut)}
 #apSt{font-size:14px;margin:10px 0 0}#apSt.good{color:var(--g)}#apSt.bad{color:var(--red)}#apSt.mid{color:var(--amber)}
@@ -88,7 +88,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   <div id="aLoad" class="card steps" hidden></div>
   <div class="card"><h2 data-i="apToday"></h2><div id="aToday"></div><p class="note" id="aTot" style="margin-bottom:2px"></p><p class="note" id="aLast" style="margin:0"></p></div>
   <div class="card"><h2 data-i="apOutlook"></h2><div style="overflow-x:auto"><table class="mt ot" id="aOut"></table></div><p class="note" data-i="apOutNote" style="margin-bottom:0"></p></div>
-  <div class="card"><h2 data-i="apZones"></h2><div id="aZones"></div><p class="note" id="aUnas" style="color:var(--amber);margin-bottom:0"></p></div>
+  <div class="card"><h2 data-i="apPumpHdr"></h2><div id="aZones"></div><p class="note" id="aUnas" style="color:var(--amber);margin-bottom:0"></p></div>
   <div class="card"><h2 data-i="apRules"></h2>
     <label for="apStart" data-i="apStart"></label><input id="apStart" type="time" step="300" style="width:auto">
     <label class="chk"><input type="checkbox" id="apRain"><span data-i="apRuleRain"></span></label>
@@ -121,7 +121,13 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     <label for="nameIn" data-i="farmName"></label><input id="nameIn" type="text" maxlength="40" data-ph="farmNamePh">
     <label for="cropIn"><span data-i="cropLabel"></span> <span class="note" data-i="cropHint"></span></label><select id="cropIn"></select>
     <label for="plantIn"><span data-i="plantDate"></span> <span class="note" data-i="plantHint"></span></label><input id="plantIn" type="date">
-    <label for="flowIn"><span data-i="flowLabel"></span> <span class="note" data-i="flowOpt"></span></label><input id="flowIn" type="number" min="0" step="10" placeholder="3000">
+    <div class="card" style="margin:14px 0 0;background:var(--bg)"><h2 data-i="pumpTitle"></h2>
+      <p class="note" style="margin-top:0" data-i="pumpHelp"></p>
+      <label for="pumpName" data-i="pumpName"></label><input id="pumpName" type="text" maxlength="40">
+      <div class="row" style="flex-wrap:nowrap;align-items:flex-end"><div style="flex:1 1 40%"><label for="pumpVal" data-i="pumpSize"></label><input id="pumpVal" type="number" min="0" step="any" inputmode="decimal" placeholder="3000"></div>
+        <div style="flex:1 1 60%"><label for="pumpUnit" data-i="pumpUnit"></label><select id="pumpUnit"></select></div></div>
+      <div id="pumpHeadBox" hidden><label for="pumpHead" data-i="pumpHead"></label><input id="pumpHead" type="number" min="1" max="300" step="1" value="20" inputmode="decimal"></div>
+      <p class="note" id="pumpEq" style="margin:8px 0 0"></p></div>
     <div class="row" style="margin-top:14px"><button id="btnSave" data-i="save"></button><button class="sec" id="btnCancel" data-i="cancel"></button></div>
     <button class="sec" id="btnSaveMore" data-i="saveMore" style="width:100%;margin-top:8px"></button>
   </div>
@@ -157,16 +163,16 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261120j"></script>
-<script src="farmer/i18n.js?v=20261120j"></script>
-<script src="farmer/ndvimap.js?v=20261120j"></script>
-<script src="farmer/autopilot.js?v=20261121a"></script>
-<script src="farmer/link.js?v=20261121a"></script>
+<script src="farmer/core.js?v=20261121c"></script>
+<script src="farmer/i18n.js?v=20261121c"></script>
+<script src="farmer/ndvimap.js?v=20261121c"></script>
+<script src="farmer/autopilot.js?v=20261121c"></script>
+<script src="farmer/link.js?v=20261121c"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 <script>
 (function(){
 'use strict';
-if(!window.AgriCore||!window.AgriCore.CROPS||!window.AgriI18n){   // an old cached script met a newer page: reload once, bypassing caches
+if(!window.AgriCore||!window.AgriCore.CROP_CATS||!window.AgriI18n){   // an old cached script met a newer page: reload once, bypassing caches
   if(!sessionStorage.getItem('agrisat_reloaded')){sessionStorage.setItem('agrisat_reloaded','1');location.reload();}
 }
 const C=window.AgriCore, I=window.AgriI18n, KEY='agrisat_farmer_v1', LKEY='agrisat_farmer_lang';
@@ -200,11 +206,12 @@ function applyStatic(){
   const bar=$('langBar');bar.innerHTML=I.langs.map(l=>`<button data-l="${l[0]}" class="${l[0]===lang?'on':''}">${l[1]}</button>`).join('');
   bar.querySelectorAll('button').forEach(b=>b.onclick=()=>setLang(b.dataset.l));
   const sel=$('cropIn'),cur=sel.value||(editing&&editing.cropId)||'general';
-  sel.innerHTML=Object.keys(C.CROPS).map(k=>`<option value="${k}">${esc(T('crop_'+k))}</option>`).join('');sel.value=cur;
+  sel.innerHTML=C.CROP_CATS.map(cat=>{const ks=Object.keys(C.CROPS).filter(k=>C.CROPS[k].cat===cat);if(!ks.length)return '';
+    return `<optgroup label="${esc(T('cat_'+cat))}">`+ks.map(k=>`<option value="${k}">${esc(T('crop_'+k))}</option>`).join('')+'</optgroup>';}).join('');sel.value=cur;
   $('editTitle').textContent=editing?T('editFarm'):T('selectFarm');
 }
 function setLang(l){lang=l;try{localStorage.setItem(LKEY,l);}catch(e){}applyStatic();fillStates();buildLayerControl();
-  if(view==='home')renderHome();else if(view==='edit')redraw();else if(view==='farm'&&last)renderAdvice(last.f,last.a,last.w,last.warn);else if(view==='multi')renderMulti();else if(view==='auto')renderAuto();}
+  if(view==='home')renderHome();else if(view==='edit'){const cur=$('pumpUnit').value;$('pumpUnit').innerHTML=unitOptions(cur);pumpFormUpdate();redraw();}else if(view==='farm'&&last)renderAdvice(last.f,last.a,last.w,last.warn);else if(view==='multi')renderMulti();else if(view==='auto')renderAuto();}
 
 // ── consent (P3) ──
 const needConsent=()=>!db.consent;
@@ -273,17 +280,33 @@ function redraw(){
     const a=C.polygonAreaM2(shape),ha=a/10000;
     let msg=T('area',{ha:fmt(ha,2),m2:thousands(a)});
     if(ha<0.1)msg+=`<br><span style="color:var(--red)">${esc(T('smallVery'))}</span>`;else if(ha<0.2)msg+=`<br><span style="color:var(--amber)">${esc(T('smallSome'))}</span>`;
-    box.innerHTML=msg;
+    box.innerHTML=msg;pumpFormUpdate();
   }else box.textContent=(flash&&!pts.length&&!pin)?T(flash):($('pinMode').checked?T('tapCentre'):T('corners',{n:pts.length}));
 }
+// ── pump per field ──
+const PUMP_UNITS=[['lph','uLph'],['lpm','uLpm'],['m3h','uM3h'],['hp','uHp']];
+const fieldPump=f=>f&&f.pump?f.pump:(f&&f.flowLph?{unit:'lph',value:f.flowLph,head:20,name:''}:{unit:'lph',value:'',head:20,name:''});
+function unitOptions(sel){return PUMP_UNITS.map(u=>`<option value="${u[0]}"${u[0]===sel?' selected':''}>${esc(T(u[1]))}</option>`).join('');}
+function pumpNote(flow,areaM2){
+  if(!flow)return T('pumpNone');
+  const h=C.pumpHoursFor(25,areaM2,flow,0.88);
+  return T('pumpEq',{lph:thousands(flow)})+(h?' · '+T('pumpTime',{h:h<10?fmt(h,1):fmt(h)}):'');
+}
+function pumpFormUpdate(){
+  const u=$('pumpUnit').value;$('pumpHeadBox').hidden=u!=='hp';
+  const flow=C.pumpFlowLph($('pumpVal').value,u,parseFloat($('pumpHead').value)),shape=(typeof currentShape==='function')?currentShape():null;
+  $('pumpEq').textContent=pumpNote(flow,shape?C.polygonAreaM2(shape):(editing?editing.areaM2:0));
+}
+['pumpVal','pumpHead'].forEach(id=>$(id).oninput=pumpFormUpdate);$('pumpUnit').onchange=pumpFormUpdate;
 function startEdit(f){
   if(f)flash=null;
   editing=f;pts=f&&!f.pinOnly?f.latlngs.slice():[];pin=f&&f.pinOnly?f.pin:null;
   $('nameIn').value=f?f.name:'';
-  $('btnSaveMore').hidden=!!f;$('flowIn').value=f&&f.flowLph?f.flowLph:'';$('plantIn').value=f&&f.plantingDate?f.plantingDate:'';
+  $('btnSaveMore').hidden=!!f;$('plantIn').value=f&&f.plantingDate?f.plantingDate:'';
   $('cropIn').value=f&&f.cropId?f.cropId:'general';
   $('pinMode').checked=!!(f&&f.pinOnly);$('pinArea').hidden=!$('pinMode').checked;$('haIn').value=f&&f.pinOnly?fmt(f.areaM2/10000,2):'0.5';
-  applyStatic();fillStates();show('edit');
+  {const p=fieldPump(f);$('pumpName').value=p.name||'';$('pumpVal').value=p.value||'';$('pumpHead').value=p.head||20;}
+  applyStatic();$('pumpUnit').innerHTML=unitOptions(fieldPump(f).unit);pumpFormUpdate();fillStates();show('edit');
   ensureMap(f?C.centroid(f.latlngs):null);
   setTimeout(()=>{map.invalidateSize();if(f)map.fitBounds(L.latLngBounds(f.latlngs).pad(.3));redraw();},60);
 }
@@ -350,7 +373,9 @@ function saveField(){
   if(area<200){alert(T('alertSmall'));return null;}
   const f=editing||{id:'f'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36),events:[],cache:null,start:null};
   f.name=($('nameIn').value||T('defaultName')).trim();f.latlngs=shape;f.areaM2=area;f.pinOnly=$('pinMode').checked;f.pin=f.pinOnly?pin:null;
-  f.flowLph=parseFloat($('flowIn').value)||null;f.cropId=$('cropIn').value||'general';f.plantingDate=$('plantIn').value||null;
+  {const u=$('pumpUnit').value,v=parseFloat($('pumpVal').value)||null,hd=parseFloat($('pumpHead').value)||20;
+    f.flowLph=C.pumpFlowLph(v,u,hd);{const nm=$('pumpName').value.trim().slice(0,40);f.pump=(v||nm||u!=='lph')?{unit:u,value:v||'',head:hd,name:nm}:null;}}
+  f.cropId=$('cropIn').value||'general';f.plantingDate=$('plantIn').value||null;
   f.cache=null;f.last=null;                                                  // geometry/crop changed -> drop cached satellite, soil and the old summary
   if(!editing)db.farms.push(f);db.selected=f.id;save();
   return f;
@@ -555,7 +580,7 @@ async function runAutopilot(force,silent){
   const S=apSettings(),plan=AP.plan({today:t,settings:S,fields:inputs}),outlooks={};
   inputs.forEach(x=>{outlooks[x.id]=AP.outlook(x,x.w,S,t,7);});
   apState={plan,outlooks,inputs,sched:AP.buildSchedule(plan,inputs,outlooks,nowMinIST()),at:Date.now(),failed:fields.length-inputs.length};
-  apBusy=false;
+  apBusy=false;apPersist(apState);
   if(view==='auto')renderAuto();
   apNotify();
   return apState;
@@ -564,6 +589,23 @@ function apNotify(){
   const c=apCfg();if(!c.notify||!apState||c.notified===today()||!('Notification' in window)||Notification.permission!=='granted')return;
   const sc=apState.plan.schedule;if(!sc.length)return;
   try{new Notification(T('apTitle'),{body:T('apNotifyMsg',{n:sc.length,min:apState.plan.totalMinutes})});c.notified=today();save();}catch(e){}
+}
+function apRuns(st){                                         // today's runs with the start time the controller will really use
+  const p=st.plan,zoneOf={};st.inputs.forEach(x=>{zoneOf[x.id]=x.zone;});
+  const todays=st.sched.days[p.date]||[],used=new Set();
+  return p.schedule.map(it=>{const k=todays.findIndex((r,j)=>!used.has(j)&&r.zone===zoneOf[it.id]&&Math.abs(r.minutes-it.minutes)<0.01);if(k>=0)used.add(k);
+    const start=k>=0?todays[k].start:it.start,sm=+start.slice(0,2)*60+ +start.slice(3);return {it,start,startMin:sm,end:AP.hhmm(sm+it.minutes)};});
+}
+// the dashboard's Automation page reads today's plan from here (same browser storage)
+function apPersist(st){
+  const c=apCfg(),runs=apRuns(st),by={};runs.forEach(r=>{by[r.it.id]=r;});
+  c.plan={date:st.plan.date,at:st.at,items:st.plan.items.map(i=>{const r=by[i.id],f=db.farms.find(x=>x.id===i.id)||{},inp=st.inputs.find(x=>x.id===i.id)||{};
+    const ser=((f.cache&&f.cache.ndvi)||[]).filter(x=>x.ndvi!=null).slice(0,3).map(x=>({date:x.date,ndvi:+x.ndvi.toFixed(3)}));
+    return {id:i.id,decision:i.decision,reasonKey:i.reasonKey,rp:i.rp||null,minutes:i.minutes||0,litres:i.litres||0,start:r?r.start:null,startMin:r?r.startMin:null,
+      crop:f.cropId||'general',flowLph:f.flowLph||null,ndvi:i.ndvi!=null?+i.ndvi.toFixed(3):null,kc:i.kc!=null?+i.kc.toFixed(2):null,stress:!!i.stress,
+      dr:i.dr!=null?+i.dr.toFixed(1):null,raw:i.raw!=null?+i.raw.toFixed(1):null,taw:i.taw!=null?+i.taw.toFixed(1):null,et0:inp.et0Today!=null?+inp.et0Today.toFixed(1):null,
+      ndviSeries:ser,outlook:(st.outlooks[i.id]||[]).map(o=>({date:o.date,irrigate:!!o.irrigate,minutes:o.minutes||0,skipRain:!!o.skipRain,rain:+(o.rain||0).toFixed(1)}))};})};
+  save();
 }
 function renderAuto(){
   const c=apCfg(),ready=LK.ready();
@@ -574,17 +616,29 @@ function renderAuto(){
   if(document.activeElement!==$('apId'))$('apId').value=LK.getId();
   $('apKeyNote').textContent=LK.getKey()?T('apCtlKeySet'):'';
   // valves
-  $('aZones').innerHTML=db.farms.map((f,i)=>`<div class="zr"><span><span class="sw2" style="background:${window.AgriNdviMap.FIELD_COLOURS[i%8]}"></span>${esc(f.name)}${f.flowLph?'':`<br><small class="note">${esc(T('apNoFlow'))}</small>`}</span>
-    <select data-z="${f.id}" aria-label="${esc(T('apZone'))}"><option value="">${esc(T('apNoZone'))}</option>${[1,2,3].map(k=>`<option value="${k}"${f.zone===k?' selected':''}>${esc(T('apZone'))} ${k}</option>`).join('')}</select></div>`).join('');
-  $('aZones').querySelectorAll('select').forEach(sel=>sel.onchange=()=>{const f=db.farms.find(x=>x.id===sel.dataset.z);f.zone=sel.value?+sel.value:null;save();apReplan();});
+  $('aZones').innerHTML=db.farms.map((f,i)=>{const p=fieldPump(f);return `<div class="zb" data-f="${f.id}">
+    <div class="zr"><span><span class="sw2" style="background:${window.AgriNdviMap.FIELD_COLOURS[i%8]}"></span><b>${esc(f.name)}</b> <small class="note">${fmt(f.areaM2/10000,2)} ha</small></span>
+      <select data-z="${f.id}" aria-label="${esc(T('apZone'))}"><option value="">${esc(T('apNoZone'))}</option>${[1,2,3].map(k=>`<option value="${k}"${f.zone===k?' selected':''}>${esc(T('apZone'))} ${k}</option>`).join('')}</select></div>
+    <div class="zr pr"><span class="note">${esc(T('apPump'))}</span>
+      <input type="number" min="0" step="any" inputmode="decimal" data-pv="${f.id}" value="${p.value||''}" placeholder="3000" aria-label="${esc(T('pumpSize'))}">
+      <select data-pu="${f.id}" aria-label="${esc(T('pumpUnit'))}">${unitOptions(p.unit)}</select></div>
+    ${p.unit==='hp'?`<div class="zr pr"><span class="note">${esc(T('pumpHead'))}</span><input type="number" min="1" max="300" step="1" inputmode="decimal" data-ph="${f.id}" value="${p.head||20}"></div>`:''}
+    <p class="note" data-pn="${f.id}" style="margin:2px 0 6px${f.flowLph?'':';color:var(--amber)'}">${esc(pumpNote(f.flowLph,f.areaM2))}</p></div>`;}).join('');
+  $('aZones').querySelectorAll('select[data-z]').forEach(sel=>sel.onchange=()=>{const f=db.farms.find(x=>x.id===sel.dataset.z);f.zone=sel.value?+sel.value:null;save();apReplan();});
+  // pump size per field, right next to its valve: same conversion as the field editor
+  const pumpChanged=(id,rerender)=>{const f=db.farms.find(x=>x.id===id),q=k=>$('aZones').querySelector(`[data-${k}="${id}"]`);
+    const u=q('pu').value,v=parseFloat(q('pv').value)||null,hd=q('ph')?parseFloat(q('ph').value)||20:((f.pump&&f.pump.head)||20);
+    f.flowLph=C.pumpFlowLph(v,u,hd);{const nm=(f.pump&&f.pump.name)||'';f.pump=(v||nm||u!=='lph')?{unit:u,value:v||'',head:hd,name:nm}:null;}
+    f.cache=f.cache||null;save();
+    const n=q('pn');if(n){n.textContent=pumpNote(f.flowLph,f.areaM2);n.style.color=f.flowLph?'':'var(--amber)';}
+    clearTimeout(pumpChanged.t);pumpChanged.t=setTimeout(()=>{if(rerender)renderAuto();apReplan();},rerender?0:700);};
+  $('aZones').querySelectorAll('input[data-pv],input[data-ph]').forEach(inp=>inp.oninput=()=>pumpChanged(inp.dataset.pv||inp.dataset.ph,false));
+  $('aZones').querySelectorAll('select[data-pu]').forEach(sel=>sel.onchange=()=>pumpChanged(sel.dataset.pu,true));
   const st=apState;
   if(!st){$('aToday').innerHTML=`<p class="note" style="margin:0">${esc(db.farms.length?T('apNeedPlan'):T('apNoFields'))}</p>`;$('aTot').textContent='';$('aLast').textContent='';$('aOut').innerHTML='';$('aUnas').textContent='';return;}
-  const p=st.plan,zoneOf={};st.inputs.forEach(x=>{zoneOf[x.id]=x.zone;});
-  const todays=st.sched.days[p.date]||[],used=new Set();
-  const runs=p.schedule.map(it=>{const k=todays.findIndex((r,j)=>!used.has(j)&&r.zone===zoneOf[it.id]&&Math.abs(r.minutes-it.minutes)<0.01);if(k>=0)used.add(k);
-    const start=k>=0?todays[k].start:it.start;const sm=+start.slice(0,2)*60+ +start.slice(3);return {it,start,end:AP.hhmm(sm+it.minutes)};});
+  const p=st.plan,runs=apRuns(st);
   const reason=it=>esc(T(it.reasonKey,it.rp||{}));
-  const rows=runs.map(r=>`<div class="tl"><div class="tm">${r.start}<small>→ ${r.end}</small></div><div class="tw"><b>${esc(r.it.name)}</b><span>${esc(T('apMin',{n:r.it.minutes}))} · ${thousands(r.it.litres)} L<br>${reason(r.it)}</span></div></div>`).join('')
+  const rows=runs.map(r=>`<div class="tl"><div class="tm">${r.start}<small>→ ${r.end}</small></div><div class="tw"><b>${esc(r.it.name)}</b><span>${esc(T('apMin',{n:r.it.minutes}))} · ${thousands(r.it.litres)} L<br>${reason(r.it)}${r.it.capped?`<br><i>${esc(T('apCapped'))}</i>`:''}</span></div></div>`).join('')
    +p.items.filter(i=>!(i.minutes>0)).map(i=>`<div class="tl"><div class="tm">–</div><div class="tw"><b>${esc(i.name)}</b><span>${i.decision==='SETUP'?esc(T('apSetup')):reason(i)}</span></div></div>`).join('');
   $('aToday').innerHTML=rows||`<p class="note" style="margin:0">${esc(T('apNone'))}</p>`;
   $('aTot').textContent=runs.length?T('apTotals',{n:runs.length,min:p.totalMinutes,litres:thousands(p.totalLitres)}):T('apNone');
@@ -635,12 +689,14 @@ if(apCfg().enabled&&db.farms.length&&!needConsent())setTimeout(async()=>{await r
 
 // the dashboard's Automation tab opens this view (hash on first load, message afterwards)
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;
-  if(e.data.agrisat==='openAutopilot'&&db.farms.length&&!needConsent())openAuto();else if(e.data.agrisat==='openHome'&&view==='auto')renderHome();});
+  if(e.data.agrisat==='openAutopilot'&&db.farms.length&&!needConsent())openAuto();
+  else if(e.data.agrisat==='plan'&&db.farms.length&&!needConsent())runAutopilot(!!e.data.force,true);});
 
 // boot
 window.AgriApp={openMulti,_map:()=>map,_picked:()=>[...picked],_state:()=>({pts,pin}),db:()=>db,lang:()=>lang,setLang,refreshFarm,renderHome,openFarm,renderAdvice};
 applyStatic();
 if(location.hash==='#autopilot'&&db.farms.length&&!needConsent())openAuto();
+else if(location.hash==='#plan'&&db.farms.length&&!needConsent()){renderHome();runAutopilot(false,true);}   // background: plan for the dashboard's Automation page
 else if(db.farms.length===1&&db.selected&&!needConsent())openFarm(db.selected);else renderHome();
 })();
 </script>
