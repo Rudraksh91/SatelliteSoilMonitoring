@@ -400,10 +400,13 @@ UI in `farmer.html`). Tests: `node tests/test_assistant.js`, `node tests/test_ch
   crop greenness (NDVI), autopilot and how to use the app, and answers **only from the farmer's own field data** that the app has
   already computed (the `advise()` result: decision, litres, depletion, rain/ET0 forecast, NDVI). With a field open it answers for
   that field; on the field list it summarises every field from each field's last result and says when a result is from an earlier day.
-  A field that still needs the "how does the soil feel" answer never gets a litres figure. It invents no numbers; anything it
-  cannot answer gets a pointer to the local agriculture officer / Kisan Call Centre (1800-180-1551).
-- **Optional AI for other questions (off by default):** `chat-proxy/` is a small Cloudflare Worker that holds the AI API key and
-  calls **Google Gemini** by default (`worker.mjs`, model `gemini-3.5-flash-lite`, change with `GEMINI_MODEL`) or Claude
+  A field that still needs the "how does the soil feel" answer never gets a litres figure. It invents no numbers. It also has short,
+  general answers for eight common farming topics (sowing seasons, soil health, compost, fertiliser, saving water, pests, crop
+  rotation, seeds) with no made-up figures, so general questions get an answer even with no server. Anything else gets a pointer to
+  the local agriculture officer / Kisan Call Centre (1800-180-1551).
+- **Optional AI for any agriculture question (off by default):** `chat-proxy/` is a small Cloudflare Worker that holds the AI API key and
+  calls **Google Gemini** by default (every question that is not about the farmer's own field goes there when it is set up, so the farmer can ask about any agriculture topic;
+  the system prompt in `chat-proxy/lib.mjs` allows any agriculture question and keeps the honesty rules: no invented field data, no invented doses) (`worker.mjs`, model `gemini-3.5-flash-lite`, change with `GEMINI_MODEL`) or Claude
   (`worker-claude.mjs`, `CHAT_MODEL`). `chat-proxy/README.md` has setup, cost and abuse notes. It is switched on by putting the
   Worker URL in `farmer/chat-config.js`, together with the provider name shown to farmers (`AGRISAT_CHAT_NAME`). The farmer must tap
   **Yes** on a consent message that names the service once per session; the page then sends only the question, the language, up to

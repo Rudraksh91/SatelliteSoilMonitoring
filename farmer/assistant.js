@@ -1,7 +1,11 @@
 /* AgriSat farmer assistant — answers a farmer's questions from THEIR OWN field data (the advice the app already computed:
  * decision, litres, soil water, rain forecast, NDVI). Works in the browser with no server and no key.
- * Nothing here invents a number: every figure comes from the context passed in. Questions it cannot answer are returned
- * as intent "other" so the page may hand them to an optional AI service (see chat-proxy) or show a polite pointer.
+ * Two kinds of answers:
+ *   - about THE FARMER'S OWN FIELD: built only from the context passed in (nothing is invented; every figure comes from it);
+ *   - GENERAL FARMING (sowing seasons, soil health, fertiliser, saving water, pests, rotation, seeds, compost): short, well-known
+ *     guidance with no made-up numbers, so common questions get an answer even with no server.
+ * Everything else, and every general question when an AI service is configured (see chat-proxy), is flagged `general: true` so
+ * the page can send it to the AI, which can answer any agriculture question; without it, a polite pointer is shown.
  *
  *   AgriAssistant.reply(question, ctx, T)  ->  { intent, text }
  *   AgriAssistant.classify(question)       ->  intent id
@@ -34,6 +38,15 @@
     auto: ['autopilot', 'auto pilot', 'automatic', 'schedule', 'ऑटोपायलट', 'ऑटो', 'ઓટોપાયલટ', 'ઓટો'],
     trust: ['accurate', 'trust', 'reliable', 'correct', 'sure', 'estimate', 'sahi', 'bharosa', 'sateek', 'सही', 'भरोसा', 'सटीक', 'ચોક્કસ', 'ભરોસો', 'સાચ'],
     howto: ['how to', 'how do i', 'add field', 'add a field', 'start', 'use this', 'register', 'kaise', 'shuru', 'कैसे', 'शुरू', 'जोड़', 'કેવી રીતે', 'શરૂ', 'ઉમેર'],
+    // general farming topics (checked before the field-data topics; specific phrases so "how is my soil" still means the field)
+    kSeason: ['when to sow', 'sowing time', 'sowing season', 'when to plant', 'best time to plant', 'kharif', 'rabi', 'zaid', 'which season', 'kab boye', 'कब बोएँ', 'कब बोयें', 'बुवाई का समय', 'बोने का समय', 'खरीफ', 'रबी', 'જાયદ', 'ક્યારે વાવ', 'વાવણીનો સમય', 'ખરીફ', 'રવિ પાક', 'રવી'],
+    kSoil: ['soil health', 'soil test', 'soil fertility', 'improve soil', 'improve my soil', 'health card', 'मिट्टी की जाँच', 'मिट्टी की सेहत', 'मिट्टी सुधार', 'उपजाऊ', 'मृदा', 'માટીની તપાસ', 'માટીનું સ્વાસ્થ્ય', 'ફળદ્રુપ', 'માટી સુધાર', 'સોઇલ હેલ્થ'],
+    kFert: ['fertili', 'manure', 'npk', 'urea', 'dap', 'khad', 'खाद', 'उर्वरक', 'यूरिया', 'ખાતર', 'યુરિયા'],
+    kWater: ['save water', 'saving water', 'water saving', 'drip', 'mulch', 'irrigation method', 'how to irrigate', 'pani bacha', 'paani bacha', 'पानी बचा', 'पानी की बचत', 'ड्रिप', 'मल्च', 'પાણી બચાવ', 'પાણીની બચત', 'ટપક', 'મલ્ચ'],
+    kPest: ['pest', 'disease', 'insect', 'worm', 'weed', 'fungus', 'blight', 'spray', 'keet', 'कीट', 'रोग', 'इल्ली', 'खरपतवार', 'छिड़काव', 'દવા', 'જીવાત', 'રોગ', 'ઇયળ', 'નીંદણ', 'છંટકાવ', 'दवा'],
+    kRot: ['crop rotation', 'rotate', 'intercrop', 'mixed crop', 'फसल चक्र', 'अंतरवर्ती', 'પાક ફેરબદલી', 'આંતરપાક'],
+    kSeed: ['seed', 'germination', 'certified', 'बीज', 'अंकुरण', 'બિયારણ', 'બીજ', 'ઉગાવ'],
+    kComp: ['compost', 'vermicompost', 'organic', 'green manure', 'gobar', 'कम्पोस्ट', 'जैविक', 'गोबर', 'वर्मी', 'हरी खाद', 'કમ્પોસ્ટ', 'જૈવિક', 'છાણ', 'અળસિયા'],
     irrigate: ['irrigat', 'water', 'paani', 'pani', 'sinchai', 'patwan', 'सिंचाई', 'पानी', 'पटवन', 'પિયત', 'સિંચાઈ', 'પાણી'],
   };
 
@@ -47,6 +60,7 @@
       if (has(t, KW.tEt)) return 'whatEt';
       if (has(t, KW.tBal)) return 'whatBalance';
     }
+    for (const k of KB_ORDER) if (has(t, KW[k])) return k;                      // general farming topics
     if (has(t, KW.rain)) return 'rain';
     const qty = has(t, KW.howQty), unit = has(t, KW.howUnit);
     if ((qty || unit) && has(t, KW.irrigate)) return 'howMuch';   // "how much water", "kitna paani", "how long to irrigate"
@@ -60,6 +74,11 @@
     if (has(t, KW.irrigate)) return 'irrigate';
     return 'other';
   }
+
+  // general-farming intents -> the i18n key holding their answer
+  const KB = { kSeason: 'asKSeason', kSoil: 'asKSoil', kComp: 'asKComp', kFert: 'asKFert', kWater: 'asKWater', kPest: 'asKPest', kRot: 'asKRot', kSeed: 'asKSeed' };   // order matters: manure/compost before fertiliser
+  const KB_ORDER = Object.keys(KB);
+  const GENERAL = new Set(['other'].concat(KB_ORDER));
 
   const fmt = (n, d) => Number(n).toFixed(d || 0);
   const lit = n => Number(Math.round(n)).toLocaleString('en-IN');
@@ -154,9 +173,9 @@
         else text = ndviText(o, T);
         break;
       }
-      default: text = T('asOther');
+      default: text = KB[intent] ? T(KB[intent]) : T('asOther');
     }
-    return { intent, text };
+    return { intent, text, general: GENERAL.has(intent) };
   }
 
   // Compact, anonymous summary for the optional AI service: no field name, no coordinates, no account details.

@@ -4,8 +4,9 @@ The farmer app's **Ask** button already answers questions about a farmer's own f
 no key (`farmer/assistant.js`). It uses the advice the app has already computed: today's decision, litres, soil water, rain
 forecast and NDVI.
 
-This proxy is only needed if you also want a real AI model to answer **other** questions the built-in assistant cannot, for example
-"how far apart should I sow cotton?". It exists because an API key can never be placed in a public web page: the page sends the
+This proxy is what lets the Ask button answer **any agriculture question**, for example "how far apart should I sow cotton?" or "my
+brinjal leaves are curling, what is wrong?". Without it the app still answers the field questions and eight general farming topics
+(sowing seasons, soil health, compost, fertiliser, saving water, pests, crop rotation, seeds) from short built-in answers. It exists because an API key can never be placed in a public web page: the page sends the
 question here, and this small server adds the key, calls the AI model and returns the answer.
 
 | File | Provider | Needs |
@@ -18,7 +19,7 @@ third-party AI service.** It is off until you set it up.
 
 ## What gets sent
 
-Only when the built-in assistant cannot answer and the farmer taps **Yes** on the consent message (which names the service):
+Only for questions that are **not about the farmer's own field** (general farming questions and anything the built-in assistant has no answer for), and only after the farmer taps **Yes** on the consent message (which names the service):
 
 - the question text (max 500 characters) and the app language
 - a short anonymous summary of the open field: crop, area, today's decision, litres, soil-water numbers, 3-day rain and ET0
@@ -76,11 +77,14 @@ in `farmer/chat-config.js`. The default model is `claude-opus-5-5`; `CHAT_MODEL 
 
 ## Behaviour
 
-The system prompt (`lib.mjs`) tells the model to: answer in the farmer's language, use only the numbers in the field summary,
-never contradict the app's irrigation decision, avoid pesticide names and doses, and send disease, pesticide, fertiliser,
-subsidy and legal questions to the local agriculture officer, a Krishi Vigyan Kendra or the Kisan Call Centre (1800-180-1551).
-The app labels these replies "AI answer · <service name>" and reminds the farmer they can be wrong. If the AI declines a
-question or is unreachable, the farmer sees a polite message plus the built-in pointer to the agriculture officer.
+The system prompt (`lib.mjs`) tells the model to: answer **any question about agriculture** (crops, sowing, soil, fertiliser,
+irrigation, weeds, pests and diseases, harvest and storage, horticulture, dairy and animal husbandry, tools, markets, schemes) in the
+farmer's language with practical, specific answers; use only the numbers in the field summary for the farmer's own field and never
+contradict the app's irrigation decision; for pests and diseases give likely causes and integrated management first, follow the product
+label for any chemical and **never invent exact doses**; treat prices, subsidies and rules as changeable and send the farmer to the
+local agriculture office, a Krishi Vigyan Kendra or the Kisan Call Centre (1800-180-1551) to confirm; and politely decline questions
+that are not about farming. The app labels these replies "AI answer · <service name>" and reminds the farmer they can be wrong. If
+the AI declines a question or is unreachable, the farmer sees a polite message plus the built-in pointer to the agriculture officer.
 
 ## Tests
 

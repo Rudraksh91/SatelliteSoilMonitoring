@@ -413,7 +413,7 @@ function chatAsk(q){
   q=String(q||'').trim();if(!q)return;
   chatMsg('u',q);
   const ctx=chatCtx(),r=AS.reply(q,ctx,T);
-  if(r.intent==='other'&&chatUrl())return chatAi(q,ctx);
+  if(r.general&&chatUrl())return chatAi(q,ctx);   // anything not about the farmer's own field goes to the AI when one is set up
   chatMsg('b',r.text);
 }
 function chatAiConsent(q,ctx){
