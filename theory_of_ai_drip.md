@@ -1,5 +1,5 @@
 # Theory of AI Drip Irrigation — AgriSat System
-**Location:** CAET Campus, Dediapada (21.628°N, 73.592°E)
+**Location:** CAET Campus (21.628°N, 73.592°E)
 
 ---
 
@@ -12,7 +12,7 @@ An end-to-end AI-driven precision irrigation platform that fuses **satellite ima
 ## Architecture (3 Layers)
 
 ### Layer 1 — Satellite NDVI Engine (`ndvi_harvester.py`)
-- Queries **Microsoft Planetary Computer** (free Sentinel-2 L2A API) for the latest cloud-free scene over Dediapada
+- Queries **Microsoft Planetary Computer** (free Sentinel-2 L2A API) for the latest cloud-free scene over the farm
 - Computes **NDVI = (NIR − Red) / (NIR + Red)** from Band 8 and Band 4
 - Generates a colourised JPEG map (red = bare/stressed, green = healthy vegetation)
 - Clips NDVI to 3 named campus zones using saved GeoJSON boundaries

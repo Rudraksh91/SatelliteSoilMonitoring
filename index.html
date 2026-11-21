@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimum-scale=1.0, maximum-scale=5.0"/>
-<title>TERRA-CORE | AgriSat Dediapada</title>
+<title>TERRA-CORE | AgriSat</title>
 
 <!-- Apply saved/system theme before first paint, to avoid a flash of the
      wrong theme (default is dark — matches this app's original design). -->
@@ -44,7 +44,7 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <!-- ── Android / General ─────────────────────────────────── -->
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="application-name" content="TERRA-CORE AgriSat"/>
-<meta name="description" content="Satellite Soil Monitoring & Smart Irrigation — Dediapada Farm, Gujarat"/>
+<meta name="description" content="Satellite Soil Monitoring & Smart Irrigation — TERRA-CORE AgriSat"/>
 
 <!-- ── App Icon ──────────────────────────────────────────── -->
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml"/>
@@ -54,9 +54,9 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261121d"></script>
-<script src="farmer/ndvimap.js?v=20261121d"></script>
-<script src="farmer/i18n.js?v=20261121d"></script>
+<script src="farmer/core.js?v=20261121f"></script>
+<script src="farmer/ndvimap.js?v=20261121f"></script>
+<script src="farmer/i18n.js?v=20261121f"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -866,7 +866,7 @@ header{
 
   <!-- Title -->
   <p class="cine-title" style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:900;letter-spacing:3px;text-align:center;line-height:1.2;position:relative;z-index:2">TERRA-CORE</p>
-  <p class="cine-in" style="animation-delay:.45s;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:6px;color:rgba(0,238,252,.6);text-align:center;margin-top:4px;margin-bottom:8px;position:relative;z-index:2">AGRISAT DEDIAPADA</p>
+  <p class="cine-in" style="animation-delay:.45s;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:6px;color:rgba(0,238,252,.6);text-align:center;margin-top:4px;margin-bottom:8px;position:relative;z-index:2">AGRISAT</p>
   <div class="cine-in" style="animation-delay:.6s;width:48px;height:1px;background:rgba(0,255,65,.25);margin-bottom:24px;position:relative;z-index:2"></div>
 
   <!-- RRM LOGO — animated -->
@@ -1035,7 +1035,7 @@ header{
     </div>
     <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
       <div class="font-display-lg text-headline-md tracking-widest text-primary" style="text-shadow:0 0 12px rgba(0,255,65,.5),0 0 28px rgba(0,255,65,.2)">TERRA-CORE</div>
-      <div id="brand-sub" class="font-label-caps text-label-caps text-on-surface-variant/50" style="font-size:9px;letter-spacing:.14em">AGRISAT · DEDIAPADA</div>
+      <div id="brand-sub" class="font-label-caps text-label-caps text-on-surface-variant/50" style="font-size:9px;letter-spacing:.14em">AGRISAT</div>
     </div>
   </div>
   <nav class="flex-1 py-md flex flex-col gap-base overflow-hidden">
@@ -1083,7 +1083,7 @@ header{
     <div class="h-4 w-px bg-white/10"></div>
     <div class="flex items-center gap-xs px-xs py-[3px] rounded-full" style="background:rgba(0,255,65,.07);border:1px solid rgba(0,255,65,.18)">
       <span class="flex h-[7px] w-[7px] rounded-full bg-primary-container animate-pulse" style="box-shadow:0 0 6px rgba(0,255,65,.8)"></span>
-      <span id="live-loc" class="font-label-caps text-label-caps text-primary tracking-widest" style="font-size:9px">LIVE · DEDIAPADA · 21.628°N 73.592°E</span>
+      <span id="live-loc" class="font-label-caps text-label-caps text-primary tracking-widest" style="font-size:9px">LIVE · 21.628°N 73.592°E</span>
     </div>
     <!-- ACTIVE FARM: weather, NDVI, soil-water model and map all follow this selection -->
     <select id="active-farm" onchange="setActiveFarm(this.value)" title="Active farm — weather, NDVI and the water model follow this location" class="font-label-caps text-[10px] bg-transparent border border-white/20 rounded px-1 py-[2px] text-primary max-w-[130px]"><option value="campus">CAMPUS</option></select>
@@ -1246,13 +1246,13 @@ header{
       </div>
       <div class="absolute inset-0 bg-surface-container-low flex items-center justify-center">
         <canvas id="field-map" class="w-full h-full"></canvas>
-        <img id="ndvi-sat-img" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700" alt="NDVI Satellite — Dediapada Campus" loading="lazy">
+        <img id="ndvi-sat-img" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700" alt="NDVI Satellite — TERRA-CORE Campus" loading="lazy">
       </div>
       <div class="absolute inset-0 pointer-events-none mix-blend-screen opacity-30">
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-primary/30 animate-pulse"></div>
       </div>
       <div class="absolute top-sm left-sm p-sm gp rounded border-l-2 border-primary-container">
-        <div id="nd-title" class="font-label-caps text-primary-container mb-1">NDVI HEATMAP · DEDIAPADA</div>
+        <div id="nd-title" class="font-label-caps text-primary-container mb-1">NDVI HEATMAP · CAMPUS</div>
         <span id="nd-lat" class="text-[10px] font-label-caps text-on-surface-variant block">LAT: 21.6277° N</span>
         <span id="nd-lon" class="text-[10px] font-label-caps text-on-surface-variant block">LON: 73.5903° E</span>
         <span class="text-[10px] font-label-caps text-on-surface-variant block" id="geo-elev">ELEV: — m</span>
@@ -1478,7 +1478,7 @@ header{
       <div id="ap-decision" class="gp rounded-xl p-sm shrink-0" style="display:none"></div>
     <section class="gp rounded-xl flex flex-col overflow-hidden" style="height:45%">
       <div class="p-sm border-b border-white/10 flex justify-between items-center shrink-0">
-        <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">schedule</span><h2 id="tl-title" class="font-headline-md text-headline-md text-primary">Irrigation Cycle Timeline — Dediapada</h2></div>
+        <div class="flex items-center gap-sm"><span class="material-symbols-outlined mso text-primary-container">schedule</span><h2 id="tl-title" class="font-headline-md text-headline-md text-primary">Irrigation Cycle Timeline — Campus</h2></div>
         <div class="flex items-center gap-md font-data-sm text-data-sm"><span class="text-secondary">SCANNING FIELDS...</span><span class="text-on-surface-variant" id="auto-utc">IST —</span></div>
       </div>
       <div class="flex-1 overflow-x-auto relative tl-grid" id="tl-scroll">
@@ -1709,7 +1709,7 @@ header{
 <main id="page-health" class="page ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] p-md overflow-y-auto">
   <div class="gp p-sm border-t-2 mb-gutter shrink-0">
     <div class="flex justify-between items-center">
-      <div><p class="font-label-caps text-on-surface-variant mb-xs">AGRISAT · DEDIAPADA FARM · 21.6277°N 73.5903°E</p><p class="font-data-lg text-data-lg text-primary-container">ALL SYSTEMS NOMINAL</p></div>
+      <div><p class="font-label-caps text-on-surface-variant mb-xs">TERRA-CORE AGRISAT · 21.6277°N 73.5903°E</p><p class="font-data-lg text-data-lg text-primary-container">ALL SYSTEMS NOMINAL</p></div>
       <div class="text-right"><p class="font-label-caps text-on-surface-variant">LAST NDVI SYNC</p><p class="font-display-lg text-[20px] font-bold text-primary-container kpi-glow-green" id="health-last-sync">—</p></div>
     </div>
   </div>
@@ -1782,7 +1782,7 @@ header{
           <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">PORTAL</p><p class="font-data-sm text-data-sm text-secondary">earthengine.google.com</p></div>
           <div><p class="font-label-caps text-[9px] text-on-surface-variant/50">REPEAT CYCLE</p><p class="font-data-sm text-data-sm text-secondary">5 days (A+B)</p></div>
         </div>
-        <p class="font-label-caps text-[9px] text-on-surface-variant/40 mt-sm">NDVI source · Dediapada Farm · 21.6277°N 73.5903°E · Sentinel-2 multispectral · 10 m</p>
+        <p class="font-label-caps text-[9px] text-on-surface-variant/40 mt-sm">NDVI source · TERRA-CORE AgriSat · 21.6277°N 73.5903°E · Sentinel-2 multispectral · 10 m</p>
       </div>
       <!-- Signal panel -->
       <div class="shrink-0 relative z-10 flex flex-col gap-xs text-right">
@@ -1826,7 +1826,7 @@ header{
 <main id="page-pipeline" class="page ml-0 md:ml-20 mt-16 h-[calc(100vh-64px-32px)] p-md overflow-y-auto">
   <div class="gp p-sm border-t-2 mb-gutter shrink-0">
     <div class="flex justify-between items-center">
-      <div><p class="font-label-caps text-on-surface-variant mb-xs">AGRISAT · DEDIAPADA FARM · 21.6277°N 73.5903°E</p><p class="font-data-lg text-data-lg text-primary-container">SATELLITE DATA PIPELINE</p></div>
+      <div><p class="font-label-caps text-on-surface-variant mb-xs">TERRA-CORE AGRISAT · 21.6277°N 73.5903°E</p><p class="font-data-lg text-data-lg text-primary-container">SATELLITE DATA PIPELINE</p></div>
       <div class="text-right"><p class="font-label-caps text-on-surface-variant">STAGES</p><p class="font-display-lg text-[32px] font-bold text-primary-container kpi-glow-green">05</p></div>
     </div>
   </div>
@@ -1852,7 +1852,7 @@ header{
             <path d="M4 948V960H16" fill="none" stroke="rgba(0,238,252,.4)" stroke-width="1"/>
             <path d="M676 948V960H664" fill="none" stroke="rgba(0,238,252,.4)" stroke-width="1"/>
             <text x="16" y="21" font-family="JetBrains Mono" font-size="9" letter-spacing="1" fill="rgba(220,255,220,.4)">TERRA-CORE / AGRISAT — SATELLITE DATA PIPELINE</text>
-            <text x="16" y="32" font-family="JetBrains Mono" font-size="7" letter-spacing="0.5" fill="rgba(var(--muted-rgb),.3)">FIG. 1 · SCHEMATIC · SCALE: NTS · REV A · DEDIAPADA 21.6277N 73.5903E</text>
+            <text x="16" y="32" font-family="JetBrains Mono" font-size="7" letter-spacing="0.5" fill="rgba(var(--muted-rgb),.3)">FIG. 1 · SCHEMATIC · SCALE: NTS · REV A · 21.6277N 73.5903E</text>
 
             <rect x="94" y="40" width="492" height="118" rx="2" fill="none" stroke="rgba(var(--overlay-rgb),.2)" stroke-width="0.75"/>
             <text x="110" y="60" font-family="JetBrains Mono" font-size="11" letter-spacing="1" fill="rgba(var(--muted-rgb),.65)">STAGE 01 — PHYSICAL SATELLITES</text>
@@ -2002,7 +2002,7 @@ header{
 <script>
 const PIPE_NODES = {
   s1: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Sentinel-2A / 2B', desc:"ESA/Copernicus optical satellites carrying the MultiSpectral Instrument (MSI) at 10m resolution for key bands, with a combined 5-day revisit. This is the imagery source pulled through Google Earth Engine and Planetary Computer, then cloud-masked before NDVI is computed."},
-  gee: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Google Earth Engine', desc:"Cloud platform hosting petabytes of satellite imagery, including the full Sentinel-2 archive. This is the pipeline's primary, accurate imagery source today — ndvi_harvester.py queries it through the Python API to pull the latest cloud-free, cloud-masked scene clipped to the Dediapada farm boundary."},
+  gee: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Google Earth Engine', desc:"Cloud platform hosting petabytes of satellite imagery, including the full Sentinel-2 archive. This is the pipeline's primary, accurate imagery source today — ndvi_harvester.py queries it through the Python API to pull the latest cloud-free, cloud-masked scene clipped to the farm boundary."},
   pc: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Planetary Computer', desc:"Microsoft's STAC-based catalog of open geospatial data. It's used alongside Earth Engine as a secondary Sentinel-2 source, giving the harvester a fallback if one catalog is missing a recent scene."},
   om: {tag:'LIVE & WIRED', bg:'rgba(0,255,65,.12)', color:'#72ff70', border:'rgba(0,255,65,.4)', title:'Open-Meteo', desc:"A free, key-free weather API called live from the dashboard for temperature, humidity, wind, precipitation probability, and rainfall history. Its output directly feeds the rain-guard hold and ET0 irrigation logic."},
   dl: {tag:'COMPUTE STEP', bg:'rgba(0,219,233,.12)', color:'#7df4ff', border:'rgba(0,219,233,.4)', title:'Download imagery', desc:"The first step of ndvi_harvester.py, a launchd daemon (com.agrisat.ndvi.harvester) that runs every 3 days. It fetches the latest Earth Engine or Planetary Computer scene clipped to the farm boundary."},
@@ -2056,7 +2056,7 @@ function pipeShowTree(){
 <footer class="fixed bottom-0 right-0 left-20 z-40 hidden md:flex justify-between items-center px-sm h-8 border-t" style="background:rgba(var(--overlay-rgb),.035);backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);-webkit-backdrop-filter:blur(48px) saturate(1.9) brightness(1.06);border-color:rgba(var(--overlay-rgb),.09);box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.10),0 -1px 0 rgba(0,255,65,.05),0 -8px 32px rgba(0,0,0,.3)">
   <div class="flex items-center gap-xs">
     <span class="flex h-[5px] w-[5px] rounded-full bg-primary-container" style="box-shadow:0 0 5px rgba(0,255,65,.7)"></span>
-    <span id="foot-loc" class="font-label-caps text-label-caps text-on-surface-variant/40" style="font-size:9px">SYSTEM ACTIVE // NODE 774 OP · DEDIAPADA · GUJARAT</span>
+    <span id="foot-loc" class="font-label-caps text-label-caps text-on-surface-variant/40" style="font-size:9px">SYSTEM ACTIVE // NODE 774 OP · GUJARAT</span>
   </div>
   <div class="flex items-center gap-lg">
     <span class="font-label-caps text-label-caps text-secondary-fixed-dim" style="font-size:9px" id="footer-session">SESSION: 0M</span>
@@ -2092,7 +2092,7 @@ function _relTime(date){
 // Open-Meteo weather/forecast, Sentinel-2 NDVI inside the outline (3 west/centre/east bands feed the 3-field soil model),
 // the FAO-56 balance with the farm's own soil and crop, and the farmer's irrigation/rain notes. Hardware stays campus-only.
 // ══════════════════════════════════════════════════
-const CAMPUS={id:'campus',name:'DEDIAPADA CAMPUS',short:'DEDIAPADA',lat:21.6277,lng:73.5903,campus:true};
+const CAMPUS={id:'campus',name:'TERRA-CORE CAMPUS',short:'CAMPUS',lat:21.6277,lng:73.5903,campus:true};
 window.ACTIVE=CAMPUS;
 function _farmerDb(){try{const d=JSON.parse(localStorage.getItem('agrisat_farmer_v1'));return d&&Array.isArray(d.farms)?d:{farms:[],selected:null};}catch(e){return {farms:[],selected:null};}}
 const _cleanName=n=>String(n||'FARM').replace(/<[^>]*>/g,'').replace(/[<>&"']/g,'').trim().toUpperCase().slice(0,24)||'FARM';
@@ -2170,12 +2170,12 @@ setInterval(()=>{if(window.ACTIVE&&!window.ACTIVE.campus)ensureFarmData(window.A
 function applyActiveFarm(){
   const A=window.ACTIVE,fmtLat=Math.abs(A.lat).toFixed(3)+'°'+(A.lat>=0?'N':'S'),fmtLng=Math.abs(A.lng).toFixed(3)+'°'+(A.lng>=0?'E':'W');
   const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
-  set('live-loc',A.campus?'LIVE · DEDIAPADA · 21.628°N 73.592°E':'LIVE · '+A.short+' · '+fmtLat+' '+fmtLng);
-  set('brand-sub',A.campus?'AGRISAT · DEDIAPADA':'AGRISAT · FARMER');set('foot-loc',A.campus?'SYSTEM ACTIVE // NODE 774 OP · DEDIAPADA · GUJARAT':'SYSTEM ACTIVE · '+A.short+' · '+fmtLat+' '+fmtLng);
+  set('live-loc',A.campus?'LIVE · 21.628°N 73.592°E':'LIVE · '+A.short+' · '+fmtLat+' '+fmtLng);
+  set('brand-sub',A.campus?'AGRISAT':'AGRISAT · FARMER');set('foot-loc',A.campus?'SYSTEM ACTIVE // NODE 774 OP · GUJARAT':'SYSTEM ACTIVE · '+A.short+' · '+fmtLat+' '+fmtLng);
   set('area-title',A.campus?'TOTAL MANAGED AREA':'MY FARM AREA');set('area-val',A.campus?'0.15':(A.farm.areaM2/10000).toFixed(2));set('area-unit',A.campus?'HA · 3 FIELDS':'HA · '+A.short);
   updateNoFarm();
   set('nd-title','NDVI HEATMAP · '+A.short);set('nd-lat','LAT: '+A.lat.toFixed(4)+'° N');set('nd-lon','LON: '+A.lng.toFixed(4)+'° E');
-  document.title=A.campus?'TERRA-CORE | AgriSat Dediapada':'TERRA-CORE | '+A.name;
+  document.title=A.campus?'TERRA-CORE | AgriSat':'TERRA-CORE | '+A.name;
   refreshFarmSelector();
   _configureModelForFarm(A);
   if(window._satMapFocus)window._satMapFocus(A);
@@ -2810,7 +2810,7 @@ _loadVWCHistory();
 // the same thresholds shown in the Smart Logic Rulebook below it
 // (VWC<20% → drip, PRECIP_PROB>60% → suspend, TEMP>38°C → ET0 boost).
 // ══════════════════════════════════════════════════
-// Full 24h day (00:00–23:00 IST — Dediapada, Gujarat local time, UTC+5:30,
+// Full 24h day (00:00–23:00 IST — Gujarat local time, UTC+5:30,
 // no DST), horizontally scrollable — "now" sits at whatever column matches
 // the real current hour rather than a fixed slot.
 const TL_COLW=80, TL_HOURS_SHOWN=24;
@@ -2826,7 +2826,7 @@ let _tlAutoScrolled=false;
 function tlHourLabel(h){return String(((h%24)+24)%24).padStart(2,'0')+':00'}
 
 function renderTimelineHeader(now){
-  // Uses IST (Dediapada, Gujarat local time) to match the "IST hh:mm:ss"
+  // Uses IST (Gujarat local time) to match the "IST hh:mm:ss"
   // clock shown in this same panel header.
   const ist=toIST(now);
   const curHour=ist.getUTCHours();
@@ -3132,14 +3132,14 @@ function renderTimeline(){
   window._satMapFocus=function(A){            // campus = the original India overview; farmer farm = zoom to the plot with its outline
     if(_outline){map.removeLayer(_outline);_outline=null;}
     if(A.campus){map.setView([22,78],5.4);_marker.setLatLng([21.628,73.592]);
-      _marker.setTooltipContent('DEDIAPADA · 21.628°N 73.592°E<br>AgriSat Farm · 0.15 ha · Gujarat');return;}
+      _marker.setTooltipContent('TERRA-CORE · 21.628°N 73.592°E<br>AgriSat Farm · 0.15 ha · Gujarat');return;}
     map.setView([A.lat,A.lng],16);_marker.setLatLng([A.lat,A.lng]);
     _marker.setTooltipContent(A.name+' · '+A.lat.toFixed(4)+'°N '+A.lng.toFixed(4)+'°E<br>'+(A.farm.areaM2/10000).toFixed(2)+' ha · FARMER FARM');
     _outline=L.polygon(A.farm.latlngs,{color:'#ffd54a',weight:2.5,fill:false,interactive:false}).addTo(map);
   };
   _marker
    .addTo(map)
-   .bindTooltip('DEDIAPADA · 21.628°N 73.592°E<br>AgriSat Farm · 0.15 ha · Gujarat',{
+   .bindTooltip('TERRA-CORE · 21.628°N 73.592°E<br>AgriSat Farm · 0.15 ha · Gujarat',{
      permanent:true,direction:'right',offset:[18,0],className:'sat-tip'
    }).openTooltip();
   // The 3D tilt (#map-3d-wrap's CSS transform) makes the container's visual
@@ -3304,7 +3304,8 @@ window.addEventListener('storage',e=>{if(e.key==='agrisat_farmer_v1'&&mfMode==='
 // ── AUTOMATION PAGE FOR THE SELECTED FARM (farmer mode) ──
 // The original Automation page (timeline, rulebook, valve cards) now describes the farmer's selected farm: its name on the
 // timeline row, only its valve card, and today's AUTOPILOT plan (NDVI + weather) on the timeline. Campus mode is unchanged.
-function _autoFarm(){return (!window.CAMPUS_MODE&&window.ACTIVE&&!window.ACTIVE.campus&&window.ACTIVE.farm)?window.ACTIVE:null;}
+// whenever a farm is selected the page describes THAT farm (also in campus mode); the campus fields only show while the campus itself is the active location
+function _autoFarm(){return (window.ACTIVE&&!window.ACTIVE.campus&&window.ACTIVE.farm)?window.ACTIVE:null;}
 function applyFarmToAutoPage(){
   const A=_autoFarm(),rows=['A','B','C'].map(k=>document.getElementById('tl-row-'+k));
   if(!rows[0])return;
@@ -3319,8 +3320,8 @@ function applyFarmToAutoPage(){
     cards.forEach((c,i)=>{const ps=c.querySelectorAll('p');if(ps[2]&&!ps[2].dataset.orig)ps[2].dataset.orig=ps[2].textContent;
       c.style.display=(A&&i!==z)?'none':'';
       if(ps[2])ps[2].textContent=(A&&i===z)?String(A.short).toUpperCase().slice(0,22)+' · '+(A.farm.areaM2/10000).toFixed(2)+' HA':ps[2].dataset.orig;});}
-  const b=document.getElementById('btn-autopilot');if(b)b.style.display=window.CAMPUS_MODE?'none':'';
-  const t=document.getElementById('tl-title');if(t)t.textContent='Irrigation Cycle Timeline — '+(A?String(A.short).slice(0,28):'Dediapada');
+  const b=document.getElementById('btn-autopilot');if(b)b.style.display=A?'':'none';
+  const t=document.getElementById('tl-title');if(t)t.textContent='Irrigation Cycle Timeline — '+(A?String(A.short).slice(0,28):'Campus');
 }
 // the Autopilot (settings, 7-day outlook, controller link) lives in the farmer app
 function openAutopilot(){
@@ -3959,7 +3960,7 @@ function selectDurByMins(z,mins){
 }
 
 // Per-valve "Gujarat crops only" quick filter — narrows the 300-crop global
-// database down to the ~35 crops actually grown around Dediapada, so a
+// database down to the ~35 crops actually grown in Gujarat, so a
 // farmer isn't hunting through Ginseng/Feijoa/Quinoa to find Bajra or Guar.
 const _gjFilter={1:false,2:false,3:false};
 function toggleGjFilter(z){
@@ -4192,7 +4193,7 @@ updateClock();
 
     <!-- Version info -->
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(var(--muted-rgb),.3);letter-spacing:.06em">TERRA-CORE AgriSat · v2.4.1 · Dediapada Farm</p>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(var(--muted-rgb),.3);letter-spacing:.06em">TERRA-CORE AgriSat · v2.4.1</p>
       <button onclick="closeSettingsModal()" style="padding:8px 18px;background:rgba(0,255,65,.12);border:1px solid rgba(0,255,65,.25);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;color:#00ff41;cursor:pointer">DONE</button>
     </div>
   </div>
@@ -4248,7 +4249,7 @@ updateClock();
     <div id="hw-tab-cloud-body" style="display:none">
       <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(var(--muted-rgb),.4);margin-bottom:6px;letter-spacing:.06em">FARM ID <span style="color:rgba(0,219,233,.5)">(unique name for your farm)</span></p>
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input id="hw-farm-id" type="text" placeholder="dediapada-farm-01" style="flex:1;background:rgba(var(--surface-2-rgb),.9);border:1px solid rgba(var(--overlay-rgb),.12);border-radius:8px;padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00dbe9;outline:none;transition:border-color .15s" oninput="this.style.borderColor='rgba(var(--overlay-rgb),.12)'" onkeydown="if(event.key==='Enter')connectMQTT()">
+        <input id="hw-farm-id" type="text" placeholder="my-farm-01" style="flex:1;background:rgba(var(--surface-2-rgb),.9);border:1px solid rgba(var(--overlay-rgb),.12);border-radius:8px;padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00dbe9;outline:none;transition:border-color .15s" oninput="this.style.borderColor='rgba(var(--overlay-rgb),.12)'" onkeydown="if(event.key==='Enter')connectMQTT()">
         <button onclick="connectMQTT()" style="background:rgba(0,219,233,.1);border:1px solid rgba(0,219,233,.35);border-radius:8px;color:#00dbe9;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;padding:0 10px;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(0,219,233,.2)'" onmouseout="this.style.background='rgba(0,219,233,.1)'">CONNECT</button>
       </div>
       <div style="background:rgba(0,219,233,.06);border:1px solid rgba(0,219,233,.15);border-radius:8px;padding:10px 12px;margin-bottom:18px">
@@ -4323,7 +4324,7 @@ updateClock();
   <div style="position:absolute;top:26px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.2em;color:rgba(0,255,65,.35);white-space:nowrap">TERRA-CORE · AGRISAT · SATELLITE UPLINK</div>
 
   <!-- bottom coordinates -->
-  <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.1em;color:rgba(var(--muted-rgb),.18);white-space:nowrap">21.6277°N · 73.5903°E · DEDIAPADA FARM · GUJARAT</div>
+  <div style="position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.1em;color:rgba(var(--muted-rgb),.18);white-space:nowrap">21.6277°N · 73.5903°E · TERRA-CORE AGRISAT · GUJARAT</div>
 
   <!-- ── MAIN SVG ANIMATION ── -->
   <div style="position:relative;flex-shrink:0">

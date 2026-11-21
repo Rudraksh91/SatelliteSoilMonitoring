@@ -1,7 +1,7 @@
 """
 ╔═══════════════════════════════════════════════════════════╗
 ║  TERRA-CORE AgriSat — Raspberry Pi Pico Sensor Hub v1.0  ║
-║  Dediapada Farm · 21.6277°N, 73.5903°E · Gujarat         ║
+║  TERRA-CORE AgriSat · 21.6277°N, 73.5903°E · Gujarat         ║
 ╚═══════════════════════════════════════════════════════════╝
 
 SENSORS SUPPORTED:

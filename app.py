@@ -1,5 +1,5 @@
 """
-AgriSat Dediapada — Professional Satellite Irrigation Dashboard
+TERRA-CORE AgriSat — Professional Satellite Irrigation Dashboard
 """
 import base64, io, json, math, os, re, subprocess
 from datetime import datetime, timedelta
@@ -76,7 +76,7 @@ TELEMETRY_COLS = [
 ]
 
 # ─── Page config ──────────────────────────────────────────────────────────────
-st.set_page_config(page_title="AgriSat Dediapada", page_icon="🛰️", layout="wide",
+st.set_page_config(page_title="TERRA-CORE AgriSat", page_icon="🛰️", layout="wide",
                    initial_sidebar_state="collapsed")
 
 # ─── CSS ──────────────────────────────────────────────────────────────────────
@@ -538,7 +538,7 @@ class DriveLogger:
 # ─── Weather (India Meteorological Department) ─────────────────────────────────
 # No third-party weather API, no ground sensor: IMD publishes a daily city
 # bulletin (Tmax/Tmin, RH at 0830/1730, 24h rainfall, 7-day categorical
-# forecast) for Surat — the nearest IMD-reporting city to Dediapada (~70 km).
+# forecast) for Surat — the nearest IMD-reporting city to the farm (~70 km).
 # It's a legacy scraped HTML page, not a JSON API, and daily-resolution, not
 # hourly — so ET0 is derived via FAO-56 Hargreaves-Samani (needs only
 # Tmax/Tmin + latitude) and "current" temp via a diurnal curve bounded by
@@ -877,7 +877,7 @@ st.markdown(f"""
 <div class="site-header">
   <div class="site-logo">
     <div>
-      <h1>🌾 AgriSat Dediapada</h1>
+      <h1>🌾 TERRA-CORE AgriSat</h1>
       <span class="sub">Autonomous Drip Irrigation · {FIELD_LAT}°N {FIELD_LON}°E · {datetime.now():%d %b %Y %H:%M}</span>
       <span class="share-url">
         🔗 <a href="{_perm_url if _perm_url else _pub_url}" target="_blank"
@@ -945,7 +945,7 @@ with tab1:
   <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
     <div>
       <div style="font-size:.6rem;color:#475569;text-transform:uppercase;letter-spacing:.12em;font-weight:700">
-        📍 Dediapada, Narmada, Gujarat</div>
+        📍 Narmada, Gujarat</div>
       <div style="font-size:.88rem;font-weight:700;color:#f0f6ff;margin-top:2px">
         Autonomous Drip-Irrigation · Ornamental / Shade Planting</div>
     </div>
@@ -1066,7 +1066,7 @@ with tab1:
 
     # ── CENTER: Map + Soil moisture gauge ────────────────────────────────────
     with col_center:
-        st.markdown('<div class="panel-title">🗺️ Field Locations · Dediapada</div>',
+        st.markdown('<div class="panel-title">🗺️ Field Locations</div>',
                     unsafe_allow_html=True)
 
         # ── Build futuristic map ─────────────────────────────────────────────

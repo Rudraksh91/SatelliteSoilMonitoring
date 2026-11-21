@@ -1,5 +1,5 @@
 #!/bin/bash
-# AgriSat Dediapada — background launcher (used by launchd auto-start)
+# TERRA-CORE AgriSat — background launcher (used by launchd auto-start)
 # This script is different from start.sh (no interactive output)
 
 DIR="$(cd "$(dirname "$0")" && pwd)"

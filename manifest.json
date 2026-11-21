@@ -1,7 +1,7 @@
 {
   "name": "TERRA-CORE AgriSat",
   "short_name": "AgriSat",
-  "description": "Satellite Soil Monitoring & Smart Irrigation — Dediapada Farm, Gujarat",
+  "description": "Satellite Soil Monitoring & Smart Irrigation — TERRA-CORE AgriSat",
   "start_url": "/SatelliteSoilMonitoring/",
   "scope": "/SatelliteSoilMonitoring/",
   "display": "standalone",

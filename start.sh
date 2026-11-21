@@ -1,5 +1,5 @@
 #!/bin/bash
-# AgriSat Dediapada — Start app + public tunnel
+# TERRA-CORE AgriSat — Start app + public tunnel
 cd "$(dirname "$0")"
 
 echo "⏹  Stopping any running instances..."
@@ -24,7 +24,7 @@ done
 
 echo ""
 echo "════════════════════════════════════════════════════"
-echo "  ✅ AgriSat Dediapada is running!"
+echo "  ✅ TERRA-CORE AgriSat is running!"
 echo ""
 echo "  📱 Public URL (any device, any network):"
 echo "     $URL"

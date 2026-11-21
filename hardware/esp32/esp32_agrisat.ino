@@ -1,7 +1,7 @@
 /*
  * ╔══════════════════════════════════════════════════════════════╗
  * ║     TERRA-CORE AgriSat — ESP32 Irrigation Controller        ║
- * ║     Dediapada Farm · 21.6277°N, 73.5903°E · Gujarat         ║
+ * ║     TERRA-CORE AgriSat · 21.6277°N, 73.5903°E · Gujarat         ║
  * ║     v1.0.0 — Compatible with Raspberry Pi Pico Sensor Hub   ║
  * ╚══════════════════════════════════════════════════════════════╝
  *

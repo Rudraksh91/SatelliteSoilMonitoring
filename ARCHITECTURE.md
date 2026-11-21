@@ -1,5 +1,5 @@
 # TERRA-CORE AgriSat — Full System Architecture
-## Dediapada Farm, Gujarat
+## TERRA-CORE AgriSat, Gujarat
 
 ---
 
