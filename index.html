@@ -840,6 +840,8 @@ main.page{margin-top:calc(var(--hdr-h) + var(--safe-top))!important}
 .pc-btn:disabled{opacity:.45}
 .pc-btn.on{border-color:rgba(255,183,77,.7);background:rgba(255,183,77,.14);color:#ffb74d}
 .pc-btn.off{border-color:rgba(255,110,110,.7);background:rgba(255,110,110,.14);color:#ff8a8a}
+.pc-btn.pc-primary{min-height:76px;font-size:13px;border-color:rgba(0,255,65,.45)}
+.pc-btn .pc-sub{font-size:9px;font-weight:600;letter-spacing:.14em;opacity:.65}
 .pc-btn.auto{border-color:rgba(0,255,65,.7);background:rgba(0,255,65,.14);color:#00ff41}
 .pc-btn.confirm{animation:pc-pulse 1s ease-in-out infinite}
 @keyframes pc-pulse{50%{box-shadow:0 0 0 4px rgba(255,183,77,.3)}}
@@ -937,6 +939,9 @@ header{
 .sat-tip::before{display:none!important}
 /* Mode toggle */
 .mode-toggle{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(var(--muted-rgb),.5);transition:all .2s;padding:6px 16px;border-radius:4px;cursor:pointer;border:none;display:flex;align-items:center;gap:5px}
+.mode-tag{font-size:8px;font-weight:700;letter-spacing:.1em;padding:1px 5px;border-radius:4px;margin-left:5px;background:rgba(var(--overlay-rgb),.08)}
+.mode-toggle.active .mode-tag{background:rgba(0,255,65,.18)}
+@media(max-width:560px){.mode-tag{display:none}}
 .mode-toggle.active{background:rgba(0,255,65,.12);color:#00ff41;box-shadow:0 0 0 1px rgba(0,255,65,.3)}
 /* Valve button open/closed states (JS-applied classes) */
 .valve-open{background:rgba(255,180,50,.1)!important;border-color:rgba(255,180,50,.5)!important;color:#ffb432!important}
@@ -1827,11 +1832,11 @@ header{
     <!-- ── MODE TOGGLE BAR ── -->
     <div id="mode-bar" class="gp rounded-xl px-sm py-xs flex items-center gap-sm shrink-0 border-b border-white/5">
       <div class="flex bg-surface-container-lowest rounded-lg p-[3px] gap-[2px]">
-        <button id="mode-btn-auto" onclick="setIrrigMode('auto')" class="mode-toggle active">
-          <span class="material-symbols-outlined" style="font-size:14px;font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 20">auto_mode</span>AUTO MODE
+        <button id="mode-btn-auto" onclick="setIrrigMode('auto')" class="mode-toggle active" title="Automatic irrigation is the primary mode: satellite NDVI and weather decide when and how much to water.">
+          <span class="material-symbols-outlined" style="font-size:14px;font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 20">auto_mode</span>AUTO MODE<span class="mode-tag">PRIMARY</span>
         </button>
-        <button id="mode-btn-manual" onclick="setIrrigMode('manual')" class="mode-toggle">
-          <span class="material-symbols-outlined" style="font-size:14px;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 20">tune</span>MANUAL MODE
+        <button id="mode-btn-manual" onclick="setIrrigMode('manual')" class="mode-toggle" title="Optional: take direct control of the valves. Automatic irrigation is paused until you switch back to AUTO MODE.">
+          <span class="material-symbols-outlined" style="font-size:14px;font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 20">tune</span>MANUAL OVERRIDE<span class="mode-tag">OPTIONAL</span>
         </button>
       </div>
       <div class="h-4 w-px bg-white/10"></div>
@@ -1900,7 +1905,8 @@ header{
       <!-- Warning banner -->
       <div class="flex items-center gap-sm px-sm py-xs bg-error/10 border border-error/30 rounded-lg shrink-0">
         <span class="material-symbols-outlined text-error shrink-0" style="font-size:18px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">warning</span>
-        <span class="font-label-caps text-[10px] text-error">MANUAL OVERRIDE ACTIVE — Autonomous irrigation logic suspended. You have direct valve control.</span>
+        <span class="font-label-caps text-[10px] text-error">MANUAL OVERRIDE ACTIVE — automatic irrigation is paused while you control the valves.</span>
+        <button onclick="setIrrigMode('auto')" class="mode-toggle active ml-auto shrink-0" title="Hand control back to automatic irrigation">RESUME AUTO</button>
       </div>
       <!-- Rain guard banner — only visible while it's actually blocking opens.
            The block itself (in openValve()) is a safety feature working as
@@ -3868,7 +3874,7 @@ function renderPumpCtl(){
   const tgt=_pcTargets(),anyRun=tgt.some(p=>_pcRunning(p.zone)===true);
   const on=document.getElementById('pc-on'),off=document.getElementById('pc-off'),au=document.getElementById('pc-auto');
   const armed=PC.armed&&Date.now()<PC.armedT;if(!armed)PC.armed='';
-  on.className='pc-btn'+(mode==='manual'&&anyRun?' on':'')+(PC.armed==='on'?' confirm':'');off.className='pc-btn'+(mode==='manual'&&!anyRun&&_pcRunning(tgt[0]&&tgt[0].zone)===false?' off':'')+(PC.armed==='off'?' confirm':'');au.className='pc-btn'+(mode==='auto'?' auto':'');
+  on.className='pc-btn'+(mode==='manual'&&anyRun?' on':'')+(PC.armed==='on'?' confirm':'');off.className='pc-btn'+(mode==='manual'&&!anyRun&&_pcRunning(tgt[0]&&tgt[0].zone)===false?' off':'')+(PC.armed==='off'?' confirm':'');au.className='pc-btn pc-primary'+(mode==='auto'?' auto':'');
   document.getElementById('pc-on-t').textContent=PC.armed==='on'?'TAP AGAIN TO CONFIRM':'FORCE ON';
   document.getElementById('pc-off-t').textContent=PC.armed==='off'?'TAP AGAIN TO CONFIRM':'FORCE OFF';
   [on,off,au].forEach(b=>b.disabled=PC.busy||!pumps.length);
@@ -4842,14 +4848,15 @@ updateClock();
     <div id="pc-bar" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
     <div id="pc-list" style="display:flex;flex-direction:column;gap:8px"></div>
     <div id="pc-target" style="margin-top:12px"></div>
-    <div id="pc-btns" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
+    <div id="pc-btns" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px">
+      <button id="pc-auto" onclick="pumpAction('auto')" class="pc-btn pc-primary" style="grid-column:1/-1"><span class="material-symbols-outlined">auto_mode</span><span id="pc-auto-t">AUTO IRRIGATION</span><span class="pc-sub">PRIMARY MODE</span></button>
+      <p style="grid-column:1/-1;margin:6px 0 0;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(var(--muted-rgb),.55)">MANUAL OVERRIDE · OPTIONAL</p>
       <button id="pc-on" onclick="pumpAction('on')" class="pc-btn"><span class="material-symbols-outlined">play_circle</span><span id="pc-on-t">FORCE ON</span></button>
       <button id="pc-off" onclick="pumpAction('off')" class="pc-btn"><span class="material-symbols-outlined">stop_circle</span><span id="pc-off-t">FORCE OFF</span></button>
-      <button id="pc-auto" onclick="pumpAction('auto')" class="pc-btn"><span class="material-symbols-outlined">auto_mode</span><span id="pc-auto-t">AUTO IRRIGATION</span></button>
     </div>
     <p id="pc-msg" role="status" style="min-height:18px;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5"></p>
     <div id="pc-setup" style="display:none;margin-top:10px"></div>
-    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(var(--muted-rgb),.55);margin-top:8px;line-height:1.5"><b>FORCE ON</b> runs the pump now and stops auto irrigation. <b>FORCE OFF</b> stops it and keeps it off. <b>AUTO IRRIGATION</b> hands control back to the NDVI + weather autopilot. The controller stops any run after 120 minutes for safety. Pump size and valve are set per field in Farmers → Autopilot.</p>
+    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(var(--muted-rgb),.55);margin-top:8px;line-height:1.5"><b>AUTO IRRIGATION</b> is the primary mode: the NDVI + weather autopilot plans and runs the watering. <b>FORCE ON</b> and <b>FORCE OFF</b> are an optional manual override: FORCE ON runs the pump now and pauses auto irrigation, FORCE OFF stops it and keeps it off, until you press AUTO IRRIGATION again. The controller stops any run after 120 minutes for safety. Pump size and valve are set per field in Farmers → Autopilot.</p>
   </div>
 </div>
 
