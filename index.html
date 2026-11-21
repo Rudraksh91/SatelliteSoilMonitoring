@@ -55,9 +55,9 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261121g"></script>
-<script src="farmer/ndvimap.js?v=20261121x"></script>
-<script src="farmer/i18n.js?v=20261121g"></script>
+<script src="farmer/core.js?v=20261121k"></script>
+<script src="farmer/ndvimap.js?v=20261121k"></script>
+<script src="farmer/i18n.js?v=20261121k"></script>
 <script src="farmer/link.js?v=20261121x"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -1139,7 +1139,8 @@ button,.pc-btn,.mode-toggle,.wtab{transition:background .15s ease,border-color .
   var cv=document.getElementById('wl-canvas'),orb=document.getElementById('wl-orb'),ctx=cv.getContext('2d');
   var W,H,dpr,cx,cy,R,raf,done=false,t0=performance.now();
   function layout(){
-    dpr=Math.min(window.devicePixelRatio||1,2);W=window.innerWidth;H=window.innerHeight;
+    dpr=Math.min(window.devicePixelRatio||1,3);W=window.innerWidth;H=window.innerHeight;
+    if(W*H*dpr*dpr>8.4e6)dpr=Math.max(1,Math.sqrt(8.4e6/(W*H)));   // full density up to about 4K worth of pixels, then back off so the animation stays smooth
     cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
     var r=orb.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;
     R=Math.max(40,Math.min(W*0.28,r.height*0.38,r.width*0.3));
@@ -3426,7 +3427,7 @@ function renderTimeline(){
   });
   // Expose globally so the resize handler can invalidate on orientation change
   window._satMap = map;
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.92}).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',window.AgriNdviMap?AgriNdviMap.tileOpts(17,{opacity:.92}):{maxZoom:19,opacity:.92}).addTo(map);
   // Pulsing marker icon
   const icon=L.divIcon({
     className:'',
@@ -3467,8 +3468,8 @@ function renderTimeline(){
   const cv=document.getElementById('field-map');if(!cv)return;
   const ctx=cv.getContext('2d');
   function draw(){
-    cv.width=cv.parentElement.clientWidth;cv.height=cv.parentElement.clientHeight;
-    const W=cv.width,H=cv.height;
+    const dpr=Math.min(window.devicePixelRatio||1,3),W=cv.parentElement.clientWidth,H=cv.parentElement.clientHeight;
+    cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);   // draw in CSS pixels, store in device pixels: sharp on 4K / retina
     ctx.fillStyle='#0a1a0d';ctx.fillRect(0,0,W,H);
     ctx.strokeStyle='rgba(76,195,138,.06)';ctx.lineWidth=1;
     for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}

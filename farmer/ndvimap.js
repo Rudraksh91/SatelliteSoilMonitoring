@@ -38,12 +38,23 @@
     })();
     zCache[key] = p; return p;
   }
+  // ── sharp maps on high-density screens (4K, retina) ──
+  // Leaflet's detectRetina asks for tiles one zoom level deeper and draws them at half size, so every screen pixel gets a real image pixel.
+  // That makes URL zoom = map zoom + 1, so the layer's maxNativeZoom has to be one lower than the deepest zoom that really exists.
+  const isRetina = () => typeof window !== 'undefined' && !!(window.L && window.L.Browser && window.L.Browser.retina);
+  /** Options for a tile layer whose photos really exist up to zoom `nat`. `retina` is only passed by tests; pages leave it out. */
+  function tileOpts(nat, extra, retina) {
+    const r = retina === undefined ? isRetina() : retina;
+    return Object.assign({ maxNativeZoom: nat - (r ? 1 : 0), maxZoom: 22, detectRetina: true }, extra || {});   // maxZoom 22: Leaflet lowers it by one on retina, and the map itself stops at 21
+  }
+  /** maxNativeZoom for an existing layer: uses the zoomOffset Leaflet really applied when the layer was built, so a later display change cannot make it request tiles that do not exist. */
+  const nativeFor = (layer, nat) => nat - ((layer && layer.options && layer.options.zoomOffset) || 0);
   /** Keep the given Esri tile layers' native zoom at what exists around the map centre (re-checked after every move). */
   function adaptNativeZoom(map, layers, fetchFn) {
     let timer = null;
     const run = () => { const c = map.getCenter(); if (map.getZoom() < 14) return;
-      probeMaxZoom(c.lat, c.lng, fetchFn).then(z => layers.forEach(l => { if (l.options.maxNativeZoom !== z) {
-        l.options.maxNativeZoom = z;
+      probeMaxZoom(c.lat, c.lng, fetchFn).then(z => layers.forEach(l => { if (l.options.maxNativeZoom !== nativeFor(l, z)) {
+        l.options.maxNativeZoom = nativeFor(l, z);
         // remove + add (public API) rebuilds the tile grid for the new native zoom; redraw() alone leaves Leaflet's x-wrap range at the old zoom and requests tiles with wrong x
         const m = l._map; if (m) { m.removeLayer(l); m.addLayer(l); }
       } })); };
@@ -52,7 +63,7 @@
   }
   function baseMap(box, L) {
     const map = L.map(box, { zoomControl: false, dragging: false, scrollWheelZoom: false, touchZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false });
-    const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: SAFE_NATIVE_ZOOM, maxZoom: 21, attribution: 'Imagery © Esri · Sentinel-2' }).addTo(map);
+    const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', tileOpts(SAFE_NATIVE_ZOOM, { attribution: 'Imagery © Esri · Sentinel-2' })).addTo(map);
     map._agriSat = sat;
     return map;
   }
@@ -101,5 +112,5 @@
     box._agriMap = map;
     return { map, drawn, colours: FIELD_COLOURS };
   }
-  return { colour, gradient, render, renderMulti, RD, INDEX, FIELD_COLOURS, probeMaxZoom, adaptNativeZoom, tileXY, SAFE_NATIVE_ZOOM };
+  return { colour, gradient, render, renderMulti, RD, INDEX, FIELD_COLOURS, probeMaxZoom, adaptNativeZoom, tileXY, SAFE_NATIVE_ZOOM, tileOpts, nativeFor };
 });

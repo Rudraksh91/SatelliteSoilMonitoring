@@ -272,12 +272,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261121g"></script>
-<script src="farmer/i18n.js?v=20261121g"></script>
+<script src="farmer/core.js?v=20261121k"></script>
+<script src="farmer/i18n.js?v=20261121k"></script>
 <script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
 <script src="farmer/chat-config.js?v=1"></script>
-<script src="farmer/ndvimap.js?v=20261121x"></script>
+<script src="farmer/ndvimap.js?v=20261121k"></script>
 <script src="farmer/autopilot.js?v=20261121x"></script>
 <script src="farmer/link.js?v=20261121x"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
@@ -464,7 +464,7 @@ function buildLayerControl(){
 function ensureMap(center){
   if(map)return;
   map=L.map('map',{zoomControl:true,maxZoom:21}).setView(center||[22.5,79],center?17:5);
-  const z={maxNativeZoom:17,maxZoom:21};   // starts at z17 (exists almost everywhere); raised to z18/19 only where Esri really has photos (see adaptNativeZoom). Beyond that the picture is enlarged so corners can be tapped precisely
+  const z=window.AgriNdviMap.tileOpts(17);   // starts at z17 (exists almost everywhere); raised to z18/19 only where Esri really has photos (see adaptNativeZoom). Beyond that the picture is enlarged so corners can be tapped precisely
   const sat=L.tileLayer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',Object.assign({attribution:'Imagery © Esri, Maxar, Earthstar Geographics',zIndex:1},z));
   const names=L.tileLayer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',Object.assign({attribution:'Labels © Esri',zIndex:3},z));
   const roads=L.tileLayer(ESRI+'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',Object.assign({zIndex:2},z));
