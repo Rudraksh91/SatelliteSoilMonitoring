@@ -54,9 +54,9 @@ document.documentElement.classList.toggle('farmer-mode',!window.CAMPUS_MODE);
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
-<script src="farmer/core.js?v=20261121n"></script>
-<script src="farmer/ndvimap.js?v=20261121n"></script>
-<script src="farmer/i18n.js?v=20261121n"></script>
+<script src="farmer/core.js?v=20261121r"></script>
+<script src="farmer/ndvimap.js?v=20261121r"></script>
+<script src="farmer/i18n.js?v=20261121r"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
@@ -673,7 +673,7 @@ html.farmer-mode [data-page="health"],html.farmer-mode [data-page="pipeline"]{di
   header>div:last-child>div{gap:10px!important}
   header .mso{font-size:22px}
   #page-title{max-width:34vw!important}
-  header>div:last-child .material-symbols-outlined:nth-child(-n+2){display:none}   /* decorative feed / speed icons */
+  #feed-btn + .material-symbols-outlined{display:none}   /* the decorative speed icon only; the live-feeds button stays */
 }
 @media(max-width:360px){#active-farm{max-width:72px!important}#page-title{max-width:28vw!important;font-size:13px!important}#hw-label{display:none}}
 /* Automation page on phones: mode bar wraps, long farm names never blow up the timeline heading */
@@ -725,6 +725,15 @@ main.page{margin-top:calc(var(--hdr-h) + var(--safe-top))!important}
   button:focus-visible,select:focus-visible,input:focus-visible,[onclick]:focus-visible,a:focus-visible{outline:2px solid rgba(0,255,65,.7);outline-offset:2px}
   header .mso,.nav-btn{cursor:pointer}
 }
+/* header feed button: a real <button> (iOS and Android both treat real buttons as tappable without quirks), 48 px target, no grey tap flash, light press feedback */
+#feed-btn{display:inline-flex;align-items:center;justify-content:center;min-width:48px;min-height:48px;   /* 48 dp Android / 44 pt iOS minimum */
+  margin:-10px -8px;padding:0;background:transparent;border:0;border-radius:12px;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-appearance:none;appearance:none}
+#feed-btn:active{background:rgba(0,255,65,.12)}
+@media(max-width:420px){header.has-farm-sel #page-title{display:none}header.has-farm-sel #active-farm{max-width:124px!important}}
+@media(max-width:360px){header.has-farm-sel #active-farm{max-width:110px!important}}
+@media(max-width:560px){#feed-btn{margin:-10px -6px}}
+/* feeds sheet: scrolls inside itself, never the page behind it; sized with dvh so the iOS address bar cannot hide the bottom button */
+#feeds-modal .macos-sheet-panel{max-height:calc(100vh - 32px)!important;max-height:calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px)!important;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(24px + var(--safe-bottom))!important}
 /* Notched phones keep the bottom bar inside the safe area */
 @supports(padding:max(0px)){@media(max-width:767px){#mob-nav{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);height:calc(56px + env(safe-area-inset-bottom))}}}
 /* Touch devices: comfortable tap targets, no 300 ms zoom delay, no rubber-band scroll chaining out of panels */
@@ -1135,7 +1144,7 @@ header{
   <div class="flex items-center gap-md">
     <span class="font-label-caps text-label-caps text-on-surface-variant/60 text-[10px] hidden xl:block" id="api-status">API: CONNECTING...</span>
     <div class="flex items-center gap-sm text-on-surface-variant">
-      <span id="feed-btn" role="button" tabindex="0" aria-label="Live data feeds" title="Live data feeds: weather, satellite, soil, controller" onclick="openFeedsModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openFeedsModal();}" class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">rss_feed</span>
+      <button type="button" id="feed-btn" aria-label="Live data feeds" title="Live data feeds: weather, satellite, soil, controller" onclick="openFeedsModal()" class="hover:text-primary transition-colors"><span class="material-symbols-outlined mso" aria-hidden="true">rss_feed</span></button>
       <span class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">speed</span>
       <!-- Theme toggle -->
       <span id="theme-toggle-icon" onclick="toggleTheme()" class="material-symbols-outlined mso cursor-pointer hover:text-primary transition-colors">dark_mode</span>
@@ -2146,6 +2155,7 @@ function refreshFarmSelector(){
   sel.innerHTML=(window.CAMPUS_MODE?'<option value="campus">CAMPUS</option>':'')+db.farms.map(f=>`<option value="${f.id}">${_cleanName(f.name)} · ${(f.areaM2/10000).toFixed(2)} HA</option>`).join('');
   sel.value=window.ACTIVE.id;
   sel.style.display=(!window.CAMPUS_MODE&&db.farms.length<2)?'none':'';   // a farmer with one farm needs no selector
+  const hd=document.querySelector('header.fixed');if(hd)hd.classList.toggle('has-farm-sel',sel.style.display!=='none');   // narrow phones: with a selector the page title makes way for it
 }
 function _bandZones(f){          // 3 vertical (west/centre/east) bands of the farm's used pixels, from its newest NDVI scene
   const sc=((f.cache&&f.cache.ndvi)||[]).filter(s=>s.grid&&s.ndvi!=null)[0];if(!sc)return null;
@@ -3514,8 +3524,8 @@ function renderFeeds(){
   rows.push(on?_feedRow('Pump controller (MQTT)','ok','Connected to the broker','Commands are signed with your command key'):_feedRow('Pump controller (MQTT)','off','Not connected','Tap HW in the top bar to connect your controller'));
   list.innerHTML=rows.join('');
 }
-function openFeedsModal(){renderFeeds();openMacSheet('feeds-modal');}
-function closeFeedsModal(){closeMacSheet('feeds-modal');}
+function openFeedsModal(){renderFeeds();document.body.style.overflow='hidden';openMacSheet('feeds-modal');}   // iOS lets the page scroll behind a sheet unless the body is locked
+function closeFeedsModal(){document.body.style.overflow='';closeMacSheet('feeds-modal');}
 async function refreshAllFeeds(){
   const ic=document.getElementById('feeds-refresh-ic'),tx=document.getElementById('feeds-refresh-tx'),btn=document.getElementById('feeds-refresh');
   if(btn.disabled)return;btn.disabled=true;btn.style.opacity='.6';tx.textContent='REFRESHING…';ic.style.animation='spin 1s linear infinite';
