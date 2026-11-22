@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-21T08:40:10+00:00",
-  "valid_until": "2026-11-23T08:40:10+00:00",
-  "date": "2026-11-21",
+  "generated_at": "2026-11-22T08:38:28+00:00",
+  "valid_until": "2026-11-24T08:38:28+00:00",
+  "date": "2026-11-22",
   "calibrated": false,
   "missing_inputs": [
     "soil.calibrated (theta_fc/theta_wp are SoilGrids+Saxton-Rawls estimates)",
@@ -12,10 +12,10 @@
     "ndvi": 0.416,
     "kc": 0.623,
     "ndvi_stale": false,
-    "ndvi_age_days": 4,
+    "ndvi_age_days": 5,
     "stress_flag": false,
     "forecast_rain_mm_48h": 0.0,
-    "balanced_to": "2026-11-20"
+    "balanced_to": "2026-11-21"
   },
   "limits": {
     "min_run_min": 10,
@@ -33,34 +33,34 @@
     {
       "id": 1,
       "name": "Zone 1 \u2013 Boys Hostel",
-      "dr_mm": 6.02,
+      "dr_mm": 8.67,
       "raw_mm": 26.4,
       "taw_mm": 52.8,
-      "dr_pct": 11.4,
+      "dr_pct": 16.4,
       "decision": "NO_RUN",
-      "reason": "soil water ample (depletion 6.0 mm < RAW 26.4 mm)",
+      "reason": "soil water ample (depletion 8.7 mm < RAW 26.4 mm)",
       "run_minutes": 0.0
     },
     {
       "id": 2,
       "name": "Zone 2 \u2013 Main College",
-      "dr_mm": 6.02,
+      "dr_mm": 8.67,
       "raw_mm": 26.4,
       "taw_mm": 52.8,
-      "dr_pct": 11.4,
+      "dr_pct": 16.4,
       "decision": "NO_RUN",
-      "reason": "soil water ample (depletion 6.0 mm < RAW 26.4 mm)",
+      "reason": "soil water ample (depletion 8.7 mm < RAW 26.4 mm)",
       "run_minutes": 0.0
     },
     {
       "id": 3,
       "name": "Zone 3 \u2013 Diploma College",
-      "dr_mm": 6.02,
+      "dr_mm": 8.67,
       "raw_mm": 26.4,
       "taw_mm": 52.8,
-      "dr_pct": 11.4,
+      "dr_pct": 16.4,
       "decision": "NO_RUN",
-      "reason": "soil water ample (depletion 6.0 mm < RAW 26.4 mm)",
+      "reason": "soil water ample (depletion 8.7 mm < RAW 26.4 mm)",
       "run_minutes": 0.0
     }
   ],
