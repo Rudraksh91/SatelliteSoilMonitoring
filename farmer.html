@@ -288,10 +288,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script src="farmer/core.js?v=20261123a"></script>
-<script src="farmer/i18n.js?v=20261123d"></script>
+<script src="farmer/i18n.js?v=20261123e"></script>
 <script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
-<script src="farmer/diagnose.js?v=20261123h"></script>
+<script src="farmer/diagnose.js?v=20261123i"></script>
 <script src="farmer/chat-config.js?v=1"></script>
 <script src="farmer/ndvimap.js?v=20261121k"></script>
 <script src="farmer/autopilot.js?v=20261121x"></script>
@@ -511,20 +511,23 @@ const plantSymHtml=f=>`<h3 class="pc-h3">${esc(T('pcSymTitle'))}</h3><div class=
   `<p class="note" style="margin:6px 0 0">${esc(T('pcSymNote'))}</p>`+plantRefHtml(f);
 function plantBody(f){
   const st=pcSt(f),ai=plantReady();
+  // No AI connected: the camera and photo choice are not offered at all (the app could not read the photo); only the symptom lookup is shown.
+  if(!ai){
+    const keyBox=`<details style="margin-top:14px"><summary>${esc(T('pcKeySummary'))}</summary>${plantKeyForm()}</details>`;
+    return `<p style="margin:0 0 6px">${esc(T('pcHelpNoAi'))}</p>`+plantSymHtml(f)+keyBox;
+  }
   const img=st.url?`<img class="pc-img" id="pcImg" alt="">`:'';
-  const keyBox=ai?'':`<details style="margin-top:14px"><summary>${esc(T('pcKeySummary'))}</summary>${plantKeyForm()}</details>`;
   const pick=`<div class="row"><button id="pcCamBtn">${esc(T('pcTake'))}</button><button id="pcGalBtn" class="sec">${esc(T('pcPick'))}</button></div>`+
     `<input id="pcCam" type="file" accept="image/*" capture="environment" hidden><input id="pcGal" type="file" accept="image/*" hidden>`;
   if(st.stage==='busy')return img+`<p style="margin:0">${esc(T('pcBusy'))}</p>`;
   if(st.stage==='ready'){
     const note=`<input id="pcNote" type="text" maxlength="200" placeholder="${esc(T('pcNotePh'))}" value="${esc(st.note||'')}">`;
-    if(ai)return img+note+(photoOK?'':`<p class="note" style="margin:0 0 8px">${esc(T('pcConsent',{service:chatName()}))}</p>`)+
+    return img+note+(photoOK?'':`<p class="note" style="margin:0 0 8px">${esc(T('pcConsent',{service:chatName()}))}</p>`)+
       `<div class="row"><button id="pcGo">${esc(T(photoOK?'pcCheck':'pcAllow'))}</button><button id="pcNo" class="sec">${esc(T('pcCancel'))}</button></div>`;
-    return img+`<p class="note" style="margin:0 0 6px">${esc(T('pcNoAiPhoto'))}</p>`+plantSymHtml(f)+`<div class="row" style="margin-top:10px"><button id="pcNo" class="sec">${esc(T('pcCancel'))}</button></div>`+keyBox;
   }
-  if(st.stage==='fail')return img+`<p style="margin:0 0 10px;color:var(--red)">${esc(T(st.err||'pcFail'))}</p>`+pick+(ai?'':plantSymHtml(f))+keyBox;
+  if(st.stage==='fail')return img+`<p style="margin:0 0 10px;color:var(--red)">${esc(T(st.err||'pcFail'))}</p>`+pick;
   if(st.stage==='done'&&st.res)return img+plantResult(st.res,st.rs)+`<div style="margin-top:12px">${pick}</div>`;
-  return `<p style="margin:0 0 6px">${esc(T(ai?'pcHelp':'pcHelpNoAi'))}</p><p class="note" style="margin:0 0 10px">${esc(T('pcTips'))}</p>`+pick+(ai?'':plantSymHtml(f))+keyBox;
+  return `<p style="margin:0 0 6px">${esc(T('pcHelp'))}</p><p class="note" style="margin:0 0 10px">${esc(T('pcTips'))}</p>`+pick;
 }
 const plantKeyRow=()=>!chatUrl()&&gKey()?`<p class="note" style="margin:12px 0 0">${esc(T('pcKeyUsing'))} <a href="#" id="pcKeyDel">${esc(T('pcKeyRemove'))}</a></p>`:'';
 function plantResearchHtml(d,rs){
