@@ -3,7 +3,7 @@
  * Enables offline use, home-screen installation, and fast loading.
  */
 
-const APP_CACHE  = 'agrisat-app-v1.34';
+const APP_CACHE  = 'agrisat-app-v1.35';
 const CDN_CACHE  = 'agrisat-cdn-v1.2';
 
 // App shell — these files are cached immediately on install
@@ -88,7 +88,8 @@ self.addEventListener('fetch', event => {
     if (isNavigation) {
       // HTML pages: always try network first so new deploys show immediately
       event.respondWith(
-        fetch(req).then(res => {
+        // cache:'no-cache' = ask the server whether the file changed (a tiny check) instead of trusting the browser's 10-minute copy, so a phone never shows an old version after a deploy
+        fetch(req, { cache: 'no-cache' }).then(res => {
           if (res.ok) {
             const clone = res.clone();
             caches.open(APP_CACHE).then(c => c.put(req, clone));
