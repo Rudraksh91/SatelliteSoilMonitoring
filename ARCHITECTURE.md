@@ -445,6 +445,11 @@ UI in `farmer.html`). Tests: `node tests/test_assistant.js`, `node tests/test_ch
   the Hindi and Gujarati wording needs review by a native speaker; the AI path (Gemini and Claude) has been tested only against mocked
   servers, not against the live APIs; Gemini model IDs change, so check `GEMINI_MODEL` before deploying.
 
+## Plant health check (camera card on the field screen): REMOVED FROM THE APP ON 2026-11-23
+The card, its camera window and its code were taken out of `farmer.html` at the owner's request, so the farmer page no longer shows any plant check. What is kept in the repository, unused: `farmer/diagnose.js`,
+the photo and treatment endpoints in `chat-proxy/` (including `setup.sh`), the `pc*` strings in `farmer/i18n.js` and their tests. The page-side code (card, camera window, own-key box, keyless Wikipedia lookup) is in git history:
+`git show 16ea397:farmer.html`. The text below describes how it worked.
+
 ## Plant health check (camera card on the field screen)
 A farmer photographs a leaf, fruit or plant (`<input type="file" accept="image/*" capture="environment">`, so a phone opens its camera and a
 computer opens a file picker). `farmer/diagnose.js` redraws the photo at most 1024 px on its long side as JPEG on a canvas, which **removes

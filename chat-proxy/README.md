@@ -26,6 +26,8 @@ Only for questions that are **not about the farmer's own field** (general farmin
   forecast, NDVI. **No field name, no coordinates, no account details** (`AgriAssistant.llmContext`).
 - up to the last 6 turns of that AI conversation
 
+> **Note (2026-11-23):** the Plant health check card was removed from the farmer page, so the photo and treatment endpoints described below are no longer used by the app. The Ask button still uses this proxy. The photo code is kept for a possible return (`git show 16ea397:farmer.html`).
+
 ## Quickest setup: one script
 
 ```bash

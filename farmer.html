@@ -36,7 +36,6 @@ html.embed header{position:static;padding:8px 12px}html.embed header h1,html.emb
 .list button{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line);margin-bottom:8px;font-weight:600}.list small{display:block;font-weight:400;color:var(--mut)}
 .steps div{font-size:14px;color:var(--mut);padding:2px 0}.steps .done{color:var(--g)}.steps .fail{color:var(--red)}
 dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);padding:18px;background:var(--card);color:var(--ink)}dialog::backdrop{background:rgba(0,0,0,.55)}
-#camDlg{max-width:640px}#camVid{display:block;width:100%;max-height:62vh;border-radius:10px;background:#000;object-fit:contain}#camSel{width:100%;font:inherit;padding:8px;margin:8px 0;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink)}
 .fc{display:flex;gap:6px;overflow-x:auto}.fc div{flex:0 0 auto;text-align:center;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
 #ndviMapBox{height:270px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 .leg{height:12px;border-radius:6px;margin:10px 0 2px;background:linear-gradient(90deg,#a50026,#f46d43,#fee08b,#ffffbf,#a6d96a,#1a9850,#006837)}.legl{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
@@ -144,14 +143,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .chat-form{display:flex;gap:8px;padding:8px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 .chat-form input{flex:1 1 auto;min-width:0}
 [hidden]{display:none!important}
-.pc-img{display:block;width:100%;max-height:280px;object-fit:contain;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin:10px 0}
-.pc-head{padding:10px 12px;border-radius:12px;margin:10px 0 8px;font-weight:700;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.pc-head.good{background:color-mix(in srgb,var(--g) 18%,var(--card))}.pc-head.warn{background:color-mix(in srgb,var(--amber) 20%,var(--card))}.pc-head.bad{background:color-mix(in srgb,var(--red) 16%,var(--card))}.pc-head.none{background:var(--bg)}
-.pc-res h3{font-size:13px;margin:12px 0 3px;color:var(--mut);font-weight:700;letter-spacing:.03em}.pc-res p{margin:0 0 4px}.pc-res ul{margin:0;padding-left:20px}.pc-res li{margin:0 0 3px}
-.pc-res a{color:var(--blue);word-break:break-word}
-.pc-h3{font-size:13px;margin:16px 0 6px;color:var(--mut);font-weight:700;letter-spacing:.03em}details summary{cursor:pointer;color:var(--g);font-weight:600}
-.pc-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--amber);margin-bottom:2px}
-#pcNote{width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:8px 0}
 </style>
 </head>
 <body>
@@ -272,12 +263,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   </div>
 </div>
 
-<dialog id="camDlg">
-  <video id="camVid" autoplay playsinline muted></video>
-  <p class="note" data-i="pcCamHint" style="margin:8px 0"></p>
-  <select id="camSel" hidden aria-label="Camera"></select>
-  <div class="row"><button id="camShoot" data-i="pcShoot"></button><button id="camX" class="sec" data-i="pcCancel"></button></div>
-</dialog>
 <dialog id="consent">
   <h2 style="margin-top:0" data-i="consentTitle"></h2>
   <p data-h="consent1"></p><p data-h="consent2"></p><p class="note" data-i="consent3"></p>
@@ -291,7 +276,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <script src="farmer/i18n.js?v=20261123e"></script>
 <script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
-<script src="farmer/diagnose.js?v=20261123i"></script>
 <script src="farmer/chat-config.js?v=1"></script>
 <script src="farmer/ndvimap.js?v=20261121k"></script>
 <script src="farmer/autopilot.js?v=20261121x"></script>
@@ -467,203 +451,6 @@ $('chatFab').onclick=chatOpen;$('chatX').onclick=chatClose;
 $('chatForm').onsubmit=e=>{e.preventDefault();const v=$('chatIn').value;$('chatIn').value='';chatAsk(v);};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('chat').hidden)chatClose();});
 renderChatChips();
-
-// ── plant health check: photograph a plant, the optional AI service (chat-proxy) reads the photo and says what it may be and what to do.
-// The photo is made smaller on a canvas first (that drops location and camera data), is never stored, and is sent only after the farmer taps Allow. ──
-const DG=window.AgriDiagnose;
-const pc={};let photoOK=false;                       // pc[fieldId] = { stage:'idle'|'ready'|'busy'|'done'|'fail', url, b64, mime, note, res, err }
-const pcSt=f=>pc[f.id]||(pc[f.id]={stage:'idle'});
-// Own-key mode: with no proxy URL set, the owner can paste their own Gemini key. It stays in this browser (localStorage) and is sent only to Google.
-const gKey=()=>{try{return(localStorage.getItem('agrisat_gemini_key')||'').trim();}catch(e){return '';}};
-const gModel=()=>{try{return(localStorage.getItem('agrisat_gemini_model')||'').trim()||undefined;}catch(e){return undefined;}};
-const setGKey=k=>{try{if(k)localStorage.setItem('agrisat_gemini_key',k);else localStorage.removeItem('agrisat_gemini_key');}catch(e){}};
-const plantReady=()=>!!(chatUrl()||gKey());
-async function plantCall(body,ms){       // one path for both steps: the proxy when it is set up, otherwise the user's own key straight to Google
-  if(chatUrl()){
-    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),ms);
-    try{const res=await fetch(chatUrl(),{method:'POST',headers:{'content-type':'application/json'},signal:ctl.signal,body:JSON.stringify(body)});
-      if(!res.ok)throw new Error('http '+res.status);return await res.json();}
-    finally{clearTimeout(to);}
-  }
-  const opt={model:gModel()};
-  if(body.task==='diagnose')return {diagnosis:await DG.direct.diagnose(body,gKey(),opt)};
-  return {research:await DG.direct.research(body,gKey(),opt)};
-}
-const plantCard=f=>`<div class="card" id="plantCard"><h2>${esc(T('pcTitle'))}</h2><div id="plantBody">${plantBody(f)}</div></div>`;
-const plantKeyForm=()=>`<p class="note" style="margin:8px 0">${esc(T('pcKeyHelp'))}</p>`+
-  `<input id="pcKey" type="password" autocomplete="off" spellcheck="false" placeholder="${esc(T('pcKeyPh'))}" style="width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:0 0 8px">`+
-  `<div class="row"><button id="pcKeySave">${esc(T('pcKeySave'))}</button></div><p class="note" id="pcKeyMsg" style="margin:8px 0 0;color:var(--red)"></p>`;
-// No key, no account, no Google page: the farmer picks (or types) what they see and the app looks it up in the background, showing the result in the card.
-// It is a general reference, not a diagnosis: without an AI key the app cannot read the photo.
-function plantRefHtml(f){
-  const st=pcSt(f),r=st.ref;if(!r)return '';
-  if(r.stage==='busy')return `<p class="note" style="margin:12px 0 0">${esc(T('pcRefBusy'))}</p>`;
-  if(r.stage==='fail')return `<p class="note" style="margin:12px 0 0;color:var(--red)">${esc(T('pcRefFail'))}</p>`;
-  const x=r.res;if(!x)return '';
-  if(!x.found)return `<p style="margin:12px 0 0">${esc(T('pcRefNone'))}</p>`;
-  return `<div class="pc-res"><h3 style="margin-top:14px">${esc(T('pcRefTitle'))}</h3>`+x.pages.map(p=>
-    `<div style="margin:10px 0 14px"><b>${esc(p.title)}</b>`+(p.signs?`<h3>${esc(T('pcRefSigns'))}</h3><p>${esc(p.signs)}</p>`:'')+(p.control?`<h3>${esc(T('pcRefControl'))}</h3><p>${esc(p.control)}</p>`:'')+
-    `<p class="note" style="margin:4px 0 0">${esc(T('pcRefSource'))}: <a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">Wikipedia</a></p></div>`).join('')+
-    `<p class="note" style="margin:0">${esc(T(x.translated?'pcRefNoteTr':'pcRefNoteEn'))}</p></div>`;
-}
-const plantSymHtml=f=>`<h3 class="pc-h3">${esc(T('pcSymTitle'))}</h3><div class="chips" style="margin:0 0 8px">${Object.keys(DG.SYMPTOMS).map(k=>`<button type="button" data-sym="${k}">${esc(T('pcSym_'+k))}</button>`).join('')}</div>`+
-  `<div class="row"><input id="pcRefNote" type="text" maxlength="120" placeholder="${esc(T('pcNotePh'))}" value="${esc(pcSt(f).refNote||'')}" style="flex:1 1 60%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)"><button id="pcLookup" class="sec" style="flex:0 0 auto">${esc(T('pcLookup'))}</button></div>`+
-  `<p class="note" style="margin:6px 0 0">${esc(T('pcSymNote'))}</p>`+plantRefHtml(f);
-function plantBody(f){
-  const st=pcSt(f),ai=plantReady();
-  // No AI connected: the camera and photo choice are not offered at all (the app could not read the photo); only the symptom lookup is shown.
-  if(!ai){
-    const keyBox=`<details style="margin-top:14px"><summary>${esc(T('pcKeySummary'))}</summary>${plantKeyForm()}</details>`;
-    return `<p style="margin:0 0 6px">${esc(T('pcHelpNoAi'))}</p>`+plantSymHtml(f)+keyBox;
-  }
-  const img=st.url?`<img class="pc-img" id="pcImg" alt="">`:'';
-  const pick=`<div class="row"><button id="pcCamBtn">${esc(T('pcTake'))}</button><button id="pcGalBtn" class="sec">${esc(T('pcPick'))}</button></div>`+
-    `<input id="pcCam" type="file" accept="image/*" capture="environment" hidden><input id="pcGal" type="file" accept="image/*" hidden>`;
-  if(st.stage==='busy')return img+`<p style="margin:0">${esc(T('pcBusy'))}</p>`;
-  if(st.stage==='ready'){
-    const note=`<input id="pcNote" type="text" maxlength="200" placeholder="${esc(T('pcNotePh'))}" value="${esc(st.note||'')}">`;
-    return img+note+(photoOK?'':`<p class="note" style="margin:0 0 8px">${esc(T('pcConsent',{service:chatName()}))}</p>`)+
-      `<div class="row"><button id="pcGo">${esc(T(photoOK?'pcCheck':'pcAllow'))}</button><button id="pcNo" class="sec">${esc(T('pcCancel'))}</button></div>`;
-  }
-  if(st.stage==='fail')return img+`<p style="margin:0 0 10px;color:var(--red)">${esc(T(st.err||'pcFail'))}</p>`+pick;
-  if(st.stage==='done'&&st.res)return img+plantResult(st.res,st.rs)+`<div style="margin-top:12px">${pick}</div>`;
-  return `<p style="margin:0 0 6px">${esc(T('pcHelp'))}</p><p class="note" style="margin:0 0 10px">${esc(T('pcTips'))}</p>`+pick;
-}
-const plantKeyRow=()=>!chatUrl()&&gKey()?`<p class="note" style="margin:12px 0 0">${esc(T('pcKeyUsing'))} <a href="#" id="pcKeyDel">${esc(T('pcKeyRemove'))}</a></p>`:'';
-function plantResearchHtml(d,rs){
-  if(!DG.researchWanted(d)||!rs)return '';
-  if(rs.stage==='busy')return `<p class="note" style="margin:14px 0 0">${esc(T('pcSearching'))}</p>`;
-  if(rs.stage==='fail')return `<p class="note" style="margin:14px 0 0;color:var(--red)">${esc(T('pcResFail'))}</p>`;
-  const r=rs.res;if(!r)return '';
-  const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join('');
-  const sec=(k,body)=>body?`<h3>${esc(T(k))}</h3>${body}`:'';
-  const src=r.sources.length?sec('pcSources',`<ul>${r.sources.map(x=>`<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a></li>`).join('')}</ul>`):'';
-  const head=`<h3 style="margin-top:16px">${esc(T('pcResTitle'))}${r.found?` <span class="pill">${esc(T({high:'pcAgreeHigh',medium:'pcAgreeMed'}[r.agree]||'pcAgreeLow'))}</span>`:''}</h3>`;
-  if(!r.found)return head+`<p>${esc(T('pcResNone'))}</p>`+src;
-  const meds=r.medicines.length?`<ul>${r.medicines.map(m=>`<li><b>${esc(m.active_ingredient)}</b>${m.use?' · '+esc(m.use):''}`+
-    `${m.dose_in_source?`<br><span class="note">${esc(T('pcDoseSrc',{dose:m.dose_in_source}))}</span>`:''}`+
-    `${m.wait_note?`<br><span class="note">${esc(T('pcWaitLbl'))} ${esc(m.wait_note)}</span>`:''}</li>`).join('')}</ul><p class="note" style="margin:6px 0 0">${esc(T('pcMedWarn'))}</p>`:'';
-  return head+(r.summary?`<p>${esc(r.summary)}</p>`:'')+sec('pcCultural',r.cultural.length?`<ul>${li(r.cultural)}</ul>`:'')+sec('pcNatural',r.natural.length?`<ul>${li(r.natural)}</ul>`:'')+
-    sec('pcSpray',meds)+sec('pcSafety',r.safety.length?`<ul>${li(r.safety)}</ul>`:'')+src;
-}
-function plantResult(d,rs){
-  const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join('');
-  const sec=(k,body)=>body?`<h3>${esc(T(k))}</h3>${body}`:'';
-  let head;
-  if(d.kind==='not_plant')head=esc(T('pcNotPlant'));
-  else if(d.kind==='unclear_photo')head=esc(T('pcUnclear'));
-  else if(d.healthy)head=esc(T('pcHealthy'));
-  else head=esc(d.problem||'')+(d.category!=='none'&&d.category!=='other'?` <span class="note">· ${esc(T('pcCat_'+d.category))}</span>`:'');
-  const conf=d.kind==='plant'?`<span class="pill">${esc(T(DG.confKey(d)))}</span>`:'';
-  return `<div class="pc-res"><span class="pc-tag">${esc(T('pcAi',{service:chatName()}))}</span><div class="pc-head ${DG.tone(d)}"><span>${head}</span>${conf}</div>`+
-    sec('pcLooks',d.looks_like?`<p>${esc(d.looks_like)}</p>`:'')+sec('pcWhy',d.why?`<p>${esc(d.why)}</p>`:'')+
-    sec('pcDo',d.do_now.length?`<ul>${li(d.do_now)}</ul>`:'')+sec('pcChem',d.chemical_note?`<p>${esc(d.chemical_note)}</p>`:'')+
-    sec('pcRetake',d.retake?`<p>${esc(d.retake)}</p>`:'')+sec('pcHelpHdr',d.get_help?`<p>${esc(d.get_help)}</p>`:'')+plantResearchHtml(d,rs)+
-    `<p class="note" style="margin:14px 0 0">${esc(T('pcDisclaimer'))}</p></div>`;
-}
-function plantRender(f){
-  const el=$('plantBody');if(!el||farm()!==f)return;
-  el.innerHTML=plantBody(f)+plantKeyRow();const st=pcSt(f);
-  const im=$('pcImg');if(im&&st.url)im.src=st.url;
-  const onFile=e=>{const file=e.target.files&&e.target.files[0];e.target.value='';if(file)plantPhoto(f,file);};
-  [['pcCamBtn','pcCam'],['pcGalBtn','pcGal']].forEach(([b,i])=>{const B=$(b),I_=$(i);if(B&&I_){B.onclick=b==='pcCamBtn'?()=>plantCamera(f):()=>I_.click();I_.onchange=onFile;}});
-  document.querySelectorAll('#plantBody [data-sym]').forEach(b=>b.onclick=()=>refRun(f,b.dataset.sym));
-  {const rn=$('pcRefNote'),lk=$('pcLookup');
-   if(rn){rn.oninput=()=>{st.refNote=rn.value;};rn.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();refRun(f,null);}};}
-   if(lk)lk.onclick=()=>refRun(f,null);}
-  const ks=$('pcKeySave'),kd=$('pcKeyDel');
-  if(ks)ks.onclick=()=>{const v=($('pcKey').value||'').trim();if(!DG.validKey(v)){$('pcKeyMsg').textContent=T('pcKeyBad');return;}setGKey(v);plantRender(f);};
-  if(kd)kd.onclick=e=>{e.preventDefault();setGKey('');plantRender(f);};
-  const go=$('pcGo'),no=$('pcNo'),note=$('pcNote');
-  if(note)note.oninput=()=>{st.note=note.value;};
-  if(go)go.onclick=()=>{photoOK=true;plantRun(f);};
-  if(no)no.onclick=()=>{st.stage='idle';st.url=st.b64=null;st.note='';plantRender(f);};
-}
-// Live camera. Phones keep the native camera (the capture input: better quality, focus and flash). Computers get a camera window with a preview and a Capture button.
-// If the camera is blocked, missing or busy the farmer is told what to do and can still choose a photo.
-let camStream=null;
-function camStop(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}const v=$('camVid');if(v)v.srcObject=null;}
-function camClose(){camStop();const d=$('camDlg');if(d.open||d.hasAttribute('open')){if(d.close)d.close();else d.removeAttribute('open');}}
-async function camStart(deviceId){
-  camStop();
-  camStream=await navigator.mediaDevices.getUserMedia(DG.camConstraints(deviceId));
-  const v=$('camVid');v.srcObject=camStream;const pl=v.play();if(pl&&pl.catch)pl.catch(()=>{});   // not awaited: a camera that is slow to deliver its first frame must not freeze the window
-  try{                                                  // several cameras (a webcam and a phone, say): let the farmer choose
-    const cams=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='videoinput'),sel=$('camSel');
-    sel.hidden=cams.length<2;sel.innerHTML=cams.map((c,i)=>`<option value="${esc(c.deviceId)}">${esc(c.label||('Camera '+(i+1)))}</option>`).join('');
-    const cur=camStream.getVideoTracks()[0].getSettings().deviceId;sel.selectedIndex=0;if(cur&&[...sel.options].some(o=>o.value===cur))sel.value=cur;   // never leave it blank if the ids differ
-  }catch(e){}
-}
-async function plantCamera(f){
-  const md=navigator.mediaDevices,phone=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;
-  if(!md||!md.getUserMedia||phone){const i=$('pcCam');if(i)i.click();return;}      // phones, or no camera API: the native capture input / file picker
-  const st=pcSt(f),d=$('camDlg');
-  const fail=e=>{camClose();st.stage='fail';st.err=DG.camErrorKey(e);st.url=st.b64=null;plantRender(f);};
-  try{
-    if(d.showModal)d.showModal();else d.setAttribute('open','');
-    d.onclose=camStop;$('camX').onclick=camClose;                  // Cancel and Esc work from the first moment
-    $('camSel').onchange=e=>camStart(e.target.value).catch(fail);
-    $('camShoot').onclick=()=>{
-      const v=$('camVid');if(!v.videoWidth)return;
-      const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
-      c.toBlob(b=>{camClose();if(b)plantPhoto(f,new File([b],'camera.jpg',{type:'image/jpeg'}));},'image/jpeg',0.92);
-    };
-    await camStart();
-  }catch(e){fail(e);}
-}
-// The keyless lookup, in the background. Answers are kept on the device for a week so the same question is instant (and works without a connection).
-const REF_KEY='agrisat_ref_v1',REF_DAYS=7;
-const refCache=()=>{try{return JSON.parse(localStorage.getItem(REF_KEY))||{};}catch(e){return {};}};
-function refCacheSet(k,res){try{const c=refCache(),now=Date.now();Object.keys(c).forEach(x=>{if(now-c[x].at>REF_DAYS*864e5)delete c[x];});c[k]={at:now,res};
-  const ks=Object.keys(c);if(ks.length>30)ks.sort((a,b)=>c[a].at-c[b].at).slice(0,ks.length-30).forEach(x=>delete c[x]);localStorage.setItem(REF_KEY,JSON.stringify(c));}catch(e){}}
-async function refRun(f,sym){
-  const st=pcSt(f),crop=f.cropId&&f.cropId!=='general'?I.t('en','crop_'+f.cropId):'',note=sym?'':(st.refNote||'').trim();
-  if(!sym&&!note)return;
-  const o={crop,symptom:sym,note,lang},key=DG.referenceQuery(o)+'|'+lang,hit=refCache()[key];
-  const seq=st.refSeq=(st.refSeq||0)+1;
-  if(hit&&Date.now()-hit.at<REF_DAYS*864e5){st.ref={stage:'done',res:DG.normalizeReference(hit.res)};plantRender(f);return;}
-  st.ref={stage:'busy'};plantRender(f);
-  try{
-    const res=DG.normalizeReference(await DG.lookupReference(o,{}));
-    if(!res)throw new Error('unreadable');
-    refCacheSet(key,res);
-    if(st.refSeq===seq)st.ref={stage:'done',res};
-  }catch(e){if(st.refSeq===seq)st.ref={stage:'fail'};}
-  if(st.refSeq===seq)plantRender(f);
-}
-async function plantPhoto(f,file){
-  const st=pcSt(f);
-  st.seq=(st.seq||0)+1;st.rs=null;
-  try{const p=await DG.prepareImage(file);st.stage='ready';st.url=p.dataUrl;st.b64=p.b64;st.mime=p.mime;st.note='';st.res=null;st.err=null;}
-  catch(e){st.stage='fail';st.err='pcBad';st.url=st.b64=null;}
-  plantRender(f);
-}
-async function plantRun(f){
-  const st=pcSt(f);if(!st.b64)return;
-  const seq=st.seq=(st.seq||0)+1;st.rs=null;
-  st.stage='busy';plantRender(f);
-  try{
-    const crop=f.cropId&&f.cropId!=='general'?I.t('en','crop_'+f.cropId):'';
-    const body=DG.buildRequest({b64:st.b64,mime:st.mime,lang,crop,note:st.note,context:AS.llmContext(chatCtx())});
-    const d=DG.normalize((await plantCall(body,45000)||{}).diagnosis);
-    if(!d)throw new Error('unreadable');
-    st.stage='done';st.res=d;st.err=null;
-    if(DG.researchWanted(d)){plantRender(f);return plantResearch(f,d,seq);}   // the photo named a problem: look up its treatment in the background
-  }catch(e){st.stage='fail';st.err=plantErr(e);}
-  plantRender(f);
-}
-const plantErr=e=>/key rejected/i.test(String(e&&e.message))?'pcKeyRejected':'pcFail';
-// Second step, in the background: only the problem's NAME goes to a web search (Google for Gemini, web search for Claude). The sources come back with the answer.
-async function plantResearch(f,d,seq){
-  const st=pcSt(f);st.rs={stage:'busy'};plantRender(f);
-  try{
-    const crop=f.cropId&&f.cropId!=='general'?I.t('en','crop_'+f.cropId):'';
-    const r=DG.normalizeResearch((await plantCall(DG.buildResearchRequest({problem:d.problem,crop,category:d.category,lang}),90000)||{}).research);
-    if(!r)throw new Error('unreadable');
-    if(st.seq===seq)st.rs={stage:'done',res:r};
-  }catch(e){if(st.seq===seq)st.rs={stage:'fail'};}
-  if(st.seq===seq)plantRender(f);
-}
 
 // ── map / edit (P4: area, small-farm warning) ──
 let layerCtl=null,baseLayers=null,others=[],flash=null;
@@ -1060,7 +847,7 @@ function renderAdvice(f,a,w,warn){
   const kcNote=a.ndviStale?(crop.stage_curve&&crop.planting_date?' '+T('kcStage'):' '+T('kcGeneral')):'';
   $('advice').innerHTML=
    `<div class="big ${cls}"><div class="t">${esc(f.name)} · ${fmt(f.areaM2/10000,2)} ha · ${esc(T('crop_'+(f.cropId||'general')))}</div><div class="h">${esc(head)}</div><div class="r">${esc(T(a.reasonKey,a.rp))}</div>${how}</div>`+
-   `<div class="card"><button id="waShare" class="sec">${esc(T('waBtn'))}</button><p class="note" style="margin:8px 0 0">${esc(T('waHint'))}</p></div>`+plantCard(f)+warnHtml+
+   `<div class="card"><button id="waShare" class="sec">${esc(T('waBtn'))}</button><p class="note" style="margin:8px 0 0">${esc(T('waHint'))}</p></div>`+warnHtml+
    `<div class="card"><h2>${esc(T('soilWater'))} <span class="pill">${esc(T('estimate'))}</span></h2><div class="bar"><i style="width:${Math.min(100,a.pct).toFixed(0)}%"></i><b style="left:${(100*a.raw/a.taw).toFixed(0)}%"></b></div>
      <div class="note">${esc(T('used',{dr:fmt(a.dr),taw:fmt(a.taw),raw:fmt(a.raw)}))}</div></div>`+
    `<div class="card"><h2>${esc(T('nextDays'))}</h2><div class="fc">${fc}</div></div>`+
@@ -1077,7 +864,7 @@ function renderAdvice(f,a,w,warn){
       <span>${esc(T('kSoil'))}</span><span>${a.soil&&a.soil.clay!=null?esc(T('soilVal',{clay:fmt(a.soil.clay*100),sand:fmt(a.soil.sand*100)})):esc(T('soilGeneral'))}</span>
       <span>${esc(T('kRain2'))}</span><span>${fmt(a.forecastRain2d,0)} mm</span></div>
       <p class="note">${esc(T('srcNote'))}</p></div>`;
-  drawNdvi(f);ensureRadar(f);plantRender(f);{const b=$('waShare');if(b)b.onclick=()=>shareWhatsApp(f,a);}
+  drawNdvi(f);ensureRadar(f);{const b=$('waShare');if(b)b.onclick=()=>shareWhatsApp(f,a);}
   $('logCard').hidden=false;$('mgmt').hidden=false;
   $('logNote').textContent=f.events.length?T('logNoteN',{n:f.events.length}):T('logNote0');
 }
