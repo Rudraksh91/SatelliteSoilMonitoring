@@ -143,6 +143,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .chat-form{display:flex;gap:8px;padding:8px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 .chat-form input{flex:1 1 auto;min-width:0}
 [hidden]{display:none!important}
+.pc-img{display:block;width:100%;max-height:280px;object-fit:contain;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin:10px 0}
+.pc-head{padding:10px 12px;border-radius:12px;margin:10px 0 8px;font-weight:700;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.pc-head.good{background:color-mix(in srgb,var(--g) 18%,var(--card))}.pc-head.warn{background:color-mix(in srgb,var(--amber) 20%,var(--card))}.pc-head.bad{background:color-mix(in srgb,var(--red) 16%,var(--card))}.pc-head.none{background:var(--bg)}
+.pc-res h3{font-size:13px;margin:12px 0 3px;color:var(--mut);font-weight:700;letter-spacing:.03em}.pc-res p{margin:0 0 4px}.pc-res ul{margin:0;padding-left:20px}.pc-res li{margin:0 0 3px}
+.pc-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--amber);margin-bottom:2px}
+#pcNote{width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:8px 0}
 </style>
 </head>
 <body>
@@ -276,6 +282,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <script src="farmer/i18n.js?v=20261121k"></script>
 <script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
+<script src="farmer/diagnose.js?v=20261123a"></script>
 <script src="farmer/chat-config.js?v=1"></script>
 <script src="farmer/ndvimap.js?v=20261121k"></script>
 <script src="farmer/autopilot.js?v=20261121x"></script>
@@ -451,6 +458,75 @@ $('chatFab').onclick=chatOpen;$('chatX').onclick=chatClose;
 $('chatForm').onsubmit=e=>{e.preventDefault();const v=$('chatIn').value;$('chatIn').value='';chatAsk(v);};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('chat').hidden)chatClose();});
 renderChatChips();
+
+// ── plant health check: photograph a plant, the optional AI service (chat-proxy) reads the photo and says what it may be and what to do.
+// The photo is made smaller on a canvas first (that drops location and camera data), is never stored, and is sent only after the farmer taps Allow. ──
+const DG=window.AgriDiagnose;
+const pc={};let photoOK=false;                       // pc[fieldId] = { stage:'idle'|'ready'|'busy'|'done'|'fail', url, b64, mime, note, res, err }
+const pcSt=f=>pc[f.id]||(pc[f.id]={stage:'idle'});
+const plantCard=f=>`<div class="card" id="plantCard"><h2>${esc(T('pcTitle'))}</h2><div id="plantBody">${plantBody(f)}</div></div>`;
+function plantBody(f){
+  const st=pcSt(f);
+  if(!chatUrl())return `<p class="note" style="margin:0">${esc(T('pcOff'))}</p>`;
+  const img=st.url?`<img class="pc-img" id="pcImg" alt="">`:'';
+  if(st.stage==='busy')return img+`<p style="margin:0">${esc(T('pcBusy'))}</p>`;
+  if(st.stage==='ready')return img+`<input id="pcNote" type="text" maxlength="200" placeholder="${esc(T('pcNotePh'))}" value="${esc(st.note||'')}">`+
+    (photoOK?'':`<p class="note" style="margin:0 0 8px">${esc(T('pcConsent',{service:chatName()}))}</p>`)+
+    `<div class="row"><button id="pcGo">${esc(T(photoOK?'pcCheck':'pcAllow'))}</button><button id="pcNo" class="sec">${esc(T('pcCancel'))}</button></div>`;
+  const pick=`<div class="row"><button id="pcCamBtn">${esc(T('pcTake'))}</button><button id="pcGalBtn" class="sec">${esc(T('pcPick'))}</button></div>`+
+    `<input id="pcCam" type="file" accept="image/*" capture="environment" hidden><input id="pcGal" type="file" accept="image/*" hidden>`;
+  if(st.stage==='fail')return img+`<p style="margin:0 0 10px;color:var(--red)">${esc(T(st.err||'pcFail'))}</p>`+pick;
+  if(st.stage==='done'&&st.res)return img+plantResult(st.res)+`<div style="margin-top:12px">${pick}</div>`;
+  return `<p style="margin:0 0 6px">${esc(T('pcHelp'))}</p><p class="note" style="margin:0 0 10px">${esc(T('pcTips'))}</p>`+pick;
+}
+function plantResult(d){
+  const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join('');
+  const sec=(k,body)=>body?`<h3>${esc(T(k))}</h3>${body}`:'';
+  let head;
+  if(d.kind==='not_plant')head=esc(T('pcNotPlant'));
+  else if(d.kind==='unclear_photo')head=esc(T('pcUnclear'));
+  else if(d.healthy)head=esc(T('pcHealthy'));
+  else head=esc(d.problem||'')+(d.category!=='none'&&d.category!=='other'?` <span class="note">· ${esc(T('pcCat_'+d.category))}</span>`:'');
+  const conf=d.kind==='plant'?`<span class="pill">${esc(T(DG.confKey(d)))}</span>`:'';
+  return `<div class="pc-res"><span class="pc-tag">${esc(T('pcAi',{service:chatName()}))}</span><div class="pc-head ${DG.tone(d)}"><span>${head}</span>${conf}</div>`+
+    sec('pcLooks',d.looks_like?`<p>${esc(d.looks_like)}</p>`:'')+sec('pcWhy',d.why?`<p>${esc(d.why)}</p>`:'')+
+    sec('pcDo',d.do_now.length?`<ul>${li(d.do_now)}</ul>`:'')+sec('pcChem',d.chemical_note?`<p>${esc(d.chemical_note)}</p>`:'')+
+    sec('pcRetake',d.retake?`<p>${esc(d.retake)}</p>`:'')+sec('pcHelpHdr',d.get_help?`<p>${esc(d.get_help)}</p>`:'')+
+    `<p class="note" style="margin:12px 0 0">${esc(T('pcDisclaimer'))}</p></div>`;
+}
+function plantRender(f){
+  const el=$('plantBody');if(!el||farm()!==f)return;
+  el.innerHTML=plantBody(f);const st=pcSt(f);
+  const im=$('pcImg');if(im&&st.url)im.src=st.url;
+  const onFile=e=>{const file=e.target.files&&e.target.files[0];e.target.value='';if(file)plantPhoto(f,file);};
+  [['pcCamBtn','pcCam'],['pcGalBtn','pcGal']].forEach(([b,i])=>{const B=$(b),I_=$(i);if(B&&I_){B.onclick=()=>I_.click();I_.onchange=onFile;}});
+  const go=$('pcGo'),no=$('pcNo'),note=$('pcNote');
+  if(note)note.oninput=()=>{st.note=note.value;};
+  if(go)go.onclick=()=>{photoOK=true;plantRun(f);};
+  if(no)no.onclick=()=>{st.stage='idle';st.url=st.b64=null;st.note='';plantRender(f);};
+}
+async function plantPhoto(f,file){
+  const st=pcSt(f);
+  try{const p=await DG.prepareImage(file);st.stage='ready';st.url=p.dataUrl;st.b64=p.b64;st.mime=p.mime;st.note='';st.res=null;st.err=null;}
+  catch(e){st.stage='fail';st.err='pcBad';st.url=st.b64=null;}
+  plantRender(f);
+}
+async function plantRun(f){
+  const st=pcSt(f);if(!st.b64)return;
+  st.stage='busy';plantRender(f);
+  try{
+    const crop=f.cropId&&f.cropId!=='general'?I.t('en','crop_'+f.cropId):'';
+    const body=DG.buildRequest({b64:st.b64,mime:st.mime,lang,crop,note:st.note,context:AS.llmContext(chatCtx())});
+    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),45000);
+    const res=await fetch(chatUrl(),{method:'POST',headers:{'content-type':'application/json'},signal:ctl.signal,body:JSON.stringify(body)});
+    clearTimeout(to);
+    if(!res.ok)throw new Error('http '+res.status);
+    const d=DG.normalize((await res.json()||{}).diagnosis);
+    if(!d)throw new Error('unreadable');
+    st.stage='done';st.res=d;st.err=null;
+  }catch(e){st.stage='fail';st.err='pcFail';}
+  plantRender(f);
+}
 
 // ── map / edit (P4: area, small-farm warning) ──
 let layerCtl=null,baseLayers=null,others=[],flash=null;
@@ -839,7 +915,7 @@ function renderAdvice(f,a,w,warn){
   const kcNote=a.ndviStale?(crop.stage_curve&&crop.planting_date?' '+T('kcStage'):' '+T('kcGeneral')):'';
   $('advice').innerHTML=
    `<div class="big ${cls}"><div class="t">${esc(f.name)} · ${fmt(f.areaM2/10000,2)} ha · ${esc(T('crop_'+(f.cropId||'general')))}</div><div class="h">${esc(head)}</div><div class="r">${esc(T(a.reasonKey,a.rp))}</div>${how}</div>`+
-   `<div class="card"><button id="waShare" class="sec">${esc(T('waBtn'))}</button><p class="note" style="margin:8px 0 0">${esc(T('waHint'))}</p></div>`+warnHtml+
+   `<div class="card"><button id="waShare" class="sec">${esc(T('waBtn'))}</button><p class="note" style="margin:8px 0 0">${esc(T('waHint'))}</p></div>`+plantCard(f)+warnHtml+
    `<div class="card"><h2>${esc(T('soilWater'))} <span class="pill">${esc(T('estimate'))}</span></h2><div class="bar"><i style="width:${Math.min(100,a.pct).toFixed(0)}%"></i><b style="left:${(100*a.raw/a.taw).toFixed(0)}%"></b></div>
      <div class="note">${esc(T('used',{dr:fmt(a.dr),taw:fmt(a.taw),raw:fmt(a.raw)}))}</div></div>`+
    `<div class="card"><h2>${esc(T('nextDays'))}</h2><div class="fc">${fc}</div></div>`+
@@ -856,7 +932,7 @@ function renderAdvice(f,a,w,warn){
       <span>${esc(T('kSoil'))}</span><span>${a.soil&&a.soil.clay!=null?esc(T('soilVal',{clay:fmt(a.soil.clay*100),sand:fmt(a.soil.sand*100)})):esc(T('soilGeneral'))}</span>
       <span>${esc(T('kRain2'))}</span><span>${fmt(a.forecastRain2d,0)} mm</span></div>
       <p class="note">${esc(T('srcNote'))}</p></div>`;
-  drawNdvi(f);ensureRadar(f);{const b=$('waShare');if(b)b.onclick=()=>shareWhatsApp(f,a);}
+  drawNdvi(f);ensureRadar(f);plantRender(f);{const b=$('waShare');if(b)b.onclick=()=>shareWhatsApp(f,a);}
   $('logCard').hidden=false;$('mgmt').hidden=false;
   $('logNote').textContent=f.events.length?T('logNoteN',{n:f.events.length}):T('logNote0');
 }

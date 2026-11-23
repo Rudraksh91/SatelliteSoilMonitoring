@@ -26,6 +26,29 @@ Only for questions that are **not about the farmer's own field** (general farmin
   forecast, NDVI. **No field name, no coordinates, no account details** (`AgriAssistant.llmContext`).
 - up to the last 6 turns of that AI conversation
 
+## Plant photo check (camera)
+
+The same proxy also powers the **Plant health check** card on the field screen. The farmer takes or picks one photo of a leaf, fruit or
+plant; the page makes it smaller on a canvas (this removes location and camera data), asks the farmer to **Allow** (the question names the
+service), and sends a request with `task: "diagnose"`. The proxy checks it, adds the key, asks a vision model (`gemini-3.5-flash-lite` by
+default, or Claude with `worker-claude.mjs`) and returns `{ "diagnosis": { ... } }`: what the photo most likely shows, how sure it is,
+why, what to do now (field hygiene and biological steps first), the *kind* of spray if one may be needed, and when to get it checked.
+
+What is sent: the photo (at most 1024 px on the long side), the crop's name, an optional note of up to 200 characters, the app language and
+the same anonymous field facts as the Ask button. **Never** the field name, the coordinates or any account detail. The photo is not stored by
+the app, and the proxy keeps nothing. Whether the AI service keeps or trains on photos depends on its terms and your plan: read them before
+you switch this on, and say so in the app's consent text if it differs.
+
+The model is told to answer only from what the photo shows, to say "not a plant" or "photo not clear" rather than guess, to treat
+water stress, nutrient problems and sun scorch as look-alikes, to **never invent doses or brand names**, to ignore instructions written inside
+the photo, and to send the farmer to a KVK or the Kisan Call Centre (1800-180-1551). Its reply must be one JSON object; `readDiagnosis` in
+`lib.mjs` keeps only known fields, cuts every text, and refuses anything unreadable (the farmer sees "could not be checked", never an invented answer).
+The app shows it as "AI answer" with "This is an AI reading of one photo, not a laboratory test".
+
+Limits: the request body is capped at about 1.6 MB (413 above that), the photo at about 1 MB, and the wait at 40 s.
+**It has not been run against the live Gemini or Claude API with real crop photos**, because that needs a key: after deploying, send a few real
+photos (a healthy leaf, a diseased leaf, a non-plant) and read the answers before sharing the app widely. A diagnosis from a photo is a helper, not a substitute for an agriculture officer.
+
 ## Set up with Gemini (about 10 minutes)
 
 1. Get a key from Google AI Studio (aistudio.google.com, "Get API key"). Check Google's current free-tier limits and terms there.
@@ -88,7 +111,7 @@ the AI declines a question or is unreachable, the farmer sees a polite message p
 
 ## Tests
 
-`node tests/test_chat_proxy.js` (from the repository root) checks validation, the system prompt, message building and the whole
-Gemini request/response handling against a **mocked** Google endpoint: the key goes in a header, roles map to user/model, blocked
+`node tests/test_chat_proxy.js` (from the repository root) checks validation, the system prompts, message building and the whole
+Gemini request/response handling (chat and plant photos) against a **mocked** Google endpoint: the key goes in a header, roles map to user/model, blocked
 or empty answers become polite errors, and upstream details are never leaked. **It has not been run against the live Gemini API**,
 because that needs a real key: please send one real question after deploying.

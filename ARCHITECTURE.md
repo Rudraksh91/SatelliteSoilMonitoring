@@ -438,6 +438,19 @@ UI in `farmer.html`). Tests: `node tests/test_assistant.js`, `node tests/test_ch
   the Hindi and Gujarati wording needs review by a native speaker; the AI path (Gemini and Claude) has been tested only against mocked
   servers, not against the live APIs; Gemini model IDs change, so check `GEMINI_MODEL` before deploying.
 
+## Plant health check (camera card on the field screen)
+A farmer photographs a leaf, fruit or plant (`<input type="file" accept="image/*" capture="environment">`, so a phone opens its camera and a
+computer opens a file picker). `farmer/diagnose.js` redraws the photo at most 1024 px on its long side as JPEG on a canvas, which **removes
+all camera metadata (location, time, phone model)**, and the card asks the farmer to **Allow** (naming the service). It then posts
+`{ task: "diagnose", image, mime, lang, crop, note, context }` to the same optional chat-proxy URL as the Ask button
+(`chat-proxy/lib.mjs`: `parseDiagnoseRequest`, `DIAGNOSE_SYSTEM`, `readDiagnosis`; vision call in `worker.mjs` (Gemini) or
+`worker-claude.mjs` (Claude)). The reply is one JSON object (what it looks like, likely problem, category, confidence, why, up to 4 steps,
+the *kind* of spray only, when to get it checked, how to retake a bad photo) which `AgriDiagnose.normalize` cleans before it is shown as text.
+Rules: the photo is never stored; no field name or coordinates are sent; unreadable replies show "could not be checked" instead of a guess; every
+result carries "an AI reading of one photo, not a laboratory test" and the KVK / Kisan Call Centre number; with no service configured the card only
+shows that pointer. Strings: `pc*` keys in `farmer/i18n.js`. Tests: `node tests/test_diagnose.js`, `node tests/test_chat_proxy.js`.
+Not yet run against the live API with real crop photos.
+
 ## Control philosophy: automatic first, manual optional
 Automatic irrigation is the primary mode of the system and manual control is an optional override, not the other way round.
 - **Dashboard:** `AUTO MODE` is the default and is labelled PRIMARY; `MANUAL OVERRIDE` is labelled OPTIONAL, its banner says automatic

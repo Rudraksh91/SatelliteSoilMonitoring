@@ -2,17 +2,21 @@
 // questions here and this server adds the key, calls Gemini and returns { answer }. See README.md.
 // Secret: GEMINI_API_KEY (never in the repo). Model: GEMINI_MODEL (default in lib.mjs). No npm packages are needed.
 // A Claude version is in worker-claude.mjs.
-import { HttpError, makeHandler, buildGeminiBody, readGeminiAnswer, GEMINI_DEFAULT_MODEL } from './lib.mjs';
+import { HttpError, makeHandler, buildGeminiBody, buildGeminiDiagnoseBody, readGeminiAnswer, readDiagnosis, GEMINI_DEFAULT_MODEL } from './lib.mjs';
 
-async function geminiAnswer(v, env) {
+async function callGemini(body, env, ms) {
   if (!env.GEMINI_API_KEY) throw new HttpError(500, 'server not configured');
   const model = env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
-  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+  return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },   // header, not the URL, so the key never lands in logs
-    body: JSON.stringify(buildGeminiBody(v)),
-    signal: AbortSignal.timeout(25000),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(ms),
   });
+}
+
+async function geminiAnswer(v, env) {
+  const res = await callGemini(buildGeminiBody(v), env, 25000);
   if (res.status === 429) throw new HttpError(429, 'busy, try again');
   if (!res.ok) throw new HttpError(502, 'upstream error');
   const out = readGeminiAnswer(await res.json());
@@ -20,4 +24,16 @@ async function geminiAnswer(v, env) {
   return out.answer;
 }
 
-export default { fetch: makeHandler(geminiAnswer) };
+// Plant photo check: the photo and a few anonymous facts go to Gemini, the reply must be the JSON described in lib.mjs (DIAGNOSE_SYSTEM).
+async function geminiDiagnose(v, env) {
+  const res = await callGemini(buildGeminiDiagnoseBody(v), env, 40000);
+  if (res.status === 429) throw new HttpError(429, 'busy, try again');
+  if (!res.ok) throw new HttpError(502, 'upstream error');
+  const out = readGeminiAnswer(await res.json());
+  if (out.error) throw new HttpError(out.status, out.error);
+  const d = readDiagnosis(out.answer);
+  if (!d) throw new HttpError(502, 'unreadable answer');
+  return d;
+}
+
+export default { fetch: makeHandler(geminiAnswer, geminiDiagnose) };
