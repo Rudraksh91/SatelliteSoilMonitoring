@@ -11,9 +11,7 @@
  *   AgriDiagnose.direct.diagnose / .research(body, key, opts) -> own-key mode: the same Gemini calls the proxy makes, run in this page with the user's OWN
  *                                        key (kept on this device, sent only to Google). Uses chat-proxy/lib.mjs so the prompts and checks are identical.
  *   AgriDiagnose.camConstraints(deviceId) / camErrorKey(e) -> getUserMedia settings for the live camera window, and the wording key for a camera error
- *   AgriDiagnose.googleSearchUrl(o) / copyImage(dataUrl) / SYMPTOMS -> the no-key route: a Google search built from crop + symptom, and the photo copied to the clipboard
- *                                        so it can be pasted into Google Lens (Google does not let a page send it a photo, nor read its results)
- *   AgriDiagnose.validKey(k)             -> cheap shape check for a pasted key (no spaces, long enough)
+ *   AgriDiagnose.lookupReference(o, deps) / normalizeReference(raw) -> the no-key route: Wikipedia lookup of the symptom, translated in the background, all shown inside the app
  *   AgriDiagnose.fitSize(w, h, max)      -> new width and height with the long side at most `max`
  *   AgriDiagnose.tone(d)                 -> 'good' | 'warn' | 'bad' | 'none': how the result card is coloured
  *   AgriDiagnose.confKey(d)              -> the i18n key of the confidence label
@@ -110,24 +108,109 @@
     return 'pcCamFail';
   };
 
-  /** No key, no account: a Google search the farmer's browser opens in a new tab. Google shows the results; this app never reads them. */
+  /** No key, no account, no Google page: the app looks the symptom up in Wikipedia in the background (English, CORS-open, no key), picks the sections on
+   *  symptoms and control, and, for Hindi or Gujarati, translates them with Google Translate's public endpoint, also in the background. Everything is shown
+   *  inside the app. This is a general reference, not a diagnosis: it never sees the photo. */
   const SYMPTOMS = { spots: 'leaf spots', curl: 'leaf curling', yellow: 'yellowing leaves', wilt: 'wilting plant', holes: 'holes in leaves insects', powder: 'white powdery coating on leaves', fruit: 'fruit rot and fruit drop' };
-  function googleSearchUrl(o) {
+  // Wikipedia's search is word matching, not understanding, so each symptom is turned into the names of the diseases and pests it usually points to.
+  const SYMPTOM_TERMS = { spots: ['leaf spot disease', 'anthracnose'], curl: ['leaf curl virus', 'whitefly'], yellow: ['chlorosis', 'mosaic virus'], wilt: ['wilt disease', 'fusarium wilt'],
+    holes: ['caterpillar pest', 'armyworm'], powder: ['powdery mildew', 'downy mildew'], fruit: ['fruit rot', 'fruit fly'] };
+  const WIKI = 'https://en.wikipedia.org/';
+  const wikiApi = p => WIKI + 'w/api.php?' + Object.keys(p).map(k => k + '=' + encodeURIComponent(p[k])).join('&');
+  const wikiUrl = title => WIKI + 'wiki/' + encodeURIComponent(String(title).replace(/ /g, '_')).replace(/%2F/g, '/');
+  function referenceQuery(o) {
     o = o || {};
     const what = Object.prototype.hasOwnProperty.call(SYMPTOMS, o.symptom) ? SYMPTOMS[o.symptom] : (clean(o.note, 120) || 'leaf disease');
-    const q = [clean(o.crop, 60), what, 'disease treatment India'].filter(Boolean).join(' ');
-    return 'https://www.google.com/search?q=' + encodeURIComponent(q) + '&hl=' + ({ hi: 'hi', gu: 'gu' }[o.lang] || 'en');
+    return [clean(o.crop, 60), what, 'disease'].filter(Boolean).join(' ');
   }
-  /** Browser only. Puts the photo on the clipboard as PNG so it can be pasted into Google Lens. Returns false when the browser cannot do it. */
-  async function copyImage(dataUrl, nav) {
-    nav = nav || (typeof navigator !== 'undefined' ? navigator : null);
-    if (!nav || !nav.clipboard || !nav.clipboard.write || typeof ClipboardItem === 'undefined' || !splitDataUrl(dataUrl)) return false;
-    const img = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => no(new Error('unreadable photo')); im.src = dataUrl; });
-    const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0);
-    const blob = await new Promise(ok => c.toBlob(ok, 'image/png'));
-    if (!blob) return false;
-    await nav.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-    return true;
+  /** Up to three searches: the crop with each disease name, and the first disease name on its own. */
+  function referenceQueries(o) {
+    o = o || {};
+    const crop = clean(o.crop, 60), note = clean(o.note, 120);
+    const terms = Object.prototype.hasOwnProperty.call(SYMPTOM_TERMS, o.symptom) ? SYMPTOM_TERMS[o.symptom] : [note ? note + ' disease' : 'leaf disease', note ? note + ' pest' : 'crop pest'];
+    return [[crop, terms[0]], [terms[0]], [crop, terms[1]]].map(a => a.filter(Boolean).join(' ')).filter((q, i, all) => q && all.indexOf(q) === i);
+  }
+  /** Article titles to try directly (Wikipedia has articles named exactly like most diseases and pests): the crop with the disease name, and the disease name alone. */
+  function directTitles(o) {
+    o = o || {};
+    const crop = clean(o.crop, 60), cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+    const terms = Object.prototype.hasOwnProperty.call(SYMPTOM_TERMS, o.symptom) ? SYMPTOM_TERMS[o.symptom] : [];
+    const out = []; terms.forEach(t => { if (crop) out.push(cap(crop.toLowerCase()) + ' ' + t); out.push(cap(t)); });
+    return out.filter((t, i, a) => a.indexOf(t) === i);
+  }
+  /** Search results -> up to 3 pages most likely to be a plant disease or pest, best first. */
+  function rankSearch(json, crop) {
+    const list = json && json.query && Array.isArray(json.query.search) ? json.query.search : [];
+    const bad = /institute|university|college|list of|glossary|disambiguation|company|society|association|ministry|journal|\bact\b|policy|national|research|fungicide use|agriculture in|deaths in|\bplant$/i;
+    const good = /disease|virus|blight|rust|wilt|mildew|rot\b|spot|pest|insect|mosaic|curl|fung|bacteri|nematode|mite|aphid|whitefly|borer|caterpillar|weevil|smut|scab|canker|pathogen/i;
+    const c = clean(crop, 60).toLowerCase().split(' ')[0];
+    return list.map((r, i) => {
+      const title = clean(r.title, 120), snip = clean(r.snippet, 400);
+      let sc = (good.test(title) ? 3 : 0) + (good.test(snip) ? 2 : 0) + (c && (title.toLowerCase().includes(c) || snip.toLowerCase().includes(c)) ? 2 : 0) - (bad.test(title) ? 5 : 0) - i * 0.1;
+      return { title, score: sc };
+    }).filter(x => x.title && x.score >= 2).sort((a, b) => b.score - a.score).slice(0, 3);
+  }
+  function clip(t, n) {
+    t = String(t || '').replace(/\[\d+\]/g, '').replace(/\s+/g, ' ').trim();
+    if (t.length <= n) return t;
+    const cut = t.slice(0, n), i = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('; '));
+    return (i > n * 0.5 ? cut.slice(0, i + 1) : cut.replace(/\s+\S*$/, '') + '…');
+  }
+  /** Plain-text page (explaintext) -> { intro, signs, control }. Section names are matched, not trusted. */
+  function pageFacts(title, text) {
+    const parts = String(text || '').replace(/\s*$/, '\n').split(/\n(?=={2,}\s*[^=\n]+?\s*={2,}\s*\n)/);
+    const body = p => p.split('\n').slice(1).join('\n');
+    const head = p => p.split('\n')[0].replace(/=/g, '').trim();
+    const find = re => parts.slice(1).find(p => re.test(head(p)));
+    const sec = find(/symptom|sign|appearance|description/i), ctl = find(/control|management|prevention|treatment/i) || find(/resistance/i);
+    const f = { title: clean(title, 120), url: wikiUrl(title), intro: clip(parts[0], 380), signs: sec ? clip(body(sec), 600) : '', control: ctl ? clip(body(ctl), 700) : '' };
+    return f;
+  }
+  const gjson = async (fn, url) => { const r = await fn(url); if (!r.ok) throw new Error('http ' + r.status); return r.json(); };
+  /** Google Translate's public endpoint (no key). Throws when it refuses; the caller then shows the English text. */
+  async function translateText(text, lang, fetchFn) {
+    const fn = fetchFn || ((...a) => fetch(...a));
+    if (!text || !/^(hi|gu)$/.test(lang)) return text;
+    const j = await gjson(fn, 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=' + lang + '&dt=t&q=' + encodeURIComponent(String(text).slice(0, 1800)));
+    const out = Array.isArray(j && j[0]) ? j[0].map(x => (x && x[0]) || '').join('') : '';
+    if (!out) throw new Error('no translation');
+    return clean(out, 2000);
+  }
+  /** o = { crop, symptom, note, lang }; deps = { fetchFn }. -> { found, pages:[{title,url,intro,signs,control}], translated } */
+  async function lookupReference(o, deps) {
+    const fn = (deps && deps.fetchFn) || ((...a) => fetch(...a));
+    const found = await Promise.all(referenceQueries(o).map(async (q, i) => {
+      try { const j = await gjson(fn, wikiApi({ action: 'query', list: 'search', srsearch: q, srlimit: 6, format: 'json', origin: '*' })); return (j.query && j.query.search) || []; }
+      catch (e) { if (i === 0) throw e; return []; }               // the first search must work; the others only add candidates
+    }));
+    const seen = new Set(), merged = [];
+    found.forEach(list => list.forEach(r => { if (r && !seen.has(r.title)) { seen.add(r.title); merged.push(r); } }));
+    const ranked = rankSearch({ query: { search: merged } }, o && o.crop).map(p => p.title);
+    const candidates = directTitles(o).concat(ranked).filter((t, i, a) => a.indexOf(t) === i).slice(0, 6);      // exact-name articles first, then the best search hits
+    let pages = (await Promise.all(candidates.map(async title => {
+      try {
+        const j = await gjson(fn, wikiApi({ action: 'query', prop: 'extracts', explaintext: 1, titles: title, redirects: 1, format: 'json', origin: '*' }));
+        const pg = Object.values((j.query && j.query.pages) || {})[0] || {};
+        return pg.missing !== undefined ? null : pageFacts(pg.title || title, pg.extract || '');
+      } catch (e) { return null; }
+    }))).filter((x, i, a) => x && (x.signs || x.control) && a.findIndex(y => y && y.title === x.title) === i).slice(0, 3);
+    const lang = (o && o.lang) || 'en';
+    let translated = false;
+    if (pages.length && /^(hi|gu)$/.test(lang)) {
+      try {
+        pages = await Promise.all(pages.map(async x => Object.assign({}, x, {
+          intro: await translateText(x.intro, lang, fn), signs: x.signs ? await translateText(x.signs, lang, fn) : '', control: x.control ? await translateText(x.control, lang, fn) : '' })));
+        translated = true;
+      } catch (e) { translated = false; }                    // the English text is shown instead, and the note says so
+    }
+    return { found: pages.length > 0, pages, translated };
+  }
+  /** What the card shows: only Wikipedia links, text without tags, bounded. */
+  function normalizeReference(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const pages = (Array.isArray(raw.pages) ? raw.pages : []).map(p => ({ title: clean(p && p.title, 120), url: typeof (p && p.url) === 'string' && /^https:\/\/en\.wikipedia\.org\/wiki\/[^\s"'<>]+$/.test(p.url) ? p.url : '',
+      intro: clean(p && p.intro, 450), signs: clean(p && p.signs, 700), control: clean(p && p.control, 800) })).filter(p => p.title && p.url && (p.signs || p.control)).slice(0, 3);
+    return { found: pages.length > 0, pages, translated: raw.translated === true };
   }
 
   /** A pasted API key: no spaces or quotes, 20 to 200 characters. (Google decides if it is really valid.) */
@@ -178,5 +261,5 @@
     } finally { release(); }
   }
 
-  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, researchWanted, buildResearchRequest, normalizeResearch, camConstraints, camErrorKey, SYMPTOMS, googleSearchUrl, copyImage, validKey, direct, tone, confKey, prepareImage };
+  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, researchWanted, buildResearchRequest, normalizeResearch, camConstraints, camErrorKey, SYMPTOMS, SYMPTOM_TERMS, referenceQuery, referenceQueries, directTitles, rankSearch, pageFacts, translateText, lookupReference, normalizeReference, wikiUrl, validKey, direct, tone, confKey, prepareImage };
 });

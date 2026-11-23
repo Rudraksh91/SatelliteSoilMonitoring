@@ -457,10 +457,12 @@ When the photo names a problem the card then makes a second, text-only request (
 proxy searches the web (Gemini: Google Search grounding; Claude: web search tool) and returns treatment findings: low-risk steps first, then medicines named in the
 sources (active ingredient; a dose only if a retrieved page states it; waiting period), safety points, and the source links taken from the search tool's own metadata.
 `AgriDiagnose.normalizeResearch` keeps https links only and the card marks medicine data as coming from web pages that can be wrong.
-No-key Google route: Google does not let a web page send it a photo (both `lens.google.com/v3/upload` and `google.com/searchbyimage/upload` answer 403 to a form post from another site, tested 2026-11-23)
-and offers no way to read results without an API. So, with no AI service or key, the card (a) copies the photo to the clipboard as PNG and opens `lens.google.com` in a new tab for the farmer to paste it,
-(b) opens a Google search built from the crop and a symptom chip or the farmer's note (`AgriDiagnose.googleSearchUrl`, in the farmer's language), and (c) can save the photo. Google shows the results; the app never reads them.
-The in-app diagnosis and treatment need a key (the owner's own, or the proxy).
+No-key route (nothing opens, everything stays in the app): Google refuses a photo posted from another site (both `lens.google.com/v3/upload` and `google.com/searchbyimage/upload` answer 403, tested 2026-11-23) and offers no
+way to read results without an API, and the free keyless AI service tested (Pollinations, anonymous tier) has only a small text-only model and answers 402 after a few requests, so there is no keyless way to read the photo.
+What does work from a browser with no key: the farmer picks (or types) what they see, and `AgriDiagnose.lookupReference` runs in the background: it searches English Wikipedia (CORS-open) with the disease and pest names the symptom
+usually points to (`SYMPTOM_TERMS`), tries exact-name articles first, takes the Symptoms and Control/Management/Prevention sections, and for Hindi or Gujarati translates them with Google Translate's public endpoint
+(`translate.googleapis.com`, unofficial, may be refused: the English text is then shown and the note says so). Results are shown inside the card with a Wikipedia source link, kept on the device for 7 days, and labelled
+"general reference, not a diagnosis" with the Kisan Call Centre number. It is a reference, not an answer about the photo: in-app diagnosis, the treatment search and medicines with sources need a key (the owner's own, or the proxy).
 Camera: on phones (coarse pointer) the button uses the native capture input; on computers it opens a live camera window (`getUserMedia`, preview, camera chooser, Capture)
 and feeds the frame into the same resize-and-send path. A blocked, missing or busy camera shows what to do (`pcCam*` strings) and "Choose a photo" stays available.
 In a desktop app wrapper the app itself needs camera permission (on macOS the app's Info.plist needs `NSCameraUsageDescription`).

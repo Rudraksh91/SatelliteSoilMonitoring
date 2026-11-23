@@ -35,7 +35,7 @@ bash chat-proxy/setup.sh
 It installs wrangler, logs you in to Cloudflare, asks for **your** Gemini API key at a prompt (stored as an encrypted secret on Cloudflare, never written to a file),
 deploys the Worker and writes its address into `farmer/chat-config.js`. Then commit and push that one file. From then on the camera check and the treatment search
 **run in the background for every farmer**: the app calls your Worker, the Worker calls Gemini (with Google Search) using the key, and the farmer sees only the answer.
-No Google page is opened and no key is on any phone. (Without the Worker or a key, the app can only hand the farmer over to Google's own pages; Google does not allow an app to
+No Google page is opened and no key is on any phone. (Without the Worker or a key the app cannot read the photo; it falls back to a Wikipedia-based reference lookup of the symptom the farmer chooses, shown inside the app. Google does not allow an app to
 send it a photo or read its results without an API.) Tested with a stand-in for Cloudflare: `python3 tests/test_proxy_setup.py`. **Not run against a real Cloudflare account.**
 
 ## Plant photo check (camera)
