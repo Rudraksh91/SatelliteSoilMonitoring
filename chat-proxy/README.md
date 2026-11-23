@@ -26,6 +26,18 @@ Only for questions that are **not about the farmer's own field** (general farmin
   forecast, NDVI. **No field name, no coordinates, no account details** (`AgriAssistant.llmContext`).
 - up to the last 6 turns of that AI conversation
 
+## Quickest setup: one script
+
+```bash
+bash chat-proxy/setup.sh
+```
+
+It installs wrangler, logs you in to Cloudflare, asks for **your** Gemini API key at a prompt (stored as an encrypted secret on Cloudflare, never written to a file),
+deploys the Worker and writes its address into `farmer/chat-config.js`. Then commit and push that one file. From then on the camera check and the treatment search
+**run in the background for every farmer**: the app calls your Worker, the Worker calls Gemini (with Google Search) using the key, and the farmer sees only the answer.
+No Google page is opened and no key is on any phone. (Without the Worker or a key, the app can only hand the farmer over to Google's own pages; Google does not allow an app to
+send it a photo or read its results without an API.) Tested with a stand-in for Cloudflare: `python3 tests/test_proxy_setup.py`. **Not run against a real Cloudflare account.**
+
 ## Plant photo check (camera)
 
 The same proxy also powers the **Plant health check** card on the field screen. The farmer takes or picks one photo of a leaf, fruit or
