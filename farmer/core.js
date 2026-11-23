@@ -388,6 +388,55 @@
     return soilFromSoilGrids(await r.json(), rootM);
   }
 
+  // ── backup soil source: OpenLandMap's copy of SoilGrids 250 m (v0.2, 2017). Global Cloud-Optimized GeoTIFFs on a public bucket (CORS open, range reads),
+  //    read straight from the page. Used when the SoilGrids REST service is down or slow (it often is). Same kind of data, an older release, so it is
+  //    flagged in `source` and retried against the main service after a week. Values: sand and clay in %, organic carbon in units of 5 g/kg, 255 = no data.
+  const OLM_BASE = 'https://s3.eu-central-1.wasabisys.com/openlandmap/predicted250m/';
+  const OLM_PROPS = { sand: 'sol_sand.wfraction_usda.3a1a1a', clay: 'sol_clay.wfraction_usda.3a1a1a', soc: 'sol_organic.carbon_usda.6a1c' };
+  const OLM_LAYERS = [[0, 0, 5], [10, 5, 20], [30, 20, 45], [60, 45, 80], [100, 80, 125]];   // [depth of the file in cm, layer top, layer bottom]: each file stands for the layer around its depth
+  const olmUrl = (prop, d) => OLM_BASE + OLM_PROPS[prop] + '_m_250m_b' + d + '..' + d + 'cm_1950..2017_v0.2.tif';
+  const olmLayersFor = rootM => OLM_LAYERS.filter(l => l[1] < rootM * 100);
+  /** vals = { sand: {0: 31, 10: 31, ...}, clay: {...}, soc: {...} } (null where there is no data) -> the same estimate object as soilFromSoilGrids. */
+  function soilFromOlm(vals, rootM) {
+    const rootCm = rootM * 100, mean = prop => {
+      let tot = 0, w = 0;
+      olmLayersFor(rootM).forEach(([d, top, bot]) => { const v = vals[prop] && vals[prop][d], th = Math.max(0, Math.min(bot, rootCm) - top);
+        if (th > 0 && v !== null && v !== undefined && isFinite(v)) { tot += v * th; w += th; } });
+      return w > 0 ? tot / w : NaN;
+    };
+    const sand = mean('sand') / 100, clay = mean('clay') / 100, soc = mean('soc') * 5, om = Math.min(8, soc * 1.724 / 10);
+    if (!isFinite(sand) || !isFinite(clay) || sand + clay < 0.05 || sand + clay > 1.0) throw new Error('OpenLandMap has no soil data for this location');
+    const { fc, wp } = saxtonRawls(sand, clay, isFinite(om) ? om : 1.5);
+    if (!(fc > wp + 0.03) || fc > 0.55 || wp < 0.01 || fc - wp > 0.30) throw new Error('soil estimate outside the physical range for this location');
+    return { theta_fc: +fc.toFixed(3), theta_wp: +wp.toFixed(3), sand: +sand.toFixed(3), clay: +clay.toFixed(3), om_pct: +(isFinite(om) ? om : 1.5).toFixed(2),
+             source: 'ESTIMATE: SoilGrids 250 m (OpenLandMap copy, v0.2) + Saxton-Rawls 2006' };
+  }
+  async function fetchSoilOlm(lat, lng, rootM, GeoTIFF) {
+    const jobs = [];
+    Object.keys(OLM_PROPS).forEach(prop => olmLayersFor(rootM).forEach(([d]) => jobs.push((async () => {
+      const img = await (await GeoTIFF.fromUrl(olmUrl(prop, d))).getImage();
+      const [ox, oy] = img.getOrigin(), [rx, ry] = img.getResolution(), x = Math.floor((lng - ox) / rx), y = Math.floor((lat - oy) / ry);
+      if (x < 0 || y < 0 || x >= img.getWidth() || y >= img.getHeight()) return [prop, d, null];
+      const v = (await img.readRasters({ window: [x, y, x + 1, y + 1], samples: [0] }))[0][0];
+      return [prop, d, (v === 255 || v > 100 || !isFinite(v)) ? null : v];
+    })())));
+    const vals = { sand: {}, clay: {}, soc: {} };
+    (await Promise.all(jobs)).forEach(([prop, d, v]) => { vals[prop][d] = v; });
+    return soilFromOlm(vals, rootM);
+  }
+  /** Soil estimate with a backup: ask the SoilGrids service; if it has not answered after 6 s (or fails), also read the OpenLandMap copy; the first good answer wins. */
+  function fetchSoilAny(lat, lng, rootM, deps) {
+    const d = deps || {}, wait = ms => new Promise(r => setTimeout(r, ms));
+    const cap = (p, ms) => Promise.race([p, wait(ms).then(() => { throw new Error('soil timed out'); })]);
+    const main = cap(fetchSoil(lat, lng, rootM, d.fetchFn), d.mainMs || 35000);
+    const backup = !d.GeoTIFF ? Promise.reject(new Error('no backup')) : (async () => {
+      const first = await Promise.race([wait(d.backupDelayMs == null ? 6000 : d.backupDelayMs).then(() => 'slow'), main.then(() => 'ok', () => 'fail')]);
+      if (first === 'ok') return main;                                 // the main service answered in time: the backup is never touched
+      return cap(fetchSoilOlm(lat, lng, rootM, d.GeoTIFF), d.backupMs || 40000);
+    })();
+    return Promise.any([main, backup]).catch(e => { throw (e && e.errors && e.errors[0]) || e; });
+  }
+
   // ───────────────────────── FAO-56 model (same equations as scripts/agrisat_model.py) ─────────────────────────
   const tawMm = (fc, wp, zr) => 1000 * (fc - wp) * zr;
   function ks(dr, taw, p) { const raw = p * taw; return dr <= raw ? 1 : Math.max(0, (taw - dr) / ((1 - p) * taw)); }
@@ -560,7 +609,7 @@
   }
 
   return { centroid, bbox, polygonAreaM2, squareFromArea, pointInPolygon, distToEdges, utmZone, toUTM, farmPixels,
-           fromUTM, searchScenes, sceneNdvi, ndviSeries, saxtonRawls, depthWeighted, soilFromSoilGrids, fetchSoil,
+           fromUTM, searchScenes, sceneNdvi, ndviSeries, saxtonRawls, depthWeighted, soilFromSoilGrids, fetchSoil, soilFromOlm, fetchSoilOlm, fetchSoilAny, olmLayersFor,
            tawMm, ks, effRain, step, kcFromNdvi, interpNdvi, advise, addDays, DEFAULT_CROP, CROPS, CROP_CATS, cropParams, pumpFlowLph, pumpHoursFor, indexTrend, ndmiAnomaly, NDVI_SATURATED, stageKc,
            searchRadar, sceneRadar, radarSeries, radarTrend, radarBridge, radarRvi, toDb, radarNoiseDb, resetRadarToken, RADAR_BRIDGE_DAYS };
 });

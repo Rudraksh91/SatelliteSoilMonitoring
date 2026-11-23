@@ -302,3 +302,41 @@ export function readGeminiAnswer(j) {
   if (text) return { answer: text };
   return ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'RECITATION'].includes(c.finishReason) ? { error: 'declined', status: 422 } : { error: 'empty answer', status: 502 };
 }
+
+// ── Gemini runners, shared by the Cloudflare Worker (worker.mjs) and by the farmer app's own-key mode (farmer/diagnose.js imports this file) ──
+// o = { key, model, fetchFn }. Every call returns what the proxy puts in its JSON ({ answer } text, a diagnosis object, or a research object) or throws HttpError.
+export async function geminiFetch(body, o, ms) {
+  if (!o || !o.key) throw new HttpError(500, 'server not configured');
+  const f = o.fetchFn || ((...a) => fetch(...a));
+  const res = await f('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(o.model || GEMINI_DEFAULT_MODEL) + ':generateContent', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': o.key },   // header, not the URL, so the key never lands in logs
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(ms),
+  });
+  if (res.status === 429) throw new HttpError(429, 'busy, try again');
+  if (res.status === 401 || res.status === 403) throw new HttpError(401, 'key rejected');
+  if (res.status === 400) { let t = ''; try { t = await res.text(); } catch { /* ignore */ } throw t.includes('API key') ? new HttpError(401, 'key rejected') : new HttpError(502, 'upstream error'); }
+  if (!res.ok) throw new HttpError(502, 'upstream error');
+  return res.json();
+}
+export async function geminiAsk(v, o) {
+  const out = readGeminiAnswer(await geminiFetch(buildGeminiBody(v), o, 25000));
+  if (out.error) throw new HttpError(out.status, out.error);
+  return out.answer;
+}
+export async function geminiDiagnose(v, o) {
+  const out = readGeminiAnswer(await geminiFetch(buildGeminiDiagnoseBody(v), o, 40000));
+  if (out.error) throw new HttpError(out.status, out.error);
+  const d = readDiagnosis(out.answer);
+  if (!d) throw new HttpError(502, 'unreadable answer');
+  return d;
+}
+export async function geminiResearch(v, o) {
+  const j = await geminiFetch(buildGeminiResearchBody(v), o, 60000);
+  const out = readGeminiAnswer(j);
+  if (out.error) throw new HttpError(out.status, out.error);
+  const r = readResearch(out.answer);
+  if (!r) throw new HttpError(502, 'unreadable answer');
+  return Object.assign(r, { sources: sourcesFromGemini(j) });
+}

@@ -323,6 +323,13 @@ sees through cloud, and shows a **Radar check** card next to the satellite indic
 - The first screen asks how the soil feels (wet / moist / dry) instead of assuming a start state; every network step has a deadline.
 - Limits: soil values are estimates; no valve control. Tests: `node tests/test_farmer_core.js`, `node tests/test_i18n.js`.
 
+### Soil estimate sources (farmer app)
+`C.fetchSoilAny` asks the SoilGrids REST service (`rest.isric.org`) first. That service is often down or slow, so if it has not answered after 6 s (or fails) the page
+also reads the **OpenLandMap copy of SoilGrids 250 m (v0.2)**, global Cloud-Optimized GeoTIFFs on a public bucket (`C.fetchSoilOlm`, geotiff.js, 3 properties x the layers inside
+the root zone, about 5 s), and the first good answer wins. The result goes through the same Saxton-Rawls step and is marked `ESTIMATE: ... (OpenLandMap copy, v0.2)`; it is
+replaced by the main service's answer after a week. For the campus the two sources agree closely (field capacity 0.371 vs 0.369-0.382, wilting point 0.239 vs 0.236-0.249). Soil and satellite are
+loaded at the same time. Only if both soil sources fail does the page show "Soil type could not be loaded; using a general value."
+
 ## Active farm — the dashboard follows one location at a time
 A selector in the header chooses the **active farm**: `CAMPUS` (daily Earth Engine NDVI, central decision, Pi hardware) or any
 farm a farmer outlined on the Farmers page. Selecting a farm (also done automatically when the farmer picks one) re-points the
@@ -450,6 +457,9 @@ When the photo names a problem the card then makes a second, text-only request (
 proxy searches the web (Gemini: Google Search grounding; Claude: web search tool) and returns treatment findings: low-risk steps first, then medicines named in the
 sources (active ingredient; a dose only if a retrieved page states it; waiting period), safety points, and the source links taken from the search tool's own metadata.
 `AgriDiagnose.normalizeResearch` keeps https links only and the card marks medicine data as coming from web pages that can be wrong.
+Own-key mode: with no proxy URL, the card offers a "Gemini API key" box; the key stays in this browser's `localStorage` and `AgriDiagnose.direct.*`
+imports `chat-proxy/lib.mjs` to make the same Gemini calls from the page (`geminiDiagnose`, `geminiResearch`), for the owner's own testing. The Gemini calls live in
+`lib.mjs` and are shared by `worker.mjs` and the page.
 Rules: the photo is never stored; no field name or coordinates are sent; unreadable replies show "could not be checked" instead of a guess; every
 result carries "an AI reading of one photo, not a laboratory test" and the KVK / Kisan Call Centre number; with no service configured the card only
 shows that pointer. Strings: `pc*` keys in `farmer/i18n.js`. Tests: `node tests/test_diagnose.js`, `node tests/test_chat_proxy.js`.

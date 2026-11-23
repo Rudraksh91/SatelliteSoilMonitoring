@@ -53,10 +53,36 @@ check('tone: healthy green, low confidence amber, water/nutrient amber, disease 
 check('confKey: three labels', D.confKey({ confidence: 'high' }) === 'pcConfHigh' && D.confKey({ confidence: 'medium' }) === 'pcConfMed' && D.confKey({ confidence: 'low' }) === 'pcConfLow' && D.confKey(null) === 'pcConfLow');
 
 // wording exists in every language for every state the card can show
-const need = ['pcTitle', 'pcHelp', 'pcTips', 'pcTake', 'pcPick', 'pcNotePh', 'pcCheck', 'pcConsent', 'pcAllow', 'pcCancel', 'pcBusy', 'pcAgain', 'pcSearching', 'pcResTitle', 'pcCultural', 'pcNatural', 'pcSpray', 'pcDoseSrc', 'pcWaitLbl', 'pcSafety', 'pcSources', 'pcResFail', 'pcResNone', 'pcMedWarn', 'pcAgreeHigh', 'pcAgreeMed', 'pcAgreeLow', 'pcHealthy', 'pcConfHigh', 'pcConfMed', 'pcConfLow', 'pcLooks', 'pcWhy', 'pcDo', 'pcChem', 'pcHelpHdr', 'pcRetake', 'pcAi', 'pcDisclaimer', 'pcOff', 'pcFail', 'pcBad', 'pcNotPlant', 'pcUnclear']
+const need = ['pcTitle', 'pcHelp', 'pcTips', 'pcTake', 'pcPick', 'pcNotePh', 'pcCheck', 'pcConsent', 'pcAllow', 'pcCancel', 'pcBusy', 'pcAgain', 'pcKeyHelp', 'pcKeyPh', 'pcKeySave', 'pcKeyUsing', 'pcKeyRemove', 'pcKeyBad', 'pcKeyRejected', 'pcSearching', 'pcResTitle', 'pcCultural', 'pcNatural', 'pcSpray', 'pcDoseSrc', 'pcWaitLbl', 'pcSafety', 'pcSources', 'pcResFail', 'pcResNone', 'pcMedWarn', 'pcAgreeHigh', 'pcAgreeMed', 'pcAgreeLow', 'pcHealthy', 'pcConfHigh', 'pcConfMed', 'pcConfLow', 'pcLooks', 'pcWhy', 'pcDo', 'pcChem', 'pcHelpHdr', 'pcRetake', 'pcAi', 'pcDisclaimer', 'pcOff', 'pcFail', 'pcBad', 'pcNotPlant', 'pcUnclear']
   .concat(D.CATS.filter(c => c !== 'none').map(c => 'pcCat_' + c));
 for (const l of ['en', 'hi', 'gu']) check('wording: every plant-check string (photo and treatment) exists in ' + l, need.every(k => I.dict[l][k] && I.dict[l][k].length > 1));
 check('wording: the dose line carries its placeholder in every language and the medicine warning mentions the label', ['en', 'hi', 'gu'].every(l => /\{dose\}/.test(I.dict[l].pcDoseSrc) && I.dict[l].pcMedWarn.length > 60));
 check('wording: consent names the service and the disclaimer names the Kisan Call Centre number in all languages', ['en', 'hi', 'gu'].every(l => /\{service\}/.test(I.dict[l].pcConsent) && /1800-180-1551/.test(I.dict[l].pcDisclaimer) && /1800-180-1551/.test(I.dict[l].pcOff)));
 
-console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);
+// own-key mode: the same Gemini calls, made from the page with the user's own key (mocked endpoint, a made-up key)
+check('validKey: long token-like text passes; spaces, quotes, short or empty fail', D.validKey('abcDEF123_-abcDEF123456') && !D.validKey('short') && !D.validKey('has space in it 12345678') && !D.validKey('"quoted_key_value_1234567"') && !D.validKey('') && !D.validKey(null));
+(async () => {
+  const JPG = '/9j/4AAQSkZJRgAB' + 'AAAA'.repeat(10);
+  const calls = [];
+  const gem = (text, extra) => async (url, init) => { calls.push({ url: String(url), init }); return new Response(JSON.stringify({ candidates: [Object.assign({ content: { parts: [{ text }], role: 'model' }, finishReason: 'STOP' }, extra || {})] }), { status: 200 }); };
+  const body = D.buildRequest({ b64: JPG, mime: 'image/jpeg', lang: 'en', crop: 'Cotton', note: '', context: { decision: 'OK' } });
+  const diag = { kind: 'plant', healthy: false, problem: 'Leaf curl', category: 'disease', confidence: 'medium', looks_like: 'Curled leaves.', why: 'Typical of leaf curl.', do_now: ['Remove infected plants'], chemical_note: '', get_help: 'Ask the KVK.', retake: '' };
+  let d = await D.direct.diagnose(body, 'test-key-abcdefghij', { fetchFn: gem(JSON.stringify(diag)) });
+  const c = calls[0], sent = JSON.parse(c.init.body);
+  check('direct diagnose: returns a clean diagnosis', d.problem === 'Leaf curl' && d.confidence === 'medium');
+  check('direct diagnose: goes to Google with the key in a header (not the URL or body) and the photo as inline data', /generativelanguage\.googleapis\.com\/v1beta\/models\/[\w.-]+:generateContent$/.test(c.url) && c.init.headers['x-goog-api-key'] === 'test-key-abcdefghij' && !c.url.includes('test-key') && !c.init.body.includes('test-key') && sent.contents[0].parts[0].inlineData.data === JPG);
+  const rs = await D.direct.research(D.buildResearchRequest({ problem: 'Leaf curl', crop: 'Cotton', category: 'disease', lang: 'en' }), 'test-key-abcdefghij',
+    { fetchFn: gem(JSON.stringify({ found: true, summary: 'Control whiteflies.', cultural: ['Remove plants'], natural: [], medicines: [], safety: [], agree: 'medium' }), { groundingMetadata: { groundingChunks: [{ web: { uri: 'https://icar.example/p', title: 'ICAR' } }] } }) });
+  check('direct research: treatment object with the search tool\'s sources, request is text only with Google Search on', rs.found && rs.sources[0].url === 'https://icar.example/p' && JSON.parse(calls[1].init.body).tools[0].google_search && !calls[1].init.body.includes('inlineData'));
+  const rejects = async (fn, re) => { try { await fn(); return false; } catch (e) { return re.test(String(e.message)); } };
+  check('direct: Google refusing the key (403, or 400 "API key not valid") is reported as "key rejected"',
+    await rejects(() => D.direct.diagnose(body, 'bad-key-abcdefghijklmn', { fetchFn: async () => new Response('{}', { status: 403 }) }), /key rejected/) &&
+    await rejects(() => D.direct.diagnose(body, 'bad-key-abcdefghijklmn', { fetchFn: async () => new Response('{"error":{"message":"API key not valid. Please pass a valid API key."}}', { status: 400 }) }), /key rejected/));
+  check('direct: busy -> "busy", unreadable reply -> error, never an invented diagnosis',
+    await rejects(() => D.direct.diagnose(body, 'k-abcdefghijklmnopqrs', { fetchFn: async () => new Response('{}', { status: 429 }) }), /busy/) &&
+    await rejects(() => D.direct.diagnose(body, 'k-abcdefghijklmnopqrs', { fetchFn: gem('sorry, no json') }), /unreadable/));
+  check('direct: a bad photo or empty problem is refused before anything is sent', await (async () => { const n0 = calls.length; const a = await rejects(() => D.direct.diagnose(Object.assign({}, body, { image: 'nope' }), 'k-abcdefghijklmnopqrs', { fetchFn: gem('{}') }), /bad image/);
+    const b = await rejects(() => D.direct.research({ task: 'research', problem: '' }, 'k-abcdefghijklmnopqrs', { fetchFn: gem('{}') }), /problem required/); return a && b && calls.length === n0; })());
+  check('direct: no key -> refused, nothing sent', await rejects(() => D.direct.diagnose(body, '', { fetchFn: gem('{}') }), /not configured/));
+  console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(1); });

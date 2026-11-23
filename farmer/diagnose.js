@@ -8,6 +8,9 @@
  *   AgriDiagnose.researchWanted(d)       -> true when the photo result names a problem worth looking up (not healthy, not a bad photo)
  *   AgriDiagnose.buildResearchRequest(o) -> the text-only body for the second step: the problem's NAME (never the photo) goes to a web search
  *   AgriDiagnose.normalizeResearch(raw)  -> clean treatment findings with their web sources (https links only), or null
+ *   AgriDiagnose.direct.diagnose / .research(body, key, opts) -> own-key mode: the same Gemini calls the proxy makes, run in this page with the user's OWN
+ *                                        key (kept on this device, sent only to Google). Uses chat-proxy/lib.mjs so the prompts and checks are identical.
+ *   AgriDiagnose.validKey(k)             -> cheap shape check for a pasted key (no spaces, long enough)
  *   AgriDiagnose.fitSize(w, h, max)      -> new width and height with the long side at most `max`
  *   AgriDiagnose.tone(d)                 -> 'good' | 'warn' | 'bad' | 'none': how the result card is coloured
  *   AgriDiagnose.confKey(d)              -> the i18n key of the confidence label
@@ -91,6 +94,23 @@
     return r;
   }
 
+  /** A pasted API key: no spaces or quotes, 20 to 200 characters. (Google decides if it is really valid.) */
+  const validKey = k => typeof k === 'string' && /^[A-Za-z0-9_.\-]{20,200}$/.test(k.trim());
+
+  // Own-key mode. The page imports the proxy's shared library and makes the same Gemini request the Worker would make. opts: { model, fetchFn }.
+  let libP = null;
+  const lib = () => libP || (libP = import('../chat-proxy/lib.mjs'));   // resolved against this script's URL
+  const direct = {
+    async diagnose(body, key, opts) {
+      const L = await lib(), p = L.parseDiagnoseRequest(body); if (!p.ok) throw new Error(p.error);
+      return L.geminiDiagnose(p.value, Object.assign({ key }, opts));
+    },
+    async research(body, key, opts) {
+      const L = await lib(), p = L.parseResearchRequest(body); if (!p.ok) throw new Error(p.error);
+      return L.geminiResearch(p.value, Object.assign({ key }, opts));
+    },
+  };
+
   const tone = d => !d ? 'none' : d.kind !== 'plant' ? 'none' : d.healthy ? 'good' : d.confidence === 'low' ? 'warn' : (d.category === 'water' || d.category === 'nutrient' || d.category === 'weather_damage') ? 'warn' : 'bad';
   const confKey = d => ({ high: 'pcConfHigh', medium: 'pcConfMed' }[d && d.confidence] || 'pcConfLow');
 
@@ -122,5 +142,5 @@
     } finally { release(); }
   }
 
-  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, researchWanted, buildResearchRequest, normalizeResearch, tone, confKey, prepareImage };
+  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, researchWanted, buildResearchRequest, normalizeResearch, validKey, direct, tone, confKey, prepareImage };
 });

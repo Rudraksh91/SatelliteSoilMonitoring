@@ -45,6 +45,15 @@ the photo, and to send the farmer to a KVK or the Kisan Call Centre (1800-180-15
 `lib.mjs` keeps only known fields, cuts every text, and refuses anything unreadable (the farmer sees "could not be checked", never an invented answer).
 The app shows it as "AI answer" with "This is an AI reading of one photo, not a laboratory test".
 
+### Trying it without deploying anything: your own Gemini key (this device only)
+
+If no proxy URL is set, the Plant health check card shows a **Gemini API key** box. Paste a key from Google AI Studio and the card works at once:
+the page makes the same two Gemini calls the Worker would make (it imports `chat-proxy/lib.mjs`, so the prompts and the checks are identical), straight
+from this device to Google. The key is kept in this browser's `localStorage` (`agrisat_gemini_key`), is sent only to Google in a request header, and can be
+removed with "Remove key". `agrisat_gemini_model` in `localStorage` can name another model.
+**This is for the project owner testing on their own device.** Never put a key in the repository or in `chat-config.js`, and do not hand a key to farmers' phones;
+for farmers deploy the proxy so the key stays on the server. A wrong or revoked key shows "Google did not accept this key".
+
 ### Treatment look-up (web search, in the background)
 
 When the photo names a problem, the app automatically makes a **second, text-only request** (`task: "research"`): only the problem's

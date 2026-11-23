@@ -279,11 +279,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-<script src="farmer/core.js?v=20261121k"></script>
+<script src="farmer/core.js?v=20261123a"></script>
 <script src="farmer/i18n.js?v=20261123a"></script>
 <script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
-<script src="farmer/diagnose.js?v=20261123b"></script>
+<script src="farmer/diagnose.js?v=20261123d"></script>
 <script src="farmer/chat-config.js?v=1"></script>
 <script src="farmer/ndvimap.js?v=20261121k"></script>
 <script src="farmer/autopilot.js?v=20261121x"></script>
@@ -465,10 +465,28 @@ renderChatChips();
 const DG=window.AgriDiagnose;
 const pc={};let photoOK=false;                       // pc[fieldId] = { stage:'idle'|'ready'|'busy'|'done'|'fail', url, b64, mime, note, res, err }
 const pcSt=f=>pc[f.id]||(pc[f.id]={stage:'idle'});
+// Own-key mode: with no proxy URL set, the owner can paste their own Gemini key. It stays in this browser (localStorage) and is sent only to Google.
+const gKey=()=>{try{return(localStorage.getItem('agrisat_gemini_key')||'').trim();}catch(e){return '';}};
+const gModel=()=>{try{return(localStorage.getItem('agrisat_gemini_model')||'').trim()||undefined;}catch(e){return undefined;}};
+const setGKey=k=>{try{if(k)localStorage.setItem('agrisat_gemini_key',k);else localStorage.removeItem('agrisat_gemini_key');}catch(e){}};
+const plantReady=()=>!!(chatUrl()||gKey());
+async function plantCall(body,ms){       // one path for both steps: the proxy when it is set up, otherwise the user's own key straight to Google
+  if(chatUrl()){
+    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),ms);
+    try{const res=await fetch(chatUrl(),{method:'POST',headers:{'content-type':'application/json'},signal:ctl.signal,body:JSON.stringify(body)});
+      if(!res.ok)throw new Error('http '+res.status);return await res.json();}
+    finally{clearTimeout(to);}
+  }
+  const opt={model:gModel()};
+  if(body.task==='diagnose')return {diagnosis:await DG.direct.diagnose(body,gKey(),opt)};
+  return {research:await DG.direct.research(body,gKey(),opt)};
+}
 const plantCard=f=>`<div class="card" id="plantCard"><h2>${esc(T('pcTitle'))}</h2><div id="plantBody">${plantBody(f)}</div></div>`;
 function plantBody(f){
   const st=pcSt(f);
-  if(!chatUrl())return `<p class="note" style="margin:0">${esc(T('pcOff'))}</p>`;
+  if(!plantReady())return `<p style="margin:0 0 10px">${esc(T('pcOff'))}</p><p class="note" style="margin:0 0 8px">${esc(T('pcKeyHelp'))}</p>`+
+    `<input id="pcKey" type="password" autocomplete="off" spellcheck="false" placeholder="${esc(T('pcKeyPh'))}" style="width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:0 0 8px">`+
+    `<div class="row"><button id="pcKeySave">${esc(T('pcKeySave'))}</button></div><p class="note" id="pcKeyMsg" style="margin:8px 0 0;color:var(--red)"></p>`;
   const img=st.url?`<img class="pc-img" id="pcImg" alt="">`:'';
   if(st.stage==='busy')return img+`<p style="margin:0">${esc(T('pcBusy'))}</p>`;
   if(st.stage==='ready')return img+`<input id="pcNote" type="text" maxlength="200" placeholder="${esc(T('pcNotePh'))}" value="${esc(st.note||'')}">`+
@@ -480,6 +498,7 @@ function plantBody(f){
   if(st.stage==='done'&&st.res)return img+plantResult(st.res,st.rs)+`<div style="margin-top:12px">${pick}</div>`;
   return `<p style="margin:0 0 6px">${esc(T('pcHelp'))}</p><p class="note" style="margin:0 0 10px">${esc(T('pcTips'))}</p>`+pick;
 }
+const plantKeyRow=()=>!chatUrl()&&gKey()?`<p class="note" style="margin:12px 0 0">${esc(T('pcKeyUsing'))} <a href="#" id="pcKeyDel">${esc(T('pcKeyRemove'))}</a></p>`:'';
 function plantResearchHtml(d,rs){
   if(!DG.researchWanted(d)||!rs)return '';
   if(rs.stage==='busy')return `<p class="note" style="margin:14px 0 0">${esc(T('pcSearching'))}</p>`;
@@ -513,10 +532,13 @@ function plantResult(d,rs){
 }
 function plantRender(f){
   const el=$('plantBody');if(!el||farm()!==f)return;
-  el.innerHTML=plantBody(f);const st=pcSt(f);
+  el.innerHTML=plantBody(f)+plantKeyRow();const st=pcSt(f);
   const im=$('pcImg');if(im&&st.url)im.src=st.url;
   const onFile=e=>{const file=e.target.files&&e.target.files[0];e.target.value='';if(file)plantPhoto(f,file);};
   [['pcCamBtn','pcCam'],['pcGalBtn','pcGal']].forEach(([b,i])=>{const B=$(b),I_=$(i);if(B&&I_){B.onclick=()=>I_.click();I_.onchange=onFile;}});
+  const ks=$('pcKeySave'),kd=$('pcKeyDel');
+  if(ks)ks.onclick=()=>{const v=($('pcKey').value||'').trim();if(!DG.validKey(v)){$('pcKeyMsg').textContent=T('pcKeyBad');return;}setGKey(v);plantRender(f);};
+  if(kd)kd.onclick=e=>{e.preventDefault();setGKey('');plantRender(f);};
   const go=$('pcGo'),no=$('pcNo'),note=$('pcNote');
   if(note)note.oninput=()=>{st.note=note.value;};
   if(go)go.onclick=()=>{photoOK=true;plantRun(f);};
@@ -536,28 +558,20 @@ async function plantRun(f){
   try{
     const crop=f.cropId&&f.cropId!=='general'?I.t('en','crop_'+f.cropId):'';
     const body=DG.buildRequest({b64:st.b64,mime:st.mime,lang,crop,note:st.note,context:AS.llmContext(chatCtx())});
-    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),45000);
-    const res=await fetch(chatUrl(),{method:'POST',headers:{'content-type':'application/json'},signal:ctl.signal,body:JSON.stringify(body)});
-    clearTimeout(to);
-    if(!res.ok)throw new Error('http '+res.status);
-    const d=DG.normalize((await res.json()||{}).diagnosis);
+    const d=DG.normalize((await plantCall(body,45000)||{}).diagnosis);
     if(!d)throw new Error('unreadable');
     st.stage='done';st.res=d;st.err=null;
     if(DG.researchWanted(d)){plantRender(f);return plantResearch(f,d,seq);}   // the photo named a problem: look up its treatment in the background
-  }catch(e){st.stage='fail';st.err='pcFail';}
+  }catch(e){st.stage='fail';st.err=plantErr(e);}
   plantRender(f);
 }
+const plantErr=e=>/key rejected/i.test(String(e&&e.message))?'pcKeyRejected':'pcFail';
 // Second step, in the background: only the problem's NAME goes to a web search (Google for Gemini, web search for Claude). The sources come back with the answer.
 async function plantResearch(f,d,seq){
   const st=pcSt(f);st.rs={stage:'busy'};plantRender(f);
   try{
     const crop=f.cropId&&f.cropId!=='general'?I.t('en','crop_'+f.cropId):'';
-    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),90000);
-    const res=await fetch(chatUrl(),{method:'POST',headers:{'content-type':'application/json'},signal:ctl.signal,
-      body:JSON.stringify(DG.buildResearchRequest({problem:d.problem,crop,category:d.category,lang}))});
-    clearTimeout(to);
-    if(!res.ok)throw new Error('http '+res.status);
-    const r=DG.normalizeResearch((await res.json()||{}).research);
+    const r=DG.normalizeResearch((await plantCall(DG.buildResearchRequest({problem:d.problem,crop,category:d.category,lang}),90000)||{}).research);
     if(!r)throw new Error('unreadable');
     if(st.seq===seq)st.rs={stage:'done',res:r};
   }catch(e){if(st.seq===seq)st.rs={stage:'fail'};}
@@ -788,14 +802,22 @@ async function gatherInputs(f,force,tick){
   const [la,ln]=C.centroid(f.latlngs);
   if(!force&&cache.weather&&cache.weatherAt&&now-cache.weatherAt<3*3600e3){weather=cache.weather;tick(0,'done');}      // fresh enough: no request at all
   else try{weather=await fetchWeatherFor(la,ln,force);cache.weatherAt=now;tick(0,'done');}catch(e){tick(0,'fail');weather=cache.weather||null;if(weather)warn.push('wWeatherOld');}
-  if(!soil||cache.soilZr!==crop.root_depth_m||(now-(cache.soilAt||0))>60*864e5){
-    try{soil=await withTimeout(C.fetchSoil(la,ln,crop.root_depth_m,(u,o)=>tfetch(u,o,30000)),35000,'soil');cache.soilAt=now;cache.soilZr=crop.root_depth_m;tick(1,'done');}catch(e){tick(1,'fail');soil=soil||null;if(!soil)warn.push('wSoilFail');}
-  }else tick(1,'done');
-  if(force||!cache.ndviAt||(now-cache.ndviAt)>24*3600e3||!ndvi.length||ndvi[0].ndmi===undefined){   // old cache without NDMI/NDRE: read once more
-    try{const sr=await withTimeout(C.ndviSeries(f.latlngs,window.GeoTIFF,(u,o)=>tfetch(u,o,25000),{days:45,maxScenes:3,minPixels:Math.min(8,Math.max(1,Math.floor(f.areaM2/100/4)))}),75000,'satellite');
-        ndvi=sr.map((x,i)=>({date:x.date,ndvi:x.ndvi,ndmi:x.ndmi==null?null:x.ndmi,ndre:x.ndre==null?null:x.ndre,n:x.n,shrunk:x.shrunk,grid:(x.grid&&x.grid.cols*x.grid.rows<=2500)||i===0?x.grid:null}));cache.ndviAt=now;tick(2,'done');}
-    catch(e){tick(2,'fail');warn.push('wSatFail');}
-  }else tick(2,'done');
+  // soil and satellite are asked at the same time: a slow soil service no longer holds up the satellite step
+  const soilDays=soil&&/OpenLandMap/.test(soil.source||'')?7:60;                     // the backup copy is replaced by the main service's answer after a week
+  const soilTask=(async()=>{
+    if(!soil||cache.soilZr!==crop.root_depth_m||(now-(cache.soilAt||0))>soilDays*864e5){
+      try{soil=await C.fetchSoilAny(la,ln,crop.root_depth_m,{fetchFn:(u,o)=>tfetch(u,o,30000),GeoTIFF:window.GeoTIFF});cache.soilAt=now;cache.soilZr=crop.root_depth_m;tick(1,'done');}
+      catch(e){tick(1,'fail');soil=soil||null;if(!soil)warn.push('wSoilFail');}
+    }else tick(1,'done');
+  })();
+  const ndviTask=(async()=>{
+    if(force||!cache.ndviAt||(now-cache.ndviAt)>24*3600e3||!ndvi.length||ndvi[0].ndmi===undefined){   // old cache without NDMI/NDRE: read once more
+      try{const sr=await withTimeout(C.ndviSeries(f.latlngs,window.GeoTIFF,(u,o)=>tfetch(u,o,25000),{days:45,maxScenes:3,minPixels:Math.min(8,Math.max(1,Math.floor(f.areaM2/100/4)))}),75000,'satellite');
+          ndvi=sr.map((x,i)=>({date:x.date,ndvi:x.ndvi,ndmi:x.ndmi==null?null:x.ndmi,ndre:x.ndre==null?null:x.ndre,n:x.n,shrunk:x.shrunk,grid:(x.grid&&x.grid.cols*x.grid.rows<=2500)||i===0?x.grid:null}));cache.ndviAt=now;tick(2,'done');}
+      catch(e){tick(2,'fail');warn.push('wSatFail');}
+    }else tick(2,'done');
+  })();
+  await Promise.all([soilTask,ndviTask]);
   if(weather){Object.assign(cache,{weather,soil,ndvi});f.cache=cache;save();}
   return {weather,soil,ndvi,warn,crop};
 }

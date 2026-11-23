@@ -218,6 +218,8 @@ async function research(L) {
     check('research gemini: busy -> 429', (await W.fetch(post(base), env)).status === 429);
     reply = () => { throw new Error('network down'); };
     check('research gemini: network failure -> 502', (await W.fetch(post(base), env)).status === 502);
+    reply = ok({}, 403);
+    check('research gemini: Google refusing the key -> 401 key rejected', (await W.fetch(post(base), env)).status === 401);
     calls = []; r = await W.fetch(post({ task: 'research', problem: '' }), env);
     check('research: an empty problem is a 400 and Gemini is never called', r.status === 400 && calls.length === 0);
     calls = []; r = await W.fetch(post(base, 'https://evil.example'), env);

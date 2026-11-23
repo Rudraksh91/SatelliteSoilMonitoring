@@ -114,4 +114,35 @@ check('a missing top layer is skipped (not averaged in as 0)', partial.clay > 0.
   check('empty, zero, negative or absurd pump sizes are rejected, not guessed', [C.pumpFlowLph('', 'lph'), C.pumpFlowLph(0, 'hp'), C.pumpFlowLph(-5, 'lpm'), C.pumpFlowLph(1e9, 'lph'), C.pumpFlowLph('abc', 'lph')].every(v => v === null));
   check('hours for 25 mm on 1 ha with a 5,000 L/h pump = 25 x 10,000 / 0.88 / 5,000', Math.abs(C.pumpHoursFor(25, 10000, 5000, 0.88) - 56.82) < 0.05 && C.pumpHoursFor(25, 10000, null) === null);
 }
-console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);
+
+// ── soil backup: OpenLandMap copy of SoilGrids, and the "ask the main service, fall back after 6 s" logic ──
+{
+  const o = C.soilFromOlm({ sand: { 0: 31, 10: 31, 30: 30 }, clay: { 0: 38, 10: 38, 30: 40 }, soc: { 0: 2, 10: 2, 30: 1 } }, 0.4);
+  check('olm soil: campus values give a field capacity and wilting point close to the SoilGrids 2.0 estimate (0.371 / 0.239)', Math.abs(o.theta_fc - 0.371) < 0.01 && Math.abs(o.theta_wp - 0.239) < 0.01 && /OpenLandMap/.test(o.source) && /ESTIMATE/.test(o.source));
+  check('olm soil: only layers inside the root zone are read (0.4 m -> 3 files per property; 1.0 m -> 5)', C.olmLayersFor(0.4).length === 3 && C.olmLayersFor(1.0).length === 5 && C.olmLayersFor(0.04).length === 1);
+  check('olm soil: no-data layers are skipped, never counted as zero', Math.abs(C.soilFromOlm({ sand: { 0: 31, 10: null, 30: null }, clay: { 0: 38, 10: null, 30: null }, soc: { 0: 2, 10: null, 30: null } }, 0.4).sand - 0.31) < 1e-9);
+  let threw = 0; try { C.soilFromOlm({ sand: {}, clay: {}, soc: {} }, 0.4); } catch (e) { threw++; } try { C.soilFromOlm({ sand: { 0: 90 }, clay: { 0: 80 }, soc: { 0: 1 } }, 0.4); } catch (e) { threw++; }
+  check('olm soil: no data, or sand + clay above 100 %, is refused instead of modelled', threw === 2);
+  const fakeTiff = (log) => ({ fromUrl: async url => { log.push(url); const val = /sand/.test(url) ? 31 : /clay/.test(url) ? 38 : 2;
+    return { getImage: async () => ({ getOrigin: () => [-180, 87.37], getResolution: () => [0.002083333, -0.002083333], getWidth: () => 172800, getHeight: () => 71698, readRasters: async () => [[val]] }) }; } });
+  const sg = { properties: { layers: ['sand', 'clay', 'soc'].map(nm => ({ name: nm, depths: ['0-5cm', '5-15cm', '15-30cm', '30-60cm'].map(label => ({ label, values: { mean: nm === 'soc' ? 78 : nm === 'sand' ? 308 : 394 } })) })) } };
+  const okFetch = async () => ({ ok: true, json: async () => sg }), badFetch = async () => ({ ok: false, status: 503 }), hang = () => new Promise(() => {});
+  (async () => {
+    let log = [];
+    let r = await C.fetchSoilOlm(21.627, 73.585, 0.4, fakeTiff(log));
+    check('fetchSoilOlm: reads 9 files (3 properties x 3 layers), all from the OpenLandMap bucket', log.length === 9 && log.every(u => u.startsWith('https://s3.eu-central-1.wasabisys.com/openlandmap/predicted250m/')) && r.theta_fc > r.theta_wp);
+    log = []; r = await C.fetchSoilAny(21.627, 73.585, 0.4, { fetchFn: okFetch, GeoTIFF: fakeTiff(log), backupDelayMs: 30 });
+    await new Promise(x => setTimeout(x, 80));
+    check('fetchSoilAny: when the main service answers, its answer is used and the backup is never read', /SoilGrids 250 m \+/.test(r.source) && !/OpenLandMap/.test(r.source) && log.length === 0);
+    log = []; r = await C.fetchSoilAny(21.627, 73.585, 0.4, { fetchFn: badFetch, GeoTIFF: fakeTiff(log), backupDelayMs: 5000 });
+    check('fetchSoilAny: when the main service fails (503), the backup is read at once', /OpenLandMap/.test(r.source) && log.length === 9);
+    log = []; const t0 = Date.now(); r = await C.fetchSoilAny(21.627, 73.585, 0.4, { fetchFn: hang, GeoTIFF: fakeTiff(log), backupDelayMs: 40, mainMs: 5000 });
+    check('fetchSoilAny: when the main service hangs, the backup starts after the delay and wins', /OpenLandMap/.test(r.source) && Date.now() - t0 < 2000 && log.length === 9);
+    let err = null; try { await C.fetchSoilAny(21.627, 73.585, 0.4, { fetchFn: badFetch, GeoTIFF: { fromUrl: async () => { throw new Error('bucket down'); } }, backupDelayMs: 5 }); } catch (e) { err = e; }
+    check('fetchSoilAny: both sources failing -> an error (the page then shows the general-value notice)', err && /SoilGrids 503/.test(err.message));
+    err = null; try { await C.fetchSoilAny(21.627, 73.585, 0.4, { fetchFn: badFetch }); } catch (e) { err = e; }
+    check('fetchSoilAny: no backup available (no GeoTIFF reader) -> the main service\'s error', err && /SoilGrids 503/.test(err.message));
+    console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);
+  })().catch(e => { console.error(e); process.exit(1); });
+}
+
