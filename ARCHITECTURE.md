@@ -457,6 +457,9 @@ When the photo names a problem the card then makes a second, text-only request (
 proxy searches the web (Gemini: Google Search grounding; Claude: web search tool) and returns treatment findings: low-risk steps first, then medicines named in the
 sources (active ingredient; a dose only if a retrieved page states it; waiting period), safety points, and the source links taken from the search tool's own metadata.
 `AgriDiagnose.normalizeResearch` keeps https links only and the card marks medicine data as coming from web pages that can be wrong.
+Camera: on phones (coarse pointer) the button uses the native capture input; on computers it opens a live camera window (`getUserMedia`, preview, camera chooser, Capture)
+and feeds the frame into the same resize-and-send path. A blocked, missing or busy camera shows what to do (`pcCam*` strings) and "Choose a photo" stays available.
+In a desktop app wrapper the app itself needs camera permission (on macOS the app's Info.plist needs `NSCameraUsageDescription`).
 Own-key mode: with no proxy URL, the card offers a "Gemini API key" box; the key stays in this browser's `localStorage` and `AgriDiagnose.direct.*`
 imports `chat-proxy/lib.mjs` to make the same Gemini calls from the page (`geminiDiagnose`, `geminiResearch`), for the owner's own testing. The Gemini calls live in
 `lib.mjs` and are shared by `worker.mjs` and the page.

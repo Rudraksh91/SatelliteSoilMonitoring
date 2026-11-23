@@ -10,6 +10,7 @@
  *   AgriDiagnose.normalizeResearch(raw)  -> clean treatment findings with their web sources (https links only), or null
  *   AgriDiagnose.direct.diagnose / .research(body, key, opts) -> own-key mode: the same Gemini calls the proxy makes, run in this page with the user's OWN
  *                                        key (kept on this device, sent only to Google). Uses chat-proxy/lib.mjs so the prompts and checks are identical.
+ *   AgriDiagnose.camConstraints(deviceId) / camErrorKey(e) -> getUserMedia settings for the live camera window, and the wording key for a camera error
  *   AgriDiagnose.validKey(k)             -> cheap shape check for a pasted key (no spaces, long enough)
  *   AgriDiagnose.fitSize(w, h, max)      -> new width and height with the long side at most `max`
  *   AgriDiagnose.tone(d)                 -> 'good' | 'warn' | 'bad' | 'none': how the result card is coloured
@@ -94,6 +95,19 @@
     return r;
   }
 
+  /** Live camera (computers and any device with getUserMedia): the back camera if there is one, else the default; a chosen camera by id. */
+  const camConstraints = deviceId => ({ audio: false, video: deviceId
+    ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+    : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+  /** getUserMedia failure -> the i18n key that tells the farmer what to do. */
+  const camErrorKey = e => {
+    const n = e && e.name;
+    if (n === 'NotAllowedError' || n === 'SecurityError' || n === 'PermissionDeniedError') return 'pcCamDenied';
+    if (n === 'NotFoundError' || n === 'DevicesNotFoundError' || n === 'OverconstrainedError') return 'pcCamNone';
+    if (n === 'NotReadableError' || n === 'TrackStartError' || n === 'AbortError') return 'pcCamBusy';
+    return 'pcCamFail';
+  };
+
   /** A pasted API key: no spaces or quotes, 20 to 200 characters. (Google decides if it is really valid.) */
   const validKey = k => typeof k === 'string' && /^[A-Za-z0-9_.\-]{20,200}$/.test(k.trim());
 
@@ -142,5 +156,5 @@
     } finally { release(); }
   }
 
-  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, researchWanted, buildResearchRequest, normalizeResearch, validKey, direct, tone, confKey, prepareImage };
+  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, researchWanted, buildResearchRequest, normalizeResearch, camConstraints, camErrorKey, validKey, direct, tone, confKey, prepareImage };
 });

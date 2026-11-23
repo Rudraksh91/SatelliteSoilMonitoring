@@ -36,6 +36,7 @@ html.embed header{position:static;padding:8px 12px}html.embed header h1,html.emb
 .list button{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line);margin-bottom:8px;font-weight:600}.list small{display:block;font-weight:400;color:var(--mut)}
 .steps div{font-size:14px;color:var(--mut);padding:2px 0}.steps .done{color:var(--g)}.steps .fail{color:var(--red)}
 dialog{border:0;border-radius:16px;max-width:520px;width:calc(100% - 28px);padding:18px;background:var(--card);color:var(--ink)}dialog::backdrop{background:rgba(0,0,0,.55)}
+#camDlg{max-width:640px}#camVid{display:block;width:100%;max-height:62vh;border-radius:10px;background:#000;object-fit:contain}#camSel{width:100%;font:inherit;padding:8px;margin:8px 0;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink)}
 .fc{display:flex;gap:6px;overflow-x:auto}.fc div{flex:0 0 auto;text-align:center;font-size:13px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
 #ndviMapBox{height:270px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 .leg{height:12px;border-radius:6px;margin:10px 0 2px;background:linear-gradient(90deg,#a50026,#f46d43,#fee08b,#ffffbf,#a6d96a,#1a9850,#006837)}.legl{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
@@ -270,6 +271,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   </div>
 </div>
 
+<dialog id="camDlg">
+  <video id="camVid" autoplay playsinline muted></video>
+  <p class="note" data-i="pcCamHint" style="margin:8px 0"></p>
+  <select id="camSel" hidden aria-label="Camera"></select>
+  <div class="row"><button id="camShoot" data-i="pcShoot"></button><button id="camX" class="sec" data-i="pcCancel"></button></div>
+</dialog>
 <dialog id="consent">
   <h2 style="margin-top:0" data-i="consentTitle"></h2>
   <p data-h="consent1"></p><p data-h="consent2"></p><p class="note" data-i="consent3"></p>
@@ -280,10 +287,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script src="farmer/core.js?v=20261123a"></script>
-<script src="farmer/i18n.js?v=20261123a"></script>
+<script src="farmer/i18n.js?v=20261123b"></script>
 <script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
-<script src="farmer/diagnose.js?v=20261123d"></script>
+<script src="farmer/diagnose.js?v=20261123e"></script>
 <script src="farmer/chat-config.js?v=1"></script>
 <script src="farmer/ndvimap.js?v=20261121k"></script>
 <script src="farmer/autopilot.js?v=20261121x"></script>
@@ -535,7 +542,7 @@ function plantRender(f){
   el.innerHTML=plantBody(f)+plantKeyRow();const st=pcSt(f);
   const im=$('pcImg');if(im&&st.url)im.src=st.url;
   const onFile=e=>{const file=e.target.files&&e.target.files[0];e.target.value='';if(file)plantPhoto(f,file);};
-  [['pcCamBtn','pcCam'],['pcGalBtn','pcGal']].forEach(([b,i])=>{const B=$(b),I_=$(i);if(B&&I_){B.onclick=()=>I_.click();I_.onchange=onFile;}});
+  [['pcCamBtn','pcCam'],['pcGalBtn','pcGal']].forEach(([b,i])=>{const B=$(b),I_=$(i);if(B&&I_){B.onclick=b==='pcCamBtn'?()=>plantCamera(f):()=>I_.click();I_.onchange=onFile;}});
   const ks=$('pcKeySave'),kd=$('pcKeyDel');
   if(ks)ks.onclick=()=>{const v=($('pcKey').value||'').trim();if(!DG.validKey(v)){$('pcKeyMsg').textContent=T('pcKeyBad');return;}setGKey(v);plantRender(f);};
   if(kd)kd.onclick=e=>{e.preventDefault();setGKey('');plantRender(f);};
@@ -543,6 +550,38 @@ function plantRender(f){
   if(note)note.oninput=()=>{st.note=note.value;};
   if(go)go.onclick=()=>{photoOK=true;plantRun(f);};
   if(no)no.onclick=()=>{st.stage='idle';st.url=st.b64=null;st.note='';plantRender(f);};
+}
+// Live camera. Phones keep the native camera (the capture input: better quality, focus and flash). Computers get a camera window with a preview and a Capture button.
+// If the camera is blocked, missing or busy the farmer is told what to do and can still choose a photo.
+let camStream=null;
+function camStop(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}const v=$('camVid');if(v)v.srcObject=null;}
+function camClose(){camStop();const d=$('camDlg');if(d.open||d.hasAttribute('open')){if(d.close)d.close();else d.removeAttribute('open');}}
+async function camStart(deviceId){
+  camStop();
+  camStream=await navigator.mediaDevices.getUserMedia(DG.camConstraints(deviceId));
+  const v=$('camVid');v.srcObject=camStream;const pl=v.play();if(pl&&pl.catch)pl.catch(()=>{});   // not awaited: a camera that is slow to deliver its first frame must not freeze the window
+  try{                                                  // several cameras (a webcam and a phone, say): let the farmer choose
+    const cams=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='videoinput'),sel=$('camSel');
+    sel.hidden=cams.length<2;sel.innerHTML=cams.map((c,i)=>`<option value="${esc(c.deviceId)}">${esc(c.label||('Camera '+(i+1)))}</option>`).join('');
+    const cur=camStream.getVideoTracks()[0].getSettings().deviceId;sel.selectedIndex=0;if(cur&&[...sel.options].some(o=>o.value===cur))sel.value=cur;   // never leave it blank if the ids differ
+  }catch(e){}
+}
+async function plantCamera(f){
+  const md=navigator.mediaDevices,phone=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;
+  if(!md||!md.getUserMedia||phone){const i=$('pcCam');if(i)i.click();return;}      // phones, or no camera API: the native capture input / file picker
+  const st=pcSt(f),d=$('camDlg');
+  const fail=e=>{camClose();st.stage='fail';st.err=DG.camErrorKey(e);st.url=st.b64=null;plantRender(f);};
+  try{
+    if(d.showModal)d.showModal();else d.setAttribute('open','');
+    d.onclose=camStop;$('camX').onclick=camClose;                  // Cancel and Esc work from the first moment
+    $('camSel').onchange=e=>camStart(e.target.value).catch(fail);
+    $('camShoot').onclick=()=>{
+      const v=$('camVid');if(!v.videoWidth)return;
+      const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+      c.toBlob(b=>{camClose();if(b)plantPhoto(f,new File([b],'camera.jpg',{type:'image/jpeg'}));},'image/jpeg',0.92);
+    };
+    await camStart();
+  }catch(e){fail(e);}
 }
 async function plantPhoto(f,file){
   const st=pcSt(f);
