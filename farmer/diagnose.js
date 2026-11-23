@@ -5,6 +5,9 @@
  *                                           saves it again as JPEG. That drops all camera metadata (location, time, phone model) on purpose.
  *   AgriDiagnose.buildRequest(o)         -> the JSON body for the optional AI service (chat-proxy): photo, crop name, optional note, language, field facts
  *   AgriDiagnose.normalize(raw)          -> a clean, bounded result, or null when the service's reply is not usable (never trusted as HTML)
+ *   AgriDiagnose.researchWanted(d)       -> true when the photo result names a problem worth looking up (not healthy, not a bad photo)
+ *   AgriDiagnose.buildResearchRequest(o) -> the text-only body for the second step: the problem's NAME (never the photo) goes to a web search
+ *   AgriDiagnose.normalizeResearch(raw)  -> clean treatment findings with their web sources (https links only), or null
  *   AgriDiagnose.fitSize(w, h, max)      -> new width and height with the long side at most `max`
  *   AgriDiagnose.tone(d)                 -> 'good' | 'warn' | 'bad' | 'none': how the result card is coloured
  *   AgriDiagnose.confKey(d)              -> the i18n key of the confidence label
@@ -63,6 +66,31 @@
     return d;
   }
 
+  /** The second step: once the photo has a named problem, the app looks up how it is treated. Only the NAME of the problem is sent (no photo). */
+  const researchWanted = d => !!(d && d.kind === 'plant' && d.healthy === false && d.problem);
+  function buildResearchRequest(o) {
+    o = o || {};
+    return { task: 'research', problem: clean(o.problem, 120), crop: clean(o.crop, 60), category: CATS.includes(o.category) ? o.category : 'other', lang: o.lang || 'en' };
+  }
+  /** Treatment findings from the AI service. Doses are only shown if the service says a source states them; links must be https. */
+  function normalizeResearch(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const list = (a, k, n) => (Array.isArray(a) ? a : []).map(x => clean(x, n)).filter(Boolean).slice(0, k);
+    const meds = (Array.isArray(raw.medicines) ? raw.medicines : []).filter(m => m && typeof m === 'object').map(m => ({
+      active_ingredient: clean(m.active_ingredient, 80), use: clean(m.use, 200), dose_in_source: clean(m.dose_in_source, 120), wait_note: clean(m.wait_note, 160),
+    })).filter(m => m.active_ingredient).slice(0, 5);
+    const seen = new Set(), sources = [];
+    (Array.isArray(raw.sources) ? raw.sources : []).forEach(x => {
+      const url = x && typeof x.url === 'string' ? x.url.trim() : '';
+      if (!/^https:\/\/[^\s"'<>]+$/.test(url) || url.length > 600 || seen.has(url) || sources.length >= 6) return;
+      seen.add(url); sources.push({ url, title: clean(x.title, 100) || url.replace(/^https:\/\//, '').split('/')[0] });
+    });
+    const r = { found: raw.found !== false, summary: clean(raw.summary, 500), cultural: list(raw.cultural, 4, 220), natural: list(raw.natural, 4, 220), medicines: meds,
+      safety: list(raw.safety, 4, 200), agree: CONFS.includes(raw.agree) ? raw.agree : 'low', sources };
+    if (!r.summary && !r.cultural.length && !r.natural.length && !r.medicines.length) { r.found = false; r.agree = 'low'; }
+    return r;
+  }
+
   const tone = d => !d ? 'none' : d.kind !== 'plant' ? 'none' : d.healthy ? 'good' : d.confidence === 'low' ? 'warn' : (d.category === 'water' || d.category === 'nutrient' || d.category === 'weather_damage') ? 'warn' : 'bad';
   const confKey = d => ({ high: 'pcConfHigh', medium: 'pcConfMed' }[d && d.confidence] || 'pcConfLow');
 
@@ -94,5 +122,5 @@
     } finally { release(); }
   }
 
-  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, tone, confKey, prepareImage };
+  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, researchWanted, buildResearchRequest, normalizeResearch, tone, confKey, prepareImage };
 });

@@ -1,7 +1,7 @@
 // Claude version of the chat proxy. Use it instead of worker.mjs by setting  main = "worker-claude.mjs"  in wrangler.toml and
 // installing the SDK:  npm install @anthropic-ai/sdk . Secret: ANTHROPIC_API_KEY. Model: CHAT_MODEL (default claude-opus-5-5).
 import Anthropic from '@anthropic-ai/sdk';
-import { HttpError, makeHandler, buildMessages, SYSTEM, DIAGNOSE_SYSTEM, buildDiagnoseText, readDiagnosis } from './lib.mjs';
+import { HttpError, makeHandler, buildMessages, SYSTEM, DIAGNOSE_SYSTEM, buildDiagnoseText, readDiagnosis, RESEARCH_SYSTEM, buildResearchText, readResearch, sourcesFromClaude } from './lib.mjs';
 
 async function claudeAnswer(v, env) {
   if (!env.ANTHROPIC_API_KEY) throw new HttpError(500, 'server not configured');
@@ -46,4 +46,31 @@ async function claudeDiagnose(v, env) {
   }
 }
 
-export default { fetch: makeHandler(claudeAnswer, claudeDiagnose) };
+// Treatment look-up with Claude's web search tool (it must be enabled for your Anthropic organisation). A long search can pause: send the paused turn back to continue.
+async function claudeResearch(v, env) {
+  if (!env.ANTHROPIC_API_KEY) throw new HttpError(500, 'server not configured');
+  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  const model = env.RESEARCH_MODEL || env.CHAT_MODEL || 'claude-opus-5-5';
+  const messages = [{ role: 'user', content: buildResearchText(v) }], all = [];
+  try {
+    for (let turn = 0; turn < 4; turn++) {
+      const params = { model, max_tokens: 3000, system: RESEARCH_SYSTEM, messages, output_config: { effort: 'low' }, tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 4 }] };
+      const res = /^claude-(opus-5|sonnet-5-5|fable)/.test(model)
+        ? await client.beta.messages.create({ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' })
+        : await client.messages.create(params);
+      if (res.stop_reason === 'refusal') throw new HttpError(422, 'declined');
+      all.push(...res.content);
+      if (res.stop_reason === 'pause_turn') { messages.push({ role: 'assistant', content: res.content }); continue; }
+      const r = readResearch(res.content.filter(b => b.type === 'text').map(b => b.text).join(''));
+      if (!r) throw new HttpError(502, 'unreadable answer');
+      return Object.assign(r, { sources: sourcesFromClaude(all) });
+    }
+    throw new HttpError(502, 'search did not finish');
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
+    if (e instanceof Anthropic.RateLimitError) throw new HttpError(429, 'busy, try again');
+    throw new HttpError(502, 'upstream error');
+  }
+}
+
+export default { fetch: makeHandler(claudeAnswer, claudeDiagnose, claudeResearch) };

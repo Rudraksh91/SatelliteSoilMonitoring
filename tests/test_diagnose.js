@@ -36,15 +36,27 @@ check('normalize: not a plant / unclear photo need a retake hint', D.normalize({
 check('normalize: an empty or non-object reply is refused', D.normalize(null) === null && D.normalize('text') === null && D.normalize([]) === null && D.normalize({}) === null && D.normalize({ kind: 'plant' }) === null);
 check('normalize: a non-plant never claims healthy', D.normalize({ kind: 'not_plant', healthy: true, retake: 'x' }).healthy === null);
 
+// treatment look-up
+check('researchWanted: only a named problem on a plant', D.researchWanted(r) && !D.researchWanted(h) && !D.researchWanted(D.normalize({ kind: 'not_plant', retake: 'x' })) && !D.researchWanted(null) && !D.researchWanted(Object.assign({}, r, { problem: '' })));
+const rq2 = D.buildResearchRequest({ problem: 'Leaf <b>curl</b>\nvirus', crop: 'Cotton', category: 'disease', lang: 'hi', b64: '/9j/AAAA', context: { a: 1 } });
+check('buildResearchRequest: only the problem name, crop, kind and language travel (never the photo or field facts)', Object.keys(rq2).sort().join() === 'category,crop,lang,problem,task' && rq2.task === 'research' && !/[<>\n]/.test(rq2.problem) && D.buildResearchRequest({ category: 'x' }).category === 'other');
+const rs = D.normalizeResearch({ found: true, summary: 'Managed by controlling whiteflies.', cultural: ['a', 'b', 'c', 'd', 'e'], natural: ['<b>neem</b> oil'], medicines: [{ active_ingredient: 'Imidacloprid', use: 'whitefly', dose_in_source: '0.5 ml/L', wait_note: 'Wait 40 days' }, { use: 'no name' }],
+  safety: ['Gloves'], agree: 'medium', sources: [{ url: 'https://icar.org.in/p', title: 'ICAR' }, { url: 'http://insecure.example' }, { url: 'javascript:alert(1)' }, { url: 'https://x.example/"onmouseover="alert(1)' }, { url: 'https://icar.org.in/p' }] });
+check('normalizeResearch: keeps good fields, at most 4 steps, strips tags, drops nameless medicines', rs.found && rs.cultural.length === 4 && !/[<>]/.test(rs.natural[0]) && rs.medicines.length === 1 && rs.medicines[0].dose_in_source === '0.5 ml/L' && rs.agree === 'medium');
+check('normalizeResearch: links must be https, clean and unique', rs.sources.length === 1 && rs.sources[0].url === 'https://icar.org.in/p');
+check('normalizeResearch: nothing useful -> found:false; non-objects refused', D.normalizeResearch({ found: true }).found === false && D.normalizeResearch(null) === null && D.normalizeResearch([]) === null && D.normalizeResearch('x') === null);
+check('normalizeResearch: unknown agreement is the cautious one', D.normalizeResearch({ summary: 's', agree: 'certain' }).agree === 'low');
+
 // card colour and labels
 check('tone: healthy green, low confidence amber, water/nutrient amber, disease red, not a plant neutral',
   D.tone(h) === 'good' && D.tone(D.normalize(Object.assign({}, good, { confidence: 'low' }))) === 'warn' && D.tone(D.normalize(Object.assign({}, good, { category: 'water' }))) === 'warn' && D.tone(r) === 'bad' && D.tone(D.normalize({ kind: 'not_plant', retake: 'x' })) === 'none');
 check('confKey: three labels', D.confKey({ confidence: 'high' }) === 'pcConfHigh' && D.confKey({ confidence: 'medium' }) === 'pcConfMed' && D.confKey({ confidence: 'low' }) === 'pcConfLow' && D.confKey(null) === 'pcConfLow');
 
 // wording exists in every language for every state the card can show
-const need = ['pcTitle', 'pcHelp', 'pcTips', 'pcTake', 'pcPick', 'pcNotePh', 'pcCheck', 'pcConsent', 'pcAllow', 'pcCancel', 'pcBusy', 'pcAgain', 'pcHealthy', 'pcConfHigh', 'pcConfMed', 'pcConfLow', 'pcLooks', 'pcWhy', 'pcDo', 'pcChem', 'pcHelpHdr', 'pcRetake', 'pcAi', 'pcDisclaimer', 'pcOff', 'pcFail', 'pcBad', 'pcNotPlant', 'pcUnclear']
+const need = ['pcTitle', 'pcHelp', 'pcTips', 'pcTake', 'pcPick', 'pcNotePh', 'pcCheck', 'pcConsent', 'pcAllow', 'pcCancel', 'pcBusy', 'pcAgain', 'pcSearching', 'pcResTitle', 'pcCultural', 'pcNatural', 'pcSpray', 'pcDoseSrc', 'pcWaitLbl', 'pcSafety', 'pcSources', 'pcResFail', 'pcResNone', 'pcMedWarn', 'pcAgreeHigh', 'pcAgreeMed', 'pcAgreeLow', 'pcHealthy', 'pcConfHigh', 'pcConfMed', 'pcConfLow', 'pcLooks', 'pcWhy', 'pcDo', 'pcChem', 'pcHelpHdr', 'pcRetake', 'pcAi', 'pcDisclaimer', 'pcOff', 'pcFail', 'pcBad', 'pcNotPlant', 'pcUnclear']
   .concat(D.CATS.filter(c => c !== 'none').map(c => 'pcCat_' + c));
-for (const l of ['en', 'hi', 'gu']) check('wording: every plant-check string exists in ' + l, need.every(k => I.dict[l][k] && I.dict[l][k].length > 1));
+for (const l of ['en', 'hi', 'gu']) check('wording: every plant-check string (photo and treatment) exists in ' + l, need.every(k => I.dict[l][k] && I.dict[l][k].length > 1));
+check('wording: the dose line carries its placeholder in every language and the medicine warning mentions the label', ['en', 'hi', 'gu'].every(l => /\{dose\}/.test(I.dict[l].pcDoseSrc) && I.dict[l].pcMedWarn.length > 60));
 check('wording: consent names the service and the disclaimer names the Kisan Call Centre number in all languages', ['en', 'hi', 'gu'].every(l => /\{service\}/.test(I.dict[l].pcConsent) && /1800-180-1551/.test(I.dict[l].pcDisclaimer) && /1800-180-1551/.test(I.dict[l].pcOff)));
 
 console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0);

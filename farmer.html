@@ -147,6 +147,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .pc-head{padding:10px 12px;border-radius:12px;margin:10px 0 8px;font-weight:700;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .pc-head.good{background:color-mix(in srgb,var(--g) 18%,var(--card))}.pc-head.warn{background:color-mix(in srgb,var(--amber) 20%,var(--card))}.pc-head.bad{background:color-mix(in srgb,var(--red) 16%,var(--card))}.pc-head.none{background:var(--bg)}
 .pc-res h3{font-size:13px;margin:12px 0 3px;color:var(--mut);font-weight:700;letter-spacing:.03em}.pc-res p{margin:0 0 4px}.pc-res ul{margin:0;padding-left:20px}.pc-res li{margin:0 0 3px}
+.pc-res a{color:var(--blue);word-break:break-word}
 .pc-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--amber);margin-bottom:2px}
 #pcNote{width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:8px 0}
 </style>
@@ -279,10 +280,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script src="farmer/core.js?v=20261121k"></script>
-<script src="farmer/i18n.js?v=20261121k"></script>
+<script src="farmer/i18n.js?v=20261123a"></script>
 <script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
-<script src="farmer/diagnose.js?v=20261123a"></script>
+<script src="farmer/diagnose.js?v=20261123b"></script>
 <script src="farmer/chat-config.js?v=1"></script>
 <script src="farmer/ndvimap.js?v=20261121k"></script>
 <script src="farmer/autopilot.js?v=20261121x"></script>
@@ -476,10 +477,26 @@ function plantBody(f){
   const pick=`<div class="row"><button id="pcCamBtn">${esc(T('pcTake'))}</button><button id="pcGalBtn" class="sec">${esc(T('pcPick'))}</button></div>`+
     `<input id="pcCam" type="file" accept="image/*" capture="environment" hidden><input id="pcGal" type="file" accept="image/*" hidden>`;
   if(st.stage==='fail')return img+`<p style="margin:0 0 10px;color:var(--red)">${esc(T(st.err||'pcFail'))}</p>`+pick;
-  if(st.stage==='done'&&st.res)return img+plantResult(st.res)+`<div style="margin-top:12px">${pick}</div>`;
+  if(st.stage==='done'&&st.res)return img+plantResult(st.res,st.rs)+`<div style="margin-top:12px">${pick}</div>`;
   return `<p style="margin:0 0 6px">${esc(T('pcHelp'))}</p><p class="note" style="margin:0 0 10px">${esc(T('pcTips'))}</p>`+pick;
 }
-function plantResult(d){
+function plantResearchHtml(d,rs){
+  if(!DG.researchWanted(d)||!rs)return '';
+  if(rs.stage==='busy')return `<p class="note" style="margin:14px 0 0">${esc(T('pcSearching'))}</p>`;
+  if(rs.stage==='fail')return `<p class="note" style="margin:14px 0 0;color:var(--red)">${esc(T('pcResFail'))}</p>`;
+  const r=rs.res;if(!r)return '';
+  const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join('');
+  const sec=(k,body)=>body?`<h3>${esc(T(k))}</h3>${body}`:'';
+  const src=r.sources.length?sec('pcSources',`<ul>${r.sources.map(x=>`<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a></li>`).join('')}</ul>`):'';
+  const head=`<h3 style="margin-top:16px">${esc(T('pcResTitle'))}${r.found?` <span class="pill">${esc(T({high:'pcAgreeHigh',medium:'pcAgreeMed'}[r.agree]||'pcAgreeLow'))}</span>`:''}</h3>`;
+  if(!r.found)return head+`<p>${esc(T('pcResNone'))}</p>`+src;
+  const meds=r.medicines.length?`<ul>${r.medicines.map(m=>`<li><b>${esc(m.active_ingredient)}</b>${m.use?' · '+esc(m.use):''}`+
+    `${m.dose_in_source?`<br><span class="note">${esc(T('pcDoseSrc',{dose:m.dose_in_source}))}</span>`:''}`+
+    `${m.wait_note?`<br><span class="note">${esc(T('pcWaitLbl'))} ${esc(m.wait_note)}</span>`:''}</li>`).join('')}</ul><p class="note" style="margin:6px 0 0">${esc(T('pcMedWarn'))}</p>`:'';
+  return head+(r.summary?`<p>${esc(r.summary)}</p>`:'')+sec('pcCultural',r.cultural.length?`<ul>${li(r.cultural)}</ul>`:'')+sec('pcNatural',r.natural.length?`<ul>${li(r.natural)}</ul>`:'')+
+    sec('pcSpray',meds)+sec('pcSafety',r.safety.length?`<ul>${li(r.safety)}</ul>`:'')+src;
+}
+function plantResult(d,rs){
   const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join('');
   const sec=(k,body)=>body?`<h3>${esc(T(k))}</h3>${body}`:'';
   let head;
@@ -491,8 +508,8 @@ function plantResult(d){
   return `<div class="pc-res"><span class="pc-tag">${esc(T('pcAi',{service:chatName()}))}</span><div class="pc-head ${DG.tone(d)}"><span>${head}</span>${conf}</div>`+
     sec('pcLooks',d.looks_like?`<p>${esc(d.looks_like)}</p>`:'')+sec('pcWhy',d.why?`<p>${esc(d.why)}</p>`:'')+
     sec('pcDo',d.do_now.length?`<ul>${li(d.do_now)}</ul>`:'')+sec('pcChem',d.chemical_note?`<p>${esc(d.chemical_note)}</p>`:'')+
-    sec('pcRetake',d.retake?`<p>${esc(d.retake)}</p>`:'')+sec('pcHelpHdr',d.get_help?`<p>${esc(d.get_help)}</p>`:'')+
-    `<p class="note" style="margin:12px 0 0">${esc(T('pcDisclaimer'))}</p></div>`;
+    sec('pcRetake',d.retake?`<p>${esc(d.retake)}</p>`:'')+sec('pcHelpHdr',d.get_help?`<p>${esc(d.get_help)}</p>`:'')+plantResearchHtml(d,rs)+
+    `<p class="note" style="margin:14px 0 0">${esc(T('pcDisclaimer'))}</p></div>`;
 }
 function plantRender(f){
   const el=$('plantBody');if(!el||farm()!==f)return;
@@ -507,12 +524,14 @@ function plantRender(f){
 }
 async function plantPhoto(f,file){
   const st=pcSt(f);
+  st.seq=(st.seq||0)+1;st.rs=null;
   try{const p=await DG.prepareImage(file);st.stage='ready';st.url=p.dataUrl;st.b64=p.b64;st.mime=p.mime;st.note='';st.res=null;st.err=null;}
   catch(e){st.stage='fail';st.err='pcBad';st.url=st.b64=null;}
   plantRender(f);
 }
 async function plantRun(f){
   const st=pcSt(f);if(!st.b64)return;
+  const seq=st.seq=(st.seq||0)+1;st.rs=null;
   st.stage='busy';plantRender(f);
   try{
     const crop=f.cropId&&f.cropId!=='general'?I.t('en','crop_'+f.cropId):'';
@@ -524,8 +543,25 @@ async function plantRun(f){
     const d=DG.normalize((await res.json()||{}).diagnosis);
     if(!d)throw new Error('unreadable');
     st.stage='done';st.res=d;st.err=null;
+    if(DG.researchWanted(d)){plantRender(f);return plantResearch(f,d,seq);}   // the photo named a problem: look up its treatment in the background
   }catch(e){st.stage='fail';st.err='pcFail';}
   plantRender(f);
+}
+// Second step, in the background: only the problem's NAME goes to a web search (Google for Gemini, web search for Claude). The sources come back with the answer.
+async function plantResearch(f,d,seq){
+  const st=pcSt(f);st.rs={stage:'busy'};plantRender(f);
+  try{
+    const crop=f.cropId&&f.cropId!=='general'?I.t('en','crop_'+f.cropId):'';
+    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),90000);
+    const res=await fetch(chatUrl(),{method:'POST',headers:{'content-type':'application/json'},signal:ctl.signal,
+      body:JSON.stringify(DG.buildResearchRequest({problem:d.problem,crop,category:d.category,lang}))});
+    clearTimeout(to);
+    if(!res.ok)throw new Error('http '+res.status);
+    const r=DG.normalizeResearch((await res.json()||{}).research);
+    if(!r)throw new Error('unreadable');
+    if(st.seq===seq)st.rs={stage:'done',res:r};
+  }catch(e){if(st.seq===seq)st.rs={stage:'fail'};}
+  if(st.seq===seq)plantRender(f);
 }
 
 // ── map / edit (P4: area, small-farm warning) ──

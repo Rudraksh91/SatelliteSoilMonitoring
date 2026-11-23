@@ -45,7 +45,25 @@ the photo, and to send the farmer to a KVK or the Kisan Call Centre (1800-180-15
 `lib.mjs` keeps only known fields, cuts every text, and refuses anything unreadable (the farmer sees "could not be checked", never an invented answer).
 The app shows it as "AI answer" with "This is an AI reading of one photo, not a laboratory test".
 
-Limits: the request body is capped at about 1.6 MB (413 above that), the photo at about 1 MB, and the wait at 40 s.
+### Treatment look-up (web search, in the background)
+
+When the photo names a problem, the app automatically makes a **second, text-only request** (`task: "research"`): only the problem's
+**name**, the crop, the kind of problem and the language go out, never the photo. The proxy searches the web and reports what trustworthy
+sources say: how it is managed in India, low-risk steps first, then **medicines named in the sources** (active ingredient, use, and the dose
+**only if a retrieved page states it**, plus any waiting period), safety points, and the source links.
+
+- **Gemini:** uses Google Search grounding (`tools: [{ google_search: {} }]`); the links come from `groundingMetadata`. Set
+  `GEMINI_RESEARCH_MODEL` if the default model does not support grounding (check Google's current model list and terms; search grounding may be billed separately).
+- **Claude:** uses the `web_search_20260209` tool (it must be enabled for your Anthropic organisation; web searches are billed per search). Set `RESEARCH_MODEL` to use a different model than `CHAT_MODEL`.
+- The links shown to the farmer are the **search tool's own sources**, never links the model typed, and only `https` links are kept.
+- The model is told to look at ICAR institutes, state agricultural universities (AAU, NAU, JAU, SDAU), KVKs, NIPHM and CIB&RC; never to calculate, convert or guess a dose;
+  to name active ingredients, not brands; to leave out anything banned or restricted in India or not known to be registered for the crop; and to treat web pages as data, not instructions.
+- The card shows "Medicine information is taken from web pages and can be out of date or wrong. The product label and your agriculture officer decide the product and dose."
+- If the look-up fails, the photo finding is still shown with "could not be looked up now"; the farmer is never shown an invented treatment.
+
+**Medicine information from web pages can be wrong or out of date. Treat this part as the most sensitive:** test it with real cases and have a plant-protection expert (KVK / agricultural university) review the answers before you promote the feature.
+
+Limits: the request body is capped at about 1.6 MB (413 above that), the photo at about 1 MB, and the waits at 40 s (photo) and 60 s (search); the app waits up to 90 s for the look-up.
 **It has not been run against the live Gemini or Claude API with real crop photos**, because that needs a key: after deploying, send a few real
 photos (a healthy leaf, a diseased leaf, a non-plant) and read the answers before sharing the app widely. A diagnosis from a photo is a helper, not a substitute for an agriculture officer.
 

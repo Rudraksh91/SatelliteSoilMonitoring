@@ -446,6 +446,10 @@ all camera metadata (location, time, phone model)**, and the card asks the farme
 (`chat-proxy/lib.mjs`: `parseDiagnoseRequest`, `DIAGNOSE_SYSTEM`, `readDiagnosis`; vision call in `worker.mjs` (Gemini) or
 `worker-claude.mjs` (Claude)). The reply is one JSON object (what it looks like, likely problem, category, confidence, why, up to 4 steps,
 the *kind* of spray only, when to get it checked, how to retake a bad photo) which `AgriDiagnose.normalize` cleans before it is shown as text.
+When the photo names a problem the card then makes a second, text-only request (`task: "research"`, only the problem's name, crop and language) and the
+proxy searches the web (Gemini: Google Search grounding; Claude: web search tool) and returns treatment findings: low-risk steps first, then medicines named in the
+sources (active ingredient; a dose only if a retrieved page states it; waiting period), safety points, and the source links taken from the search tool's own metadata.
+`AgriDiagnose.normalizeResearch` keeps https links only and the card marks medicine data as coming from web pages that can be wrong.
 Rules: the photo is never stored; no field name or coordinates are sent; unreadable replies show "could not be checked" instead of a guess; every
 result carries "an AI reading of one photo, not a laboratory test" and the KVK / Kisan Call Centre number; with no service configured the card only
 shows that pointer. Strings: `pc*` keys in `farmer/i18n.js`. Tests: `node tests/test_diagnose.js`, `node tests/test_chat_proxy.js`.

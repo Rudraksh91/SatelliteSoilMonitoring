@@ -5,7 +5,7 @@
  * chat-proxy (a small server that keeps the API key secret; see chat-proxy/README.md). The proxy talks to Google Gemini by
  * default (chat-proxy/worker.mjs) or to Claude (chat-proxy/worker-claude.mjs).
  *
- * The same URL also serves the Plant health check (camera) card: with no URL the card just points the farmer to a KVK / the Kisan Call
+ * The same URL also serves the Plant health check (camera) card (photo reading, then a web search for the treatment of the problem it names): with no URL the card just points the farmer to a KVK / the Kisan Call
  * Centre, it never invents a diagnosis.
  *
  * Leave the URL empty to keep everything in the browser. Never put an API key in this file: it is public.

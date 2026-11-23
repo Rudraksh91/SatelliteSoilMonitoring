@@ -2,11 +2,11 @@
 // questions here and this server adds the key, calls Gemini and returns { answer }. See README.md.
 // Secret: GEMINI_API_KEY (never in the repo). Model: GEMINI_MODEL (default in lib.mjs). No npm packages are needed.
 // A Claude version is in worker-claude.mjs.
-import { HttpError, makeHandler, buildGeminiBody, buildGeminiDiagnoseBody, readGeminiAnswer, readDiagnosis, GEMINI_DEFAULT_MODEL } from './lib.mjs';
+import { HttpError, makeHandler, buildGeminiBody, buildGeminiDiagnoseBody, buildGeminiResearchBody, readGeminiAnswer, readDiagnosis, readResearch, sourcesFromGemini, GEMINI_DEFAULT_MODEL } from './lib.mjs';
 
-async function callGemini(body, env, ms) {
+async function callGemini(body, env, ms, modelName) {
   if (!env.GEMINI_API_KEY) throw new HttpError(500, 'server not configured');
-  const model = env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
+  const model = modelName || env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
   return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },   // header, not the URL, so the key never lands in logs
@@ -36,4 +36,18 @@ async function geminiDiagnose(v, env) {
   return d;
 }
 
-export default { fetch: makeHandler(geminiAnswer, geminiDiagnose) };
+// Treatment look-up: Gemini searches Google for the named problem (grounding) and reports what the sources say. Sources are read from the
+// search metadata. GEMINI_RESEARCH_MODEL may name a different model if the default does not support Google Search grounding.
+async function geminiResearch(v, env) {
+  const res = await callGemini(buildGeminiResearchBody(v), env, 60000, env.GEMINI_RESEARCH_MODEL);
+  if (res.status === 429) throw new HttpError(429, 'busy, try again');
+  if (!res.ok) throw new HttpError(502, 'upstream error');
+  const j = await res.json();
+  const out = readGeminiAnswer(j);
+  if (out.error) throw new HttpError(out.status, out.error);
+  const r = readResearch(out.answer);
+  if (!r) throw new HttpError(502, 'unreadable answer');
+  return Object.assign(r, { sources: sourcesFromGemini(j) });
+}
+
+export default { fetch: makeHandler(geminiAnswer, geminiDiagnose, geminiResearch) };

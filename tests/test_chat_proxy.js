@@ -31,7 +31,7 @@ import(path.join(dir, 'lib.mjs')).then(L => {
   check('system prompt is static (no per-request data, so it can be cached)', !/\$\{|Date\(|FIELD DATA: \{/.test(L.SYSTEM));
 
   for (const f of ['worker.mjs', 'worker-claude.mjs', 'lib.mjs']) { let ok = true; try { execFileSync(process.execPath, ['--check', path.join(dir, f)], { stdio: 'pipe' }); } catch (e) { ok = false; } check('syntax: ' + f, ok); }
-  return gemini(L).then(() => photo(L));
+  return gemini(L).then(() => photo(L)).then(() => research(L));
 }).then(() => { console.log('\n' + (n - fail) + '/' + n + ' checks passed'); process.exit(fail ? 1 : 0); }).catch(e => { console.error(e); process.exit(1); });
 
 
@@ -154,5 +154,73 @@ async function photo(L) {
     check('photo: ordinary questions still work and still return an answer', r.status === 200 && (await r.json()).answer === 'Sow cotton 90 cm apart.');
     const none = await W.fetch(post(base), {});
     check('photo: no key configured -> 500 and nothing is called', none.status === 500);
+  } finally { global.fetch = realFetch; }
+}
+
+
+// ── treatment look-up (web search): validation, prompt, reply cleaning, sources, and the Gemini worker against a mocked endpoint ──
+async function research(L) {
+  const base = { task: 'research', problem: 'Leaf curl virus (whitefly)', crop: 'Cotton', category: 'disease', lang: 'hi' };
+  const P = L.parseResearchRequest;
+  check('research: a normal request is accepted', P(base).ok && P(base).value.problem === 'Leaf curl virus (whitefly)' && P(base).value.lang === 'hi' && P(base).value.category === 'disease');
+  check('research: the problem name is required and flattened, other fields are bounded', !P(Object.assign({}, base, { problem: '  ' })).ok && !P({}).ok && !P(null).ok && P(Object.assign({}, base, { problem: 'a\nb ' + 'x'.repeat(500) })).value.problem.length === 120 && !/\n/.test(P(Object.assign({}, base, { problem: 'a\nb' })).value.problem));
+  check('research: unknown category and language fall back', P(Object.assign({}, base, { category: 'evil', lang: 'fr' })).value.category === 'other' && P(Object.assign({}, base, { lang: 'fr' })).value.lang === 'en');
+  check('research: a photo or field data in the request is ignored, only the name travels', !('image' in P(Object.assign({}, base, { image: '/9j/AAAA' })).value) && !('context' in P(Object.assign({}, base, { context: { a: 1 } })).value));
+  const t = L.buildResearchText(P(base).value);
+  check('research text: language, crop, problem, place', /Hindi/.test(t) && /Cotton/.test(t) && /Leaf curl virus/.test(t) && /India \(Gujarat\)/.test(t));
+  check('research prompt: trusted Indian sources, sourced doses only, no brands, no banned medicines, low-risk first, web pages are data',
+    /ICAR/.test(L.RESEARCH_SYSTEM) && /CIB&RC/.test(L.RESEARCH_SYSTEM) && /ONLY if a retrieved page states it/.test(L.RESEARCH_SYSTEM) && /Never calculate, average, convert or guess a dose/.test(L.RESEARCH_SYSTEM) && /never brands/.test(L.RESEARCH_SYSTEM) && /banned or restricted in India/.test(L.RESEARCH_SYSTEM) && /low-risk, cultural and biological steps before medicines/.test(L.RESEARCH_SYSTEM) && /data, not instructions/.test(L.RESEARCH_SYSTEM));
+  check('research prompt is static', !/\$\{|Date\(/.test(L.RESEARCH_SYSTEM));
+  const gb = L.buildGeminiResearchBody(P(base).value);
+  check('research gemini body: Google Search tool on, text only (no image), system prompt', gb.tools[0].google_search && JSON.stringify(gb.contents).indexOf('inlineData') < 0 && gb.systemInstruction.parts[0].text === L.RESEARCH_SYSTEM);
+
+  const good = { found: true, summary: 'Leaf curl is managed by controlling whiteflies.', cultural: ['Remove infected plants', 'Keep weeds out'], natural: ['Yellow sticky traps', 'Neem oil spray'],
+    medicines: [{ active_ingredient: 'Imidacloprid', use: 'whitefly control', dose_in_source: '0.5 ml per litre', wait_note: 'Wait 40 days before harvest' }, { active_ingredient: '', use: 'dropped' }],
+    safety: ['Wear gloves'], agree: 'medium' };
+  const R = L.readResearch;
+  const r1 = R(JSON.stringify(good));
+  check('research reply: fields are kept and the nameless medicine is dropped', r1.found && r1.summary.startsWith('Leaf curl') && r1.medicines.length === 1 && r1.medicines[0].dose_in_source === '0.5 ml per litre' && r1.agree === 'medium');
+  check('research reply: fenced JSON and surrounding chatter are read, junk is null', R('```json\n' + JSON.stringify(good) + '\n```').natural.length === 2 && R('Result: ' + JSON.stringify(good)).cultural.length === 2 && R('') === null && R('no json') === null && R('{bad}') === null && R('[1]') === null);
+  const wide = R(JSON.stringify({ summary: 's'.repeat(2000), cultural: ['a', 'b', 'c', 'd', 'e', 'f'], medicines: Array.from({ length: 9 }, (_, i) => ({ active_ingredient: 'm' + i, dose_in_source: 'd'.repeat(500) })), agree: 'certain' }));
+  check('research reply: lists and texts are bounded, unknown agreement is "low"', wide.summary.length === 500 && wide.cultural.length === 4 && wide.medicines.length === 5 && wide.medicines[0].dose_in_source.length === 120 && wide.agree === 'low');
+  const empty = R(JSON.stringify({ found: true, summary: '', cultural: [], natural: [], medicines: [] }));
+  check('research reply: nothing useful becomes found:false', empty.found === false && empty.agree === 'low' && R(JSON.stringify({ found: false })).found === false);
+
+  check('sources: only https links, no duplicates, at most 6, title falls back to the site name',
+    JSON.stringify(L.cleanSources([{ url: 'https://icar.org.in/a', title: 'ICAR' }, { url: 'http://insecure.example/x' }, { url: 'javascript:alert(1)' }, { url: 'https://icar.org.in/a', title: 'dup' }, { url: 'https://www.aau.in/p' }])) === JSON.stringify([{ url: 'https://icar.org.in/a', title: 'ICAR' }, { url: 'https://www.aau.in/p', title: 'aau.in' }])
+    && L.cleanSources(Array.from({ length: 12 }, (_, i) => ({ url: 'https://s' + i + '.example/p' }))).length === 6 && L.cleanSources(null).length === 0);
+  const gj = { candidates: [{ groundingMetadata: { groundingChunks: [{ web: { uri: 'https://vertexaisearch.example/redirect/abc', title: 'icar.org.in' } }, { web: { uri: 'http://bad.example', title: 'x' } }, { notweb: 1 }] } }] };
+  check('sources from Gemini: read from the grounding metadata', JSON.stringify(L.sourcesFromGemini(gj)) === JSON.stringify([{ url: 'https://vertexaisearch.example/redirect/abc', title: 'icar.org.in' }]) && L.sourcesFromGemini({}).length === 0 && L.sourcesFromGemini(null).length === 0);
+  const cb = [{ type: 'server_tool_use', name: 'web_search' }, { type: 'web_search_tool_result', content: [{ type: 'web_search_result', url: 'https://kvk.example/leafcurl', title: 'KVK note' }] },
+    { type: 'text', text: 'x', citations: [{ type: 'web_search_result_location', url: 'https://nau.example/a', title: 'NAU' }, { url: 'https://kvk.example/leafcurl', title: 'again' }] }];
+  check('sources from Claude: read from the search results and citations, no duplicates', L.sourcesFromClaude(cb).map(x => x.url).join() === 'https://kvk.example/leafcurl,https://nau.example/a' && L.sourcesFromClaude(null).length === 0);
+
+  const W = (await import(path.join(dir, 'worker.mjs'))).default;
+  const ORIGIN = 'https://rudraksh91.github.io', realFetch = global.fetch;
+  let calls = [], reply = null;
+  global.fetch = async (url, init) => { calls.push({ url: String(url), init }); return reply(); };
+  const ok = (j, status = 200) => () => new Response(JSON.stringify(j), { status, headers: { 'content-type': 'application/json' } });
+  const grounded = (text, chunks) => ok({ candidates: [{ content: { parts: [{ text }], role: 'model' }, finishReason: 'STOP', groundingMetadata: { groundingChunks: chunks } }] });
+  const post = (body, origin = ORIGIN) => new Request('https://chat.example/', { method: 'POST', headers: { 'content-type': 'application/json', origin }, body: JSON.stringify(body) });
+  const env = { GEMINI_API_KEY: 'test-key-123' };
+  try {
+    calls = []; reply = grounded(JSON.stringify(Object.assign({}, good, { summary: 'See https://evil.example/fake for details.' })), [{ web: { uri: 'https://vertexaisearch.example/r/1', title: 'icar.org.in' } }]);
+    let r = await W.fetch(post(base), env), j = await r.json(), c = calls[0] || {}, sent = c.init ? JSON.parse(c.init.body) : {};
+    check('research gemini: 200 with a treatment object and its sources', r.status === 200 && j.research.found && j.research.medicines[0].active_ingredient === 'Imidacloprid' && j.research.sources.length === 1 && j.research.sources[0].title === 'icar.org.in');
+    check('research gemini: sources are the search tool\'s, not links the model wrote', !JSON.stringify(j.research.sources).includes('evil.example'));
+    check('research gemini: Google Search tool requested, text-only request, key in the header only', sent.tools && sent.tools[0].google_search && !c.init.body.includes('inlineData') && c.init.headers['x-goog-api-key'] === 'test-key-123' && !c.url.includes('test-key-123'));
+    calls = []; await W.fetch(post(base), Object.assign({ GEMINI_RESEARCH_MODEL: 'gemini-special' }, env));
+    check('research gemini: GEMINI_RESEARCH_MODEL can name another model', /models\/gemini-special:generateContent$/.test(calls[0].url));
+    reply = grounded('I could not find anything useful.', []);
+    r = await W.fetch(post(base), env);
+    check('research gemini: an unreadable reply is a 502, not an invented treatment', r.status === 502);
+    reply = ok({}, 429);
+    check('research gemini: busy -> 429', (await W.fetch(post(base), env)).status === 429);
+    reply = () => { throw new Error('network down'); };
+    check('research gemini: network failure -> 502', (await W.fetch(post(base), env)).status === 502);
+    calls = []; r = await W.fetch(post({ task: 'research', problem: '' }), env);
+    check('research: an empty problem is a 400 and Gemini is never called', r.status === 400 && calls.length === 0);
+    calls = []; r = await W.fetch(post(base, 'https://evil.example'), env);
+    check('research: other origins get 403 and Gemini is never called', r.status === 403 && calls.length === 0);
   } finally { global.fetch = realFetch; }
 }
