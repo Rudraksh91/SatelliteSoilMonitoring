@@ -11,6 +11,8 @@
  *   AgriDiagnose.direct.diagnose / .research(body, key, opts) -> own-key mode: the same Gemini calls the proxy makes, run in this page with the user's OWN
  *                                        key (kept on this device, sent only to Google). Uses chat-proxy/lib.mjs so the prompts and checks are identical.
  *   AgriDiagnose.camConstraints(deviceId) / camErrorKey(e) -> getUserMedia settings for the live camera window, and the wording key for a camera error
+ *   AgriDiagnose.googleSearchUrl(o) / copyImage(dataUrl) / SYMPTOMS -> the no-key route: a Google search built from crop + symptom, and the photo copied to the clipboard
+ *                                        so it can be pasted into Google Lens (Google does not let a page send it a photo, nor read its results)
  *   AgriDiagnose.validKey(k)             -> cheap shape check for a pasted key (no spaces, long enough)
  *   AgriDiagnose.fitSize(w, h, max)      -> new width and height with the long side at most `max`
  *   AgriDiagnose.tone(d)                 -> 'good' | 'warn' | 'bad' | 'none': how the result card is coloured
@@ -108,6 +110,26 @@
     return 'pcCamFail';
   };
 
+  /** No key, no account: a Google search the farmer's browser opens in a new tab. Google shows the results; this app never reads them. */
+  const SYMPTOMS = { spots: 'leaf spots', curl: 'leaf curling', yellow: 'yellowing leaves', wilt: 'wilting plant', holes: 'holes in leaves insects', powder: 'white powdery coating on leaves', fruit: 'fruit rot and fruit drop' };
+  function googleSearchUrl(o) {
+    o = o || {};
+    const what = Object.prototype.hasOwnProperty.call(SYMPTOMS, o.symptom) ? SYMPTOMS[o.symptom] : (clean(o.note, 120) || 'leaf disease');
+    const q = [clean(o.crop, 60), what, 'disease treatment India'].filter(Boolean).join(' ');
+    return 'https://www.google.com/search?q=' + encodeURIComponent(q) + '&hl=' + ({ hi: 'hi', gu: 'gu' }[o.lang] || 'en');
+  }
+  /** Browser only. Puts the photo on the clipboard as PNG so it can be pasted into Google Lens. Returns false when the browser cannot do it. */
+  async function copyImage(dataUrl, nav) {
+    nav = nav || (typeof navigator !== 'undefined' ? navigator : null);
+    if (!nav || !nav.clipboard || !nav.clipboard.write || typeof ClipboardItem === 'undefined' || !splitDataUrl(dataUrl)) return false;
+    const img = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => no(new Error('unreadable photo')); im.src = dataUrl; });
+    const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/png'));
+    if (!blob) return false;
+    await nav.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    return true;
+  }
+
   /** A pasted API key: no spaces or quotes, 20 to 200 characters. (Google decides if it is really valid.) */
   const validKey = k => typeof k === 'string' && /^[A-Za-z0-9_.\-]{20,200}$/.test(k.trim());
 
@@ -156,5 +178,5 @@
     } finally { release(); }
   }
 
-  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, researchWanted, buildResearchRequest, normalizeResearch, camConstraints, camErrorKey, validKey, direct, tone, confKey, prepareImage };
+  return { MAX_SIDE, MAX_B64, KINDS, CATS, CONFS, fitSize, splitDataUrl, buildRequest, normalize, researchWanted, buildResearchRequest, normalizeResearch, camConstraints, camErrorKey, SYMPTOMS, googleSearchUrl, copyImage, validKey, direct, tone, confKey, prepareImage };
 });

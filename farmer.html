@@ -149,6 +149,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .pc-head.good{background:color-mix(in srgb,var(--g) 18%,var(--card))}.pc-head.warn{background:color-mix(in srgb,var(--amber) 20%,var(--card))}.pc-head.bad{background:color-mix(in srgb,var(--red) 16%,var(--card))}.pc-head.none{background:var(--bg)}
 .pc-res h3{font-size:13px;margin:12px 0 3px;color:var(--mut);font-weight:700;letter-spacing:.03em}.pc-res p{margin:0 0 4px}.pc-res ul{margin:0;padding-left:20px}.pc-res li{margin:0 0 3px}
 .pc-res a{color:var(--blue);word-break:break-word}
+.pc-h3{font-size:13px;margin:16px 0 6px;color:var(--mut);font-weight:700;letter-spacing:.03em}details summary{cursor:pointer;color:var(--g);font-weight:600}
 .pc-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--amber);margin-bottom:2px}
 #pcNote{width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:8px 0}
 </style>
@@ -287,10 +288,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script src="farmer/core.js?v=20261123a"></script>
-<script src="farmer/i18n.js?v=20261123b"></script>
+<script src="farmer/i18n.js?v=20261123c"></script>
 <script src="farmer/share.js?v=20261121w"></script>
 <script src="farmer/assistant.js?v=20261121y"></script>
-<script src="farmer/diagnose.js?v=20261123e"></script>
+<script src="farmer/diagnose.js?v=20261123f"></script>
 <script src="farmer/chat-config.js?v=1"></script>
 <script src="farmer/ndvimap.js?v=20261121k"></script>
 <script src="farmer/autopilot.js?v=20261121x"></script>
@@ -489,21 +490,29 @@ async function plantCall(body,ms){       // one path for both steps: the proxy w
   return {research:await DG.direct.research(body,gKey(),opt)};
 }
 const plantCard=f=>`<div class="card" id="plantCard"><h2>${esc(T('pcTitle'))}</h2><div id="plantBody">${plantBody(f)}</div></div>`;
+const plantKeyForm=()=>`<p class="note" style="margin:8px 0">${esc(T('pcKeyHelp'))}</p>`+
+  `<input id="pcKey" type="password" autocomplete="off" spellcheck="false" placeholder="${esc(T('pcKeyPh'))}" style="width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:0 0 8px">`+
+  `<div class="row"><button id="pcKeySave">${esc(T('pcKeySave'))}</button></div><p class="note" id="pcKeyMsg" style="margin:8px 0 0;color:var(--red)"></p>`;
+// No key, no account: search Google by what the farmer sees. Google shows the results in its own tab; this app never reads them.
+const plantSymHtml=()=>`<h3 class="pc-h3">${esc(T('pcSymTitle'))}</h3><div class="chips" style="margin:0 0 6px">${Object.keys(DG.SYMPTOMS).map(k=>`<button type="button" data-sym="${k}">${esc(T('pcSym_'+k))}</button>`).join('')}</div><p class="note" style="margin:0">${esc(T('pcSymNote'))}</p>`;
 function plantBody(f){
-  const st=pcSt(f);
-  if(!plantReady())return `<p style="margin:0 0 10px">${esc(T('pcOff'))}</p><p class="note" style="margin:0 0 8px">${esc(T('pcKeyHelp'))}</p>`+
-    `<input id="pcKey" type="password" autocomplete="off" spellcheck="false" placeholder="${esc(T('pcKeyPh'))}" style="width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:0 0 8px">`+
-    `<div class="row"><button id="pcKeySave">${esc(T('pcKeySave'))}</button></div><p class="note" id="pcKeyMsg" style="margin:8px 0 0;color:var(--red)"></p>`;
+  const st=pcSt(f),ai=plantReady();
   const img=st.url?`<img class="pc-img" id="pcImg" alt="">`:'';
-  if(st.stage==='busy')return img+`<p style="margin:0">${esc(T('pcBusy'))}</p>`;
-  if(st.stage==='ready')return img+`<input id="pcNote" type="text" maxlength="200" placeholder="${esc(T('pcNotePh'))}" value="${esc(st.note||'')}">`+
-    (photoOK?'':`<p class="note" style="margin:0 0 8px">${esc(T('pcConsent',{service:chatName()}))}</p>`)+
-    `<div class="row"><button id="pcGo">${esc(T(photoOK?'pcCheck':'pcAllow'))}</button><button id="pcNo" class="sec">${esc(T('pcCancel'))}</button></div>`;
+  const keyBox=ai?'':`<details style="margin-top:14px"><summary>${esc(T('pcKeySummary'))}</summary>${plantKeyForm()}</details>`;
   const pick=`<div class="row"><button id="pcCamBtn">${esc(T('pcTake'))}</button><button id="pcGalBtn" class="sec">${esc(T('pcPick'))}</button></div>`+
     `<input id="pcCam" type="file" accept="image/*" capture="environment" hidden><input id="pcGal" type="file" accept="image/*" hidden>`;
-  if(st.stage==='fail')return img+`<p style="margin:0 0 10px;color:var(--red)">${esc(T(st.err||'pcFail'))}</p>`+pick;
+  if(st.stage==='busy')return img+`<p style="margin:0">${esc(T('pcBusy'))}</p>`;
+  if(st.stage==='ready'){
+    const note=`<input id="pcNote" type="text" maxlength="200" placeholder="${esc(T('pcNotePh'))}" value="${esc(st.note||'')}">`;
+    const lens=`<div class="row" style="margin-top:8px"><button id="pcLens"${ai?' class="sec"':''}>${esc(T('pcLens'))}</button><button id="pcGoogle" class="sec">${esc(T('pcGoogle'))}</button><button id="pcSave" class="sec">${esc(T('pcSave'))}</button></div>`+
+      `<p class="note" id="pcLensMsg" style="margin:8px 0 0">${esc(T('pcLensNote'))}</p>`;
+    if(ai)return img+note+(photoOK?'':`<p class="note" style="margin:0 0 8px">${esc(T('pcConsent',{service:chatName()}))}</p>`)+
+      `<div class="row"><button id="pcGo">${esc(T(photoOK?'pcCheck':'pcAllow'))}</button><button id="pcNo" class="sec">${esc(T('pcCancel'))}</button></div>`+lens;
+    return img+note+lens+`<div class="row" style="margin-top:8px"><button id="pcNo" class="sec">${esc(T('pcCancel'))}</button></div>`+keyBox;
+  }
+  if(st.stage==='fail')return img+`<p style="margin:0 0 10px;color:var(--red)">${esc(T(st.err||'pcFail'))}</p>`+pick+plantSymHtml()+keyBox;
   if(st.stage==='done'&&st.res)return img+plantResult(st.res,st.rs)+`<div style="margin-top:12px">${pick}</div>`;
-  return `<p style="margin:0 0 6px">${esc(T('pcHelp'))}</p><p class="note" style="margin:0 0 10px">${esc(T('pcTips'))}</p>`+pick;
+  return `<p style="margin:0 0 6px">${esc(T(ai?'pcHelp':'pcHelpNoAi'))}</p><p class="note" style="margin:0 0 10px">${esc(T('pcTips'))}</p>`+pick+plantSymHtml()+keyBox;
 }
 const plantKeyRow=()=>!chatUrl()&&gKey()?`<p class="note" style="margin:12px 0 0">${esc(T('pcKeyUsing'))} <a href="#" id="pcKeyDel">${esc(T('pcKeyRemove'))}</a></p>`:'';
 function plantResearchHtml(d,rs){
@@ -543,6 +552,10 @@ function plantRender(f){
   const im=$('pcImg');if(im&&st.url)im.src=st.url;
   const onFile=e=>{const file=e.target.files&&e.target.files[0];e.target.value='';if(file)plantPhoto(f,file);};
   [['pcCamBtn','pcCam'],['pcGalBtn','pcGal']].forEach(([b,i])=>{const B=$(b),I_=$(i);if(B&&I_){B.onclick=b==='pcCamBtn'?()=>plantCamera(f):()=>I_.click();I_.onchange=onFile;}});
+  document.querySelectorAll('#plantBody [data-sym]').forEach(b=>b.onclick=()=>googleOpen(f,b.dataset.sym));
+  {const g=$('pcGoogle'),l=$('pcLens'),sv=$('pcSave');
+   if(g)g.onclick=()=>googleOpen(f,null);if(l)l.onclick=()=>lensOpen(f);
+   if(sv)sv.onclick=()=>{const a=document.createElement('a');a.href=st.url;a.download='plant-photo.jpg';document.body.appendChild(a);a.click();a.remove();};}
   const ks=$('pcKeySave'),kd=$('pcKeyDel');
   if(ks)ks.onclick=()=>{const v=($('pcKey').value||'').trim();if(!DG.validKey(v)){$('pcKeyMsg').textContent=T('pcKeyBad');return;}setGKey(v);plantRender(f);};
   if(kd)kd.onclick=e=>{e.preventDefault();setGKey('');plantRender(f);};
@@ -582,6 +595,17 @@ async function plantCamera(f){
     };
     await camStart();
   }catch(e){fail(e);}
+}
+function googleOpen(f,sym){
+  const st=pcSt(f),crop=f.cropId&&f.cropId!=='general'?I.t('en','crop_'+f.cropId):'';
+  window.open(DG.googleSearchUrl({crop,symptom:sym,note:st.note,lang}),'_blank','noopener');
+}
+// Google does not let a page send it a photo (its upload address refuses other websites), so the photo is copied and Lens is opened for the farmer to paste it.
+async function lensOpen(f){
+  const st=pcSt(f);let copied=false;
+  try{copied=await DG.copyImage(st.url);}catch(e){}
+  window.open('https://lens.google.com/','_blank','noopener');
+  const m=$('pcLensMsg');if(m)m.textContent=T(copied?'pcLensCopied':'pcLensNoCopy');
 }
 async function plantPhoto(f,file){
   const st=pcSt(f);
