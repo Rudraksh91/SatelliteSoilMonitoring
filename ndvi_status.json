@@ -1,10 +1,10 @@
 {
-  "updated": "2026-11-25T15:46:41.032019",
+  "updated": "2026-11-26T15:26:18.831008",
   "scene_date": "2026-11-24",
-  "scene_age_days": 1,
+  "scene_age_days": 2,
   "scenes_in_composite": 16,
-  "jpeg_name": "NDVI_Dediapada_2026-11-25.jpeg",
-  "jpeg_id": "2026-11-25_2026-11-24",
+  "jpeg_name": "NDVI_Dediapada_2026-11-26.jpeg",
+  "jpeg_id": "2026-11-26_2026-11-24",
   "jpeg_url": "https://raw.githubusercontent.com/Rudraksh91/SatelliteSoilMonitoring/main/ndvi_latest.jpeg",
   "zones": [
     {
@@ -42,7 +42,7 @@
     }
   ],
   "weather": {
-    "et0_mm_day": 3.25,
+    "et0_mm_day": 2.92,
     "rain_3d_mm": 0,
     "vpd_kpa": 0.93
   }
