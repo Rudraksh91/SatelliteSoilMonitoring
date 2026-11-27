@@ -23,3 +23,6 @@ run_date,scene_date,scene_age_days,scenes_in_composite,zone,ndvi,pixels,status,e
 2026-11-26,2026-11-24,2,16,Zone 1 – Boys Hostel,0.2672,28,MODERATE,2.92,0,0.93
 2026-11-26,2026-11-24,2,16,Zone 2 – Main College,0.3334,76,MODERATE,2.92,0,0.93
 2026-11-26,2026-11-24,2,16,Zone 3 – Diploma College,0.5671,41,THRIVING,2.92,0,0.93
+2026-11-27,2026-11-24,3,16,Zone 1 – Boys Hostel,0.2672,28,MODERATE,2.53,0,0.85
+2026-11-27,2026-11-24,3,16,Zone 2 – Main College,0.3334,76,MODERATE,2.53,0,0.85
+2026-11-27,2026-11-24,3,16,Zone 3 – Diploma College,0.5671,41,THRIVING,2.53,0,0.85
