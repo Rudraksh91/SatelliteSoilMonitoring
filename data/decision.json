@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-27T10:00:29+00:00",
-  "valid_until": "2026-11-29T10:00:29+00:00",
-  "date": "2026-11-27",
+  "generated_at": "2026-11-28T09:17:45+00:00",
+  "valid_until": "2026-11-30T09:17:45+00:00",
+  "date": "2026-11-28",
   "calibrated": false,
   "missing_inputs": [
     "soil.calibrated (theta_fc/theta_wp are SoilGrids+Saxton-Rawls estimates)",
@@ -9,13 +9,13 @@
     "zones.area_m2 + flow_lph (using the 3 mm/h rate estimate)"
   ],
   "farm": {
-    "ndvi": 0.436,
-    "kc": 0.647,
+    "ndvi": 0.4548,
+    "kc": 0.67,
     "ndvi_stale": false,
-    "ndvi_age_days": 3,
+    "ndvi_age_days": 1,
     "stress_flag": false,
     "forecast_rain_mm_48h": 0.0,
-    "balanced_to": "2026-11-26"
+    "balanced_to": "2026-11-27"
   },
   "limits": {
     "min_run_min": 10,
@@ -33,34 +33,34 @@
     {
       "id": 1,
       "name": "Zone 1 \u2013 Boys Hostel",
-      "dr_mm": 23.2,
+      "dr_mm": 26.04,
       "raw_mm": 26.4,
       "taw_mm": 52.8,
-      "dr_pct": 43.9,
+      "dr_pct": 49.3,
       "decision": "NO_RUN",
-      "reason": "soil water ample (depletion 23.2 mm < RAW 26.4 mm)",
+      "reason": "soil water ample (depletion 26.0 mm < RAW 26.4 mm)",
       "run_minutes": 0.0
     },
     {
       "id": 2,
       "name": "Zone 2 \u2013 Main College",
-      "dr_mm": 23.2,
+      "dr_mm": 26.04,
       "raw_mm": 26.4,
       "taw_mm": 52.8,
-      "dr_pct": 43.9,
+      "dr_pct": 49.3,
       "decision": "NO_RUN",
-      "reason": "soil water ample (depletion 23.2 mm < RAW 26.4 mm)",
+      "reason": "soil water ample (depletion 26.0 mm < RAW 26.4 mm)",
       "run_minutes": 0.0
     },
     {
       "id": 3,
       "name": "Zone 3 \u2013 Diploma College",
-      "dr_mm": 23.2,
+      "dr_mm": 26.04,
       "raw_mm": 26.4,
       "taw_mm": 52.8,
-      "dr_pct": 43.9,
+      "dr_pct": 49.3,
       "decision": "NO_RUN",
-      "reason": "soil water ample (depletion 23.2 mm < RAW 26.4 mm)",
+      "reason": "soil water ample (depletion 26.0 mm < RAW 26.4 mm)",
       "run_minutes": 0.0
     }
   ],
